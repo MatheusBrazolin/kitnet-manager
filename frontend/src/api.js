@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-const BASE = import.meta.env.VITE_API_URL || ''
-const api = axios.create({ baseURL: `${BASE}/api` })
+// Em produção, frontend e backend ficam no mesmo domínio
+const api = axios.create({ baseURL: '/api' })
 
 export const getDashboard = () => api.get('/dashboard/')
 export const getKitnets = (params) => api.get('/kitnets/', { params })

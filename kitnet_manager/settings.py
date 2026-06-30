@@ -38,10 +38,12 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'kitnet_manager.urls'
 
+FRONTEND_DIR = BASE_DIR / 'frontend' / 'dist'
+
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR / 'templates'],
+        'DIRS': [BASE_DIR / 'templates', FRONTEND_DIR],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -56,7 +58,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'kitnet_manager.wsgi.application'
 
-# Suporte a DATABASE_URL do Railway (ou variáveis individuais)
+# Suporte a DATABASE_URL do Railway
 DATABASE_URL = config('DATABASE_URL', default=None)
 
 if DATABASE_URL:
@@ -91,6 +93,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [FRONTEND_DIR / 'assets'] if (FRONTEND_DIR / 'assets').exists() else []
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
