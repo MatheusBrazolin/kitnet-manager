@@ -27,4 +27,4 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
-CMD gunicorn kitnet_manager.wsgi --bind 0.0.0.0:$PORT --log-file -
+CMD python manage.py migrate --noinput && gunicorn kitnet_manager.wsgi --bind 0.0.0.0:$PORT --log-file -
