@@ -11,15 +11,5 @@ services:
         value: ".onrender.com"
       - key: CORS_ALLOW_ALL_ORIGINS
         value: "False"
-      - key: DB_ENGINE
-        value: django.db.backends.postgresql
-      - key: DB_NAME
-        value: postgres
-      - key: DB_USER
+      - key: DATABASE_URL
         sync: false
-      - key: DB_PASSWORD
-        sync: false
-      - key: DB_HOST
-        value: aws-0-us-east-1.pooler.supabase.com
-      - key: DB_PORT
-        value: "5432"
