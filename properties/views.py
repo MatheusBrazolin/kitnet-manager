@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
@@ -6,6 +8,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.authtoken.models import Token
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import authenticate
+from django.db.models import Sum
 from django.utils import timezone
 from .models import Kitnet, Inquilino, Pagamento, Alerta, ConfiguracaoSistema
 from .serializers import (
@@ -59,7 +62,9 @@ def dashboard(request):
         'alugadas': kitnets.filter(status='alugada').count(),
         'vagas': kitnets.filter(status='vaga').count(),
         'manutencao': kitnets.filter(status='manutencao').count(),
-        'total_mensal': sum(k.valor_aluguel for k in kitnets.filter(status='alugada')),
+        'total_mensal': kitnets.filter(status='alugada').aggregate(
+            total=Sum('valor_aluguel')
+        )['total'] or Decimal('0'),
         'pagamentos_pendentes': Pagamento.objects.filter(status='pendente').count(),
         'pagamentos_atrasados': Pagamento.objects.filter(
             status='pendente', data_esperada__lt=hoje
