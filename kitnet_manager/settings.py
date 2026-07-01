@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 from decouple import config
 
@@ -80,6 +81,14 @@ else:
                 'options': '-c search_path=public',
             },
         }
+    }
+
+# Testes rodam em SQLite em memória: rápido, isolado, e não depende do
+# Postgres remoto do Supabase (evita criar/derrubar bancos de teste lá).
+if 'test' in sys.argv:
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
     }
 
 AUTH_PASSWORD_VALIDATORS = [
