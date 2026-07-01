@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getDashboard, getPagamentos } from '../api'
-import { Home, TrendingUp, AlertTriangle, Clock, DollarSign, CheckCircle } from 'lucide-react'
+import { Home, AlertTriangle, DollarSign, CheckCircle } from 'lucide-react'
+import PageHeader from '../components/ui/PageHeader'
+import LoadingState from '../components/ui/LoadingState'
+import Badge from '../components/ui/Badge'
 
 const statusColor = {
   pago: 'bg-emerald-100 text-emerald-700',
@@ -22,9 +25,9 @@ function StatCard({ icon: Icon, label, value, color, sub }) {
       <div className={`p-3 rounded-lg ${color}`}>
         <Icon size={20} />
       </div>
-      <div>
+      <div className="min-w-0">
         <p className="text-sm text-slate-500">{label}</p>
-        <p className="text-2xl font-bold text-slate-800 mt-0.5">{value}</p>
+        <p className="text-2xl font-bold text-slate-800 mt-0.5 truncate">{value}</p>
         {sub && <p className="text-xs text-slate-400 mt-0.5">{sub}</p>}
       </div>
     </div>
@@ -46,16 +49,13 @@ export default function Dashboard() {
     )
   }, [])
 
-  if (loading) return <div className="flex items-center justify-center h-64 text-slate-400">Carregando...</div>
+  if (loading) return <LoadingState />
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-slate-800">Dashboard</h2>
-        <p className="text-slate-500 text-sm mt-1">Visão geral das suas kitnets</p>
-      </div>
+      <PageHeader title="Dashboard" subtitle="Visão geral das suas kitnets" />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Home} label="Total de Kitnets" value={stats.total_kitnets} color="bg-indigo-50 text-indigo-600" />
         <StatCard icon={CheckCircle} label="Alugadas" value={stats.alugadas} color="bg-emerald-50 text-emerald-600" sub={`${stats.vagas} vagas`} />
         <StatCard icon={DollarSign} label="Receita Mensal" value={`R$ ${Number(stats.total_mensal).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`} color="bg-blue-50 text-blue-600" />
@@ -82,16 +82,14 @@ export default function Dashboard() {
               <tbody className="divide-y divide-slate-50">
                 {pagamentos.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50">
-                    <td className="px-5 py-3 font-medium text-slate-700">{p.kitnet_nome}</td>
-                    <td className="px-5 py-3 text-slate-500">
+                    <td className="px-5 py-3 font-medium text-slate-700 whitespace-nowrap">{p.kitnet_nome}</td>
+                    <td className="px-5 py-3 text-slate-500 whitespace-nowrap">
                       {new Date(p.data_esperada + 'T00:00:00').toLocaleDateString('pt-BR')}
                     </td>
                     <td className="px-5 py-3">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor[p.status]}`}>
-                        {statusLabel[p.status]}
-                      </span>
+                      <Badge className={statusColor[p.status]}>{statusLabel[p.status]}</Badge>
                     </td>
-                    <td className="px-5 py-3 font-semibold text-slate-700 text-right">
+                    <td className="px-5 py-3 font-semibold text-slate-700 text-right whitespace-nowrap">
                       R$ {Number(p.valor).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                   </tr>

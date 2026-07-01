@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { getAlertas, marcarAlertaVisto } from '../api'
 import { Bell, CheckCheck } from 'lucide-react'
+import PageHeader from '../components/ui/PageHeader'
+import EmptyState from '../components/ui/EmptyState'
+import LoadingState from '../components/ui/LoadingState'
 
 const tipoColor = {
   pagamento_vencido: 'border-l-red-500 bg-red-50',
@@ -31,34 +34,31 @@ export default function Alertas() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-800">Alertas</h2>
-          <p className="text-slate-500 text-sm mt-1">{alertas.length} {mostrarTodos ? 'total' : 'não vistos'}</p>
-        </div>
-        <button
-          onClick={() => setMostrarTodos((v) => !v)}
-          className="text-sm px-4 py-2 bg-white border border-slate-200 rounded-lg hover:border-indigo-300 transition-colors text-slate-600"
-        >
-          {mostrarTodos ? 'Ver não vistos' : 'Ver todos'}
-        </button>
-      </div>
+      <PageHeader
+        title="Alertas"
+        subtitle={`${alertas.length} ${mostrarTodos ? 'total' : 'não vistos'}`}
+        action={
+          <button
+            onClick={() => setMostrarTodos((v) => !v)}
+            className="text-sm px-4 py-2 bg-white border border-slate-200 rounded-lg hover:border-indigo-300 transition-colors text-slate-600"
+          >
+            {mostrarTodos ? 'Ver não vistos' : 'Ver todos'}
+          </button>
+        }
+      />
 
       {loading ? (
-        <div className="flex items-center justify-center h-40 text-slate-400">Carregando...</div>
+        <LoadingState />
       ) : alertas.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
-          <Bell size={48} className="mx-auto mb-3 opacity-30" />
-          <p>Nenhum alerta {mostrarTodos ? '' : 'pendente'}</p>
-        </div>
+        <EmptyState icon={Bell} message={`Nenhum alerta ${mostrarTodos ? '' : 'pendente'}`} />
       ) : (
         <div className="space-y-3">
           {alertas.map((a) => (
             <div
               key={a.id}
-              className={`bg-white rounded-xl border-l-4 border border-slate-100 shadow-sm p-4 flex items-start justify-between ${tipoColor[a.tipo] ?? tipoColor.outro}`}
+              className={`bg-white rounded-xl border-l-4 border border-slate-100 shadow-sm p-4 flex items-start justify-between gap-3 ${tipoColor[a.tipo] ?? tipoColor.outro}`}
             >
-              <div>
+              <div className="min-w-0">
                 <p className="font-semibold text-slate-800 text-sm">{a.titulo}</p>
                 <p className="text-slate-500 text-xs mt-1">{a.mensagem}</p>
                 <p className="text-slate-400 text-xs mt-2">
@@ -68,7 +68,7 @@ export default function Alertas() {
               {!a.visualizado && (
                 <button
                   onClick={() => marcar(a.id)}
-                  className="ml-4 shrink-0 p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                  className="shrink-0 p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                   title="Marcar como visto"
                 >
                   <CheckCheck size={16} />
