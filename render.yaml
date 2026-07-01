@@ -10,7 +10,7 @@ services:
       - key: ALLOWED_HOSTS
         value: ".onrender.com"
       - key: CORS_ALLOW_ALL_ORIGINS
-        value: "True"
+        value: "False"
       - key: DB_ENGINE
         value: django.db.backends.postgresql
       - key: DB_NAME

@@ -1,5 +1,6 @@
-import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Home, CreditCard, Users, Bell, Settings } from 'lucide-react'
+import { NavLink, useNavigate } from 'react-router-dom'
+import { LayoutDashboard, Home, CreditCard, Users, Bell, Settings, LogOut } from 'lucide-react'
+import { logout } from '../api'
 
 const links = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -10,6 +11,18 @@ const links = [
 ]
 
 export default function Sidebar() {
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    try {
+      await logout()
+    } catch {
+      // segue para limpar a sessão local mesmo se a chamada falhar
+    }
+    localStorage.removeItem('token')
+    navigate('/login', { replace: true })
+  }
+
   return (
     <aside className="fixed top-0 left-0 h-screen w-60 bg-slate-900 text-white flex flex-col z-10">
       <div className="px-6 py-5 border-b border-slate-700">
@@ -37,7 +50,7 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      <div className="px-6 py-4 border-t border-slate-700">
+      <div className="px-6 py-4 border-t border-slate-700 space-y-2">
         <a
           href="/admin/"
           target="_blank"
@@ -47,6 +60,14 @@ export default function Sidebar() {
           <Settings size={14} />
           Painel Administrativo
         </a>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="flex items-center gap-2 text-xs text-slate-400 hover:text-white transition-colors"
+        >
+          <LogOut size={14} />
+          Sair
+        </button>
       </div>
     </aside>
   )
