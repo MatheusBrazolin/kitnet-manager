@@ -1,13 +1,21 @@
-from rest_framework import viewsets, filters
-from rest_framework.decorators import api_view
+from rest_framework import viewsets, filters, status
+from rest_framework.decorators import api_view, authentication_classes, permission_classes, throttle_classes
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.throttling import AnonRateThrottle
+from rest_framework.authtoken.models import Token
 from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth import authenticate
 from django.utils import timezone
 from .models import Kitnet, Inquilino, Pagamento, Alerta, ConfiguracaoSistema
 from .serializers import (
     KitnetSerializer, InquilinoSerializer, PagamentoSerializer,
     AlertaSerializer, DashboardSerializer
 )
+
+
+class LoginRateThrottle(AnonRateThrottle):
+    scope = 'login'
 
 
 class KitnetViewSet(viewsets.ModelViewSet):
@@ -61,3 +69,25 @@ def dashboard(request):
 
     serializer = DashboardSerializer(data)
     return Response(serializer.data)
+
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+@throttle_classes([LoginRateThrottle])
+def login_view(request):
+    username = request.data.get('username', '')
+    password = request.data.get('password', '')
+    user = authenticate(request, username=username, password=password)
+
+    if user is None or not user.is_active:
+        return Response({'detail': 'Usuário ou senha inválidos.'}, status=status.HTTP_401_UNAUTHORIZED)
+
+    token, _ = Token.objects.get_or_create(user=user)
+    return Response({'token': token.key, 'username': user.username})
+
+
+@api_view(['POST'])
+def logout_view(request):
+    Token.objects.filter(user=request.user).delete()
+    return Response(status=status.HTTP_204_NO_CONTENT)
