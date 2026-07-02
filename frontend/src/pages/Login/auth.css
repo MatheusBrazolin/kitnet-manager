@@ -1,0 +1,139 @@
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--color-bg);
+}
+
+.auth-showcase {
+  background: var(--color-ink);
+  color: var(--color-bg);
+  border-right: var(--border-width-lg) solid var(--color-ink);
+  padding: var(--space-8);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-showcase::after {
+  content: '';
+  position: absolute;
+  width: 260px;
+  height: 260px;
+  right: -80px;
+  bottom: -80px;
+  background: var(--color-brand);
+  border: var(--border-width-lg) solid var(--color-bg);
+  border-radius: var(--radius-lg);
+  transform: rotate(18deg);
+}
+
+.auth-showcase-mark {
+  font-weight: 700;
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  z-index: 1;
+}
+
+.auth-showcase-mark span {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--color-brand);
+  border: var(--border-width) solid var(--color-bg);
+  color: var(--color-ink);
+  display: grid;
+  place-items: center;
+}
+
+.auth-showcase-copy {
+  z-index: 1;
+}
+
+.auth-showcase-copy h1 {
+  font-family: var(--font-display);
+  font-size: clamp(1.9rem, 1.3rem + 2.4vw, 3rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  max-width: 16ch;
+}
+
+.auth-showcase-copy p {
+  margin-top: var(--space-3);
+  color: var(--color-bg);
+  opacity: 0.75;
+  font-weight: 500;
+  max-width: 38ch;
+}
+
+.auth-showcase-foot {
+  color: var(--color-bg);
+  opacity: 0.5;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  z-index: 1;
+}
+
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+}
+
+.auth-form {
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.auth-form h2 {
+  font-family: var(--font-display);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+}
+
+.auth-form-subtitle {
+  color: var(--color-ink-muted);
+  margin-top: var(--space-1);
+  font-weight: 500;
+}
+
+.auth-form .btn-primary {
+  margin-top: var(--space-2);
+}
+
+.auth-switch {
+  text-align: center;
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.auth-switch a {
+  color: var(--color-brand-strong);
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+@media (max-width: 860px) {
+  .auth-page {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-showcase {
+    display: none;
+  }
+}

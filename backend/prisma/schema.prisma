@@ -1,0 +1,67 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Plano {
+  FREE
+  PRO
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  plano     Plano    @default(FREE)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  kitnets Kitnet[]
+}
+
+model Kitnet {
+  id        Int      @id @default(autoincrement())
+  numero    String
+  valor     Float
+  status    String   @default("vaga")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  moradores Morador[]
+
+  @@unique([userId, numero])
+}
+
+model Morador {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  telefone  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  kitnetId Int
+  kitnet   Kitnet @relation(fields: [kitnetId], references: [id], onDelete: Cascade)
+
+  pagamentos Pagamento[]
+}
+
+model Pagamento {
+  id         Int      @id @default(autoincrement())
+  valor      Float
+  vencimento DateTime
+  pago       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  moradorId Int
+  morador   Morador @relation(fields: [moradorId], references: [id], onDelete: Cascade)
+}

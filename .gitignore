@@ -1,25 +1,18 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-venv/
-.venv/
-*.egg-info/
+# Node
+node_modules/
 dist/
 build/
-
-# Django
 *.log
-local_settings.py
-db.sqlite3
-staticfiles/
-media/
+npm-debug.log*
+
+# Bun (usado só para rodar localmente; npm é o gerenciador oficial do projeto)
+bun.lock
 
 # Env
 .env
 
-# Node
-frontend/node_modules/
+# Vite
+frontend/dist/
 
 # OS
 .DS_Store
