@@ -11,6 +11,7 @@ export async function createApp(expressInstance?: Parameters<typeof NestFactory.
 
   app.use(helmet());
   app.enableCors({ origin: process.env.CORS_ORIGIN ?? 'http://localhost:5173' });
+  app.setGlobalPrefix('api');
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

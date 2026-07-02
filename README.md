@@ -41,6 +41,7 @@ frontend/
 └── Dockerfile
 
 docker-compose.yml
+vercel.json          # config multi-service (frontend + backend num só projeto Vercel)
 ```
 
 ## Rodando localmente
@@ -72,7 +73,7 @@ Variáveis de ambiente (`backend/.env`):
 ```bash
 cd frontend
 npm install
-cp .env.example .env    # aponte VITE_API_URL para a API
+cp .env.example .env    # aponte VITE_API_URL para http://localhost:3000/api
 npm run dev
 ```
 
@@ -98,44 +99,36 @@ npm run test:e2e  # testes e2e (guards, validação)
 
 ```bash
 # criar conta
-curl -X POST http://localhost:3000/auth/register \
+curl -X POST http://localhost:3000/api/auth/register \
   -H "Content-Type: application/json" \
   -d '{"name":"Seu Nome","email":"voce@exemplo.com","password":"senha123"}'
 # -> {"token": "...", "user": {...}}
 
 # uso do token
-curl http://localhost:3000/kitnets \
+curl http://localhost:3000/api/kitnets \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 
-## Deploy (Vercel)
+## Deploy (Vercel — multi-service)
 
-Backend e frontend são dois projetos Vercel separados, apontando pro mesmo repositório GitHub — sem servidor "dormindo", sem cartão de crédito.
+Frontend e backend sobem juntos num único projeto Vercel, definido pelo `vercel.json` na raiz do repo. O Vercel detecta os dois serviços (Vite em `frontend/`, NestJS em `backend/`) e roteia `/api/*` pro backend e o resto pro frontend — mesma origem, sem CORS, sem servidor "dormindo".
 
-### 1. Backend
+1. No Vercel, **Add New → Project** → importe o repo. Ele reconhece os dois serviços automaticamente a partir do `vercel.json`.
+2. Em **Environment Variables** do serviço `backend`, adicione: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN` (ex: `7d`).
+3. Deploy.
 
-1. No Vercel, **Add New → Project** → importe o repo → em **Root Directory** escolha `backend`.
-2. O Vercel detecta o `vercel.json` e builda `src/lambda.ts` como função serverless (roda `npx prisma generate` no build).
-3. Em **Environment Variables**, adicione: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN` (ex: `7d`), `CORS_ORIGIN` (a URL do projeto do frontend, ex: `https://kitmanager-frontend.vercel.app`).
-4. Deploy. A URL gerada (ex: `https://kitmanager-api.vercel.app`) é a API.
+Não precisa configurar `VITE_API_URL` nem `CORS_ORIGIN` em produção — como front e back respondem no mesmo domínio (via rewrite), o frontend já chama `/api` por padrão.
 
-**Migrações:** o Vercel não roda `prisma migrate deploy` sozinho (não tem um passo de "start" como o Docker). Rode localmente antes de cada deploy com schema novo:
+**Migrações:** o Vercel não roda `prisma migrate deploy` sozinho. Rode localmente antes de cada deploy com schema novo:
 ```bash
 cd backend
 DATABASE_URL="<url-de-produção>" npx prisma migrate deploy
 ```
 
-### 2. Frontend
-
-1. **Add New → Project** → mesmo repo → **Root Directory** = `frontend`.
-2. O Vercel detecta Vite automaticamente.
-3. Em **Environment Variables**, adicione `VITE_API_URL` com a URL do backend (etapa anterior). Como é usada em build-time, qualquer troca exige um redeploy.
-4. Deploy.
-
 ### Limitação a saber
 
-O rate-limiting do login/registro (`@nestjs/throttler`) guarda tentativas em memória. Como cada instância serverless pode ser nova, o limite reseta entre cold starts — não é um problema de segurança grave pra uso pessoal, só não é tão rígido quanto num servidor sempre ligado.
+O rate-limiting do login/registro (`@nestjs/throttler`) guarda tentativas em memória do processo. Não é um problema de segurança grave pra uso pessoal, só vale saber que reinícios do serviço zeram o contador.
 
 ### Alternativa: Docker (self-host)
 
-Os `Dockerfile`s de `backend/` e `frontend/` e o `docker-compose.yml` continuam funcionando pra quem preferir um servidor tradicional (Render, Railway, Fly.io, VPS) em vez de serverless — nesse caso o backend roda `prisma migrate deploy` sozinho no start.
+Os `Dockerfile`s de `backend/` e `frontend/` e o `docker-compose.yml` continuam funcionando pra quem preferir um servidor tradicional (Render, Railway, Fly.io, VPS) — nesse caso o backend roda `prisma migrate deploy` sozinho no start, e o nginx do frontend faz proxy de `/api` pro container do backend.
