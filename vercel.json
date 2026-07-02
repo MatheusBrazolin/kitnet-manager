@@ -6,8 +6,8 @@
     },
     "backend": {
       "root": "backend",
-      "entrypoint": "dist/main.js",
-      "buildCommand": "npm run build"
+      "framework": "nestjs",
+      "entrypoint": "src/main.ts"
     }
   },
   "rewrites": [
