@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { PasswordField } from '../../components/PasswordField/PasswordField';
 import './auth.css';
 
 export function Login() {
@@ -63,18 +64,13 @@ export function Login() {
             />
           </div>
 
-          <div className="field">
-            <label htmlFor="password">Senha</label>
-            <input
-              id="password"
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="••••••••"
-            />
-          </div>
+          <PasswordField
+            value={password}
+            onChange={setPassword}
+            minLength={6}
+            placeholder="••••••••"
+            autoComplete="current-password"
+          />
 
           <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
             {isSubmitting ? 'Entrando...' : 'Entrar'}

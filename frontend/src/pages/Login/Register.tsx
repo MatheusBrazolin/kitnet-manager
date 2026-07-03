@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { PasswordField } from '../../components/PasswordField/PasswordField';
 import './auth.css';
 
 export function Register() {
@@ -77,18 +78,13 @@ export function Register() {
             />
           </div>
 
-          <div className="field">
-            <label htmlFor="password">Senha</label>
-            <input
-              id="password"
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              placeholder="Mínimo 6 caracteres"
-            />
-          </div>
+          <PasswordField
+            value={password}
+            onChange={setPassword}
+            minLength={6}
+            placeholder="Mínimo 6 caracteres"
+            autoComplete="new-password"
+          />
 
           <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
             {isSubmitting ? 'Criando conta...' : 'Criar conta'}
