@@ -41,7 +41,7 @@ frontend/
 └── Dockerfile
 
 docker-compose.yml
-vercel.json          # config multi-service (frontend + backend num só projeto Vercel)
+vercel.json          # config de deploy (frontend estático + backend serverless num só projeto Vercel)
 ```
 
 ## Rodando localmente
@@ -109,15 +109,22 @@ curl http://localhost:3000/api/kitnets \
   -H "Authorization: Bearer SEU_TOKEN_AQUI"
 ```
 
-## Deploy (Vercel — multi-service)
+## Deploy (Vercel — projeto único, mesma origem)
 
-Frontend e backend sobem juntos num único projeto Vercel, definido pelo `vercel.json` na raiz do repo. O Vercel detecta os dois serviços (Vite em `frontend/`, NestJS em `backend/`) e roteia `/api/*` pro backend e o resto pro frontend — mesma origem, sem CORS, sem servidor "dormindo".
+Frontend e backend sobem juntos num único projeto Vercel, definido pelo `vercel.json` na raiz do repo. O `vercel.json` declara dois builds:
 
-1. No Vercel, **Add New → Project** → importe o repo. Ele reconhece os dois serviços automaticamente a partir do `vercel.json`.
-2. Em **Environment Variables** do serviço `backend`, adicione: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN` (ex: `7d`).
+- `@vercel/static-build` sobre `frontend/package.json` → gera o build estático do Vite (`frontend/dist`);
+- `@vercel/node` sobre `backend/src/main.ts` → transforma o NestJS numa função serverless.
+
+O roteamento manda `/api/*` pra função do backend, serve os arquivos estáticos do frontend quando existem e faz fallback pra `index.html` nas rotas do React Router — tudo na mesma origem, sem CORS.
+
+1. No Vercel, **Add New → Project** → importe o repo. Ele lê o `vercel.json` da raiz automaticamente (deixe o *Root Directory* como a raiz do repositório).
+2. Em **Environment Variables** do projeto, adicione: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN` (ex: `7d`).
 3. Deploy.
 
-Não precisa configurar `VITE_API_URL` nem `CORS_ORIGIN` em produção — como front e back respondem no mesmo domínio (via rewrite), o frontend já chama `/api` por padrão.
+Não precisa configurar `VITE_API_URL` nem `CORS_ORIGIN` em produção — como front e back respondem no mesmo domínio, o frontend já chama `/api` por padrão.
+
+> O `backend/src/main.ts` roda em dois modos: localmente/Docker sobe um servidor HTTP (`app.listen`); na Vercel (variável `VERCEL` presente) exporta um handler Express reaproveitado entre invocações.
 
 **Migrações:** o Vercel não roda `prisma migrate deploy` sozinho. Rode localmente antes de cada deploy com schema novo:
 ```bash
