@@ -46,11 +46,23 @@
 }
 
 .dashboard-stats .stat-card:nth-child(2) {
-  animation-delay: 70ms;
+  animation-delay: 60ms;
 }
 
 .dashboard-stats .stat-card:nth-child(3) {
-  animation-delay: 140ms;
+  animation-delay: 120ms;
+}
+
+.dashboard-stats .stat-card:nth-child(4) {
+  animation-delay: 180ms;
+}
+
+.dashboard-stats .stat-card:nth-child(5) {
+  animation-delay: 240ms;
+}
+
+.dashboard-stats .stat-card:nth-child(6) {
+  animation-delay: 300ms;
 }
 
 .stat-card::before {
@@ -68,6 +80,10 @@
 
 .stat-card-warning::before {
   background: var(--color-warning);
+}
+
+.stat-card-danger::before {
+  background: var(--color-danger);
 }
 
 .stat-card-label {

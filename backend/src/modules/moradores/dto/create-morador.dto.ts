@@ -1,4 +1,4 @@
-import { IsInt, IsString, MinLength } from 'class-validator';
+import { IsDateString, IsInt, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 
 export class CreateMoradorDto {
   @IsString()
@@ -11,4 +11,14 @@ export class CreateMoradorDto {
 
   @IsInt()
   kitnetId: number;
+
+  @IsOptional()
+  @IsDateString()
+  dataEntrada?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(31)
+  diaVencimento?: number;
 }

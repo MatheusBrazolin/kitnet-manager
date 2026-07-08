@@ -6,9 +6,16 @@ import { Table } from '../../components/Table/Table';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
+import { formatVencimentoLabel } from '../../utils/dates';
+import './pagamentos.css';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 
 function isAtrasado(pagamento: Pagamento) {
   return !pagamento.pago && new Date(pagamento.vencimento) < new Date();
@@ -100,7 +107,18 @@ export function Pagamentos() {
             { header: 'Valor', render: (row) => currencyFormatter.format(row.valor) },
             {
               header: 'Status',
-              render: (row) => <StatusBadge label={row.pago ? 'pago' : isAtrasado(row) ? 'atrasado' : 'pendente'} />,
+              render: (row) => (
+                <div className="payment-status">
+                  <StatusBadge label={row.pago ? 'pago' : isAtrasado(row) ? 'atrasado' : 'pendente'} />
+                  {!row.pago && (
+                    <span
+                      className={`payment-status-days${isAtrasado(row) ? ' payment-status-days-danger' : ''}`}
+                    >
+                      {formatVencimentoLabel(row.vencimento, row.pago)}
+                    </span>
+                  )}
+                </div>
+              ),
             },
             {
               header: '',

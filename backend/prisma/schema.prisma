@@ -37,16 +37,19 @@ model Kitnet {
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   moradores Morador[]
+  gastos    Gasto[]
 
   @@unique([userId, numero])
 }
 
 model Morador {
-  id        Int      @id @default(autoincrement())
-  nome      String
-  telefone  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  nome          String
+  telefone      String
+  dataEntrada   DateTime @default(now())
+  diaVencimento Int      @default(10)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   kitnetId Int
   kitnet   Kitnet @relation(fields: [kitnetId], references: [id], onDelete: Cascade)
@@ -64,4 +67,16 @@ model Pagamento {
 
   moradorId Int
   morador   Morador @relation(fields: [moradorId], references: [id], onDelete: Cascade)
+}
+
+model Gasto {
+  id        Int      @id @default(autoincrement())
+  descricao String
+  valor     Float
+  data      DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  kitnetId Int
+  kitnet   Kitnet @relation(fields: [kitnetId], references: [id], onDelete: Cascade)
 }

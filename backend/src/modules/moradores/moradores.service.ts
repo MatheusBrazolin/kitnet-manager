@@ -26,6 +26,15 @@ export class MoradoresService {
     return morador;
   }
 
+  async findDetail(userId: number, id: number) {
+    const morador = await this.findOwnedOrThrow(userId, id);
+    const pagamentos = await this.prisma.pagamento.findMany({
+      where: { moradorId: id },
+      orderBy: { vencimento: 'desc' },
+    });
+    return { ...morador, pagamentos };
+  }
+
   private async assertKitnetOwnership(userId: number, kitnetId: number) {
     const kitnet = await this.prisma.kitnet.findUnique({ where: { id: kitnetId } });
     if (!kitnet) {
@@ -39,7 +48,18 @@ export class MoradoresService {
   async create(userId: number, dto: CreateMoradorDto) {
     await this.assertKitnetOwnership(userId, dto.kitnetId);
 
-    const morador = await this.prisma.morador.create({ data: dto });
+    const dataEntrada = dto.dataEntrada ? new Date(dto.dataEntrada) : new Date();
+    const diaVencimento = dto.diaVencimento ?? dataEntrada.getDate();
+
+    const morador = await this.prisma.morador.create({
+      data: {
+        nome: dto.nome,
+        telefone: dto.telefone,
+        kitnetId: dto.kitnetId,
+        dataEntrada,
+        diaVencimento,
+      },
+    });
     await this.prisma.kitnet.update({
       where: { id: dto.kitnetId },
       data: { status: 'ocupada' },
@@ -50,7 +70,13 @@ export class MoradoresService {
 
   async update(userId: number, id: number, dto: UpdateMoradorDto) {
     await this.findOwnedOrThrow(userId, id);
-    return this.prisma.morador.update({ where: { id }, data: dto });
+    return this.prisma.morador.update({
+      where: { id },
+      data: {
+        ...dto,
+        dataEntrada: dto.dataEntrada ? new Date(dto.dataEntrada) : undefined,
+      },
+    });
   }
 
   async remove(userId: number, id: number) {

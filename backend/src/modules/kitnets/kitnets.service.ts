@@ -27,6 +27,16 @@ export class KitnetsService {
     return kitnet;
   }
 
+  async findDetail(userId: number, id: number) {
+    const kitnet = await this.findOwnedOrThrow(userId, id);
+    const gastos = await this.prisma.gasto.findMany({
+      where: { kitnetId: id },
+      orderBy: { data: 'desc' },
+    });
+    const totalGasto = gastos.reduce((total, gasto) => total + gasto.valor, 0);
+    return { ...kitnet, gastos, totalGasto };
+  }
+
   async create(userId: number, dto: CreateKitnetDto) {
     return this.prisma.$transaction(
       async (tx) => {

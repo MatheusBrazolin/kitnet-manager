@@ -26,7 +26,7 @@ interface StatCardProps {
   label: string;
   value: string;
   hint?: string;
-  tone?: 'brand' | 'success' | 'warning';
+  tone?: 'brand' | 'success' | 'warning' | 'danger';
 }
 
 export function StatCard({ label, value, hint, tone = 'brand' }: StatCardProps) {

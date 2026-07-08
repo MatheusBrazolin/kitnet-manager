@@ -5,8 +5,13 @@ import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
+import { MoradorDetailModal } from '../../components/MoradorDetailModal/MoradorDetailModal';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
+
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export function Moradores() {
   const [moradores, setMoradores] = useState<MoradorRow[]>([]);
@@ -15,6 +20,9 @@ export function Moradores() {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [kitnetId, setKitnetId] = useState('');
+  const [dataEntrada, setDataEntrada] = useState(todayIsoDate());
+  const [diaVencimento, setDiaVencimento] = useState('10');
+  const [selectedMoradorId, setSelectedMoradorId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,6 +46,8 @@ export function Moradores() {
     setNome('');
     setTelefone('');
     setKitnetId(kitnets[0] ? String(kitnets[0].id) : '');
+    setDataEntrada(todayIsoDate());
+    setDiaVencimento('10');
     setError(null);
     setIsModalOpen(true);
   }
@@ -47,7 +57,13 @@ export function Moradores() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/moradores', { nome, telefone, kitnetId: Number(kitnetId) });
+      await api.post('/moradores', {
+        nome,
+        telefone,
+        kitnetId: Number(kitnetId),
+        dataEntrada,
+        diaVencimento: Number(diaVencimento),
+      });
       setIsModalOpen(false);
       loadMoradores();
     } catch (err) {
@@ -90,6 +106,7 @@ export function Moradores() {
           rows={moradores}
           rowKey={(row) => row.id}
           emptyMessage="Nenhum morador cadastrado ainda."
+          onRowClick={(row) => setSelectedMoradorId(row.id)}
           columns={[
             { header: 'Nome', render: (row) => row.nome },
             { header: 'Telefone', render: (row) => row.telefone },
@@ -98,7 +115,14 @@ export function Moradores() {
               header: '',
               align: 'right',
               render: (row) => (
-                <button type="button" className="btn btn-danger" onClick={() => handleDelete(row.id)}>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleDelete(row.id);
+                  }}
+                >
                   Remover
                 </button>
               ),
@@ -106,6 +130,10 @@ export function Moradores() {
           ]}
         />
       </Card>
+
+      {selectedMoradorId && (
+        <MoradorDetailModal moradorId={selectedMoradorId} onClose={() => setSelectedMoradorId(null)} />
+      )}
 
       {isModalOpen && (
         <Modal title="Novo morador" onClose={() => setIsModalOpen(false)}>
@@ -135,6 +163,28 @@ export function Moradores() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="field">
+              <label htmlFor="dataEntrada">Data de entrada</label>
+              <input
+                id="dataEntrada"
+                type="date"
+                required
+                value={dataEntrada}
+                onChange={(event) => setDataEntrada(event.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="diaVencimento">Dia de vencimento do aluguel</label>
+              <input
+                id="diaVencimento"
+                type="number"
+                min={1}
+                max={31}
+                required
+                value={diaVencimento}
+                onChange={(event) => setDiaVencimento(event.target.value)}
+              />
             </div>
             <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
               {isSubmitting ? 'Salvando...' : 'Salvar'}
