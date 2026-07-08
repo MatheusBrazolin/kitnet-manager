@@ -17,7 +17,7 @@ export class KitnetsController {
 
   @Get(':id')
   findOne(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
-    return this.kitnetsService.findOwnedOrThrow(user.id, id);
+    return this.kitnetsService.findDetail(user.id, id);
   }
 
   @Post()

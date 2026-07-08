@@ -34,6 +34,15 @@
   background: var(--color-surface-sunken);
 }
 
+.table-row-clickable {
+  cursor: pointer;
+}
+
+.table-row-clickable:focus-visible {
+  outline: var(--border-width) solid var(--color-ink);
+  outline-offset: -2px;
+}
+
 .table-empty {
   color: var(--color-ink-muted);
   font-size: var(--text-sm);

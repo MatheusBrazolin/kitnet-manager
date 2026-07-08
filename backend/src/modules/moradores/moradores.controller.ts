@@ -17,7 +17,7 @@ export class MoradoresController {
 
   @Get(':id')
   findOne(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
-    return this.moradoresService.findOwnedOrThrow(user.id, id);
+    return this.moradoresService.findDetail(user.id, id);
   }
 
   @Post()

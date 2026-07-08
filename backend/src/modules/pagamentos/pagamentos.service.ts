@@ -17,11 +17,13 @@ export class PagamentosService {
   }
 
   async ensureCurrentMonthPagamentos(userId: number) {
+    // Datas de vencimento são "só calendário" (sem hora) — tudo calculado em UTC pra não
+    // depender do timezone de onde o processo Node roda (dev local vs. função na Vercel).
     const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const periodStart = new Date(year, month, 1);
-    const periodEnd = new Date(year, month + 1, 1);
+    const year = now.getUTCFullYear();
+    const month = now.getUTCMonth();
+    const periodStart = new Date(Date.UTC(year, month, 1));
+    const periodEnd = new Date(Date.UTC(year, month + 1, 1));
 
     const moradores = await this.prisma.morador.findMany({
       where: { kitnet: { userId } },
@@ -45,12 +47,12 @@ export class PagamentosService {
       return;
     }
 
-    const diasNoMes = new Date(year, month + 1, 0).getDate();
+    const diasNoMes = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
     await this.prisma.pagamento.createMany({
       data: pendentes.map((morador) => ({
         moradorId: morador.id,
         valor: morador.kitnet.valor,
-        vencimento: new Date(year, month, Math.min(morador.diaVencimento, diasNoMes)),
+        vencimento: new Date(Date.UTC(year, month, Math.min(morador.diaVencimento, diasNoMes))),
       })),
     });
   }

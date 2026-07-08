@@ -8,6 +8,7 @@ import { UsersModule } from './modules/users/users.module';
 import { KitnetsModule } from './modules/kitnets/kitnets.module';
 import { MoradoresModule } from './modules/moradores/moradores.module';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module';
+import { GastosModule } from './modules/gastos/gastos.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
@@ -20,6 +21,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     KitnetsModule,
     MoradoresModule,
     PagamentosModule,
+    GastosModule,
     DashboardModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
