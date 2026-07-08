@@ -54,11 +54,27 @@ export interface Gasto {
   kitnet: Kitnet;
 }
 
+export interface GastoResumo {
+  id: number;
+  descricao: string;
+  valor: number;
+  data: string;
+}
+
+export interface KitnetDetail extends Kitnet {
+  gastos: GastoResumo[];
+  totalGasto: number;
+}
+
 export interface DashboardSummary {
   totalKitnets: number;
   ocupadas: number;
   vagas: number;
   valorMensal: number;
+  receitaMensal: number;
+  gastoMensal: number;
+  lucroLiquido: number;
+  totalEmAtraso: number;
   proximosVencimentos: Array<{
     id: number;
     morador: string;

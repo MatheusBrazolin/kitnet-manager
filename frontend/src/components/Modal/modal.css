@@ -18,6 +18,10 @@
   animation: modal-rise var(--duration-normal) var(--ease-out-expo);
 }
 
+.modal-wide {
+  width: min(560px, 100%);
+}
+
 .modal-header {
   display: flex;
   align-items: center;

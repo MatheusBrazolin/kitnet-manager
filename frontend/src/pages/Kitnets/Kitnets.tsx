@@ -6,6 +6,7 @@ import { Table } from '../../components/Table/Table';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
+import { KitnetDetailModal } from '../../components/KitnetDetailModal/KitnetDetailModal';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -14,6 +15,7 @@ export function Kitnets() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [numero, setNumero] = useState('');
   const [valor, setValor] = useState('');
+  const [selectedKitnetId, setSelectedKitnetId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -81,6 +83,7 @@ export function Kitnets() {
           rows={kitnets}
           rowKey={(row) => row.id}
           emptyMessage="Nenhuma kitnet cadastrada ainda."
+          onRowClick={(row) => setSelectedKitnetId(row.id)}
           columns={[
             { header: 'Número', render: (row) => row.numero },
             { header: 'Valor', render: (row) => currencyFormatter.format(row.valor) },
@@ -90,7 +93,14 @@ export function Kitnets() {
               header: '',
               align: 'right',
               render: (row) => (
-                <button type="button" className="btn btn-danger" onClick={() => handleDelete(row.id)}>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleDelete(row.id);
+                  }}
+                >
                   Remover
                 </button>
               ),
@@ -98,6 +108,10 @@ export function Kitnets() {
           ]}
         />
       </Card>
+
+      {selectedKitnetId && (
+        <KitnetDetailModal kitnetId={selectedKitnetId} onClose={() => setSelectedKitnetId(null)} />
+      )}
 
       {isModalOpen && (
         <Modal title="Nova kitnet" onClose={() => setIsModalOpen(false)}>
