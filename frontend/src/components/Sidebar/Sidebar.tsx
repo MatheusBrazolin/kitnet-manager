@@ -1,12 +1,13 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { BuildingIcon, HomeIcon, LogoutIcon, UsersIcon, WalletIcon } from '../icons';
 import './sidebar.css';
 
 const NAV_ITEMS = [
-  { to: '/', label: 'Dashboard', end: true },
-  { to: '/kitnets', label: 'Kitnets' },
-  { to: '/moradores', label: 'Moradores' },
-  { to: '/pagamentos', label: 'Pagamentos' },
+  { to: '/', label: 'Dashboard', end: true, icon: HomeIcon },
+  { to: '/kitnets', label: 'Kitnets', icon: BuildingIcon },
+  { to: '/moradores', label: 'Moradores', icon: UsersIcon },
+  { to: '/pagamentos', label: 'Pagamentos', icon: WalletIcon },
 ];
 
 export function Sidebar() {
@@ -20,16 +21,20 @@ export function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {NAV_ITEMS.map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => `sidebar-link${isActive ? ' sidebar-link-active' : ''}`}
-          >
-            {item.label}
-          </NavLink>
-        ))}
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `sidebar-link${isActive ? ' sidebar-link-active' : ''}`}
+            >
+              <Icon className="sidebar-link-icon" />
+              {item.label}
+            </NavLink>
+          );
+        })}
       </nav>
 
       <div className="sidebar-footer">
@@ -41,6 +46,7 @@ export function Sidebar() {
           </div>
         </div>
         <button type="button" className="btn btn-ghost sidebar-logout" onClick={logout}>
+          <LogoutIcon className="sidebar-link-icon" />
           Sair
         </button>
       </div>

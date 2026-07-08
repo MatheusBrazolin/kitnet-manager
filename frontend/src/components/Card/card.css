@@ -4,6 +4,7 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
   overflow: hidden;
+  animation: fade-slide-up var(--duration-slow) var(--ease-out-expo) both;
 }
 
 .card-header {
@@ -35,6 +36,21 @@
   gap: var(--space-2);
   box-shadow: var(--shadow-md);
   overflow: hidden;
+  animation: fade-slide-up var(--duration-slow) var(--ease-out-expo) both;
+  transition: transform var(--duration-normal) var(--ease-out-expo), box-shadow var(--duration-normal) var(--ease-out-expo);
+}
+
+.stat-card:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: var(--shadow-lg);
+}
+
+.dashboard-stats .stat-card:nth-child(2) {
+  animation-delay: 70ms;
+}
+
+.dashboard-stats .stat-card:nth-child(3) {
+  animation-delay: 140ms;
 }
 
 .stat-card::before {

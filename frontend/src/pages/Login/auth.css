@@ -17,17 +17,52 @@
   overflow: hidden;
 }
 
-.auth-showcase::after {
+.auth-showcase::after,
+.auth-showcase::before {
   content: '';
   position: absolute;
+  border-radius: var(--radius-lg);
+  animation: float-shape 7s var(--ease-out-expo) infinite;
+}
+
+.auth-showcase::after {
   width: 260px;
   height: 260px;
   right: -80px;
   bottom: -80px;
   background: var(--color-brand);
   border: var(--border-width-lg) solid var(--color-bg);
-  border-radius: var(--radius-lg);
   transform: rotate(18deg);
+}
+
+.auth-showcase::before {
+  width: 120px;
+  height: 120px;
+  right: 60px;
+  bottom: 40px;
+  background: var(--color-success);
+  border: var(--border-width) solid var(--color-bg);
+  transform: rotate(-12deg);
+  animation-delay: 0.4s;
+  opacity: 0.9;
+}
+
+@keyframes float-shape {
+  0%,
+  100% {
+    transform: translateY(0) rotate(var(--rot, 18deg));
+  }
+  50% {
+    transform: translateY(-14px) rotate(var(--rot, 18deg));
+  }
+}
+
+.auth-showcase::after {
+  --rot: 18deg;
+}
+
+.auth-showcase::before {
+  --rot: -12deg;
 }
 
 .auth-showcase-mark {
@@ -95,6 +130,12 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
+  animation: fade-slide-up var(--duration-slow) var(--ease-out-expo) both;
+}
+
+.auth-form .btn-primary:not(:disabled):hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
 }
 
 .auth-form h2 {

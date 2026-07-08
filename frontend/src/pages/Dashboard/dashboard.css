@@ -8,3 +8,8 @@
 .dashboard-upcoming {
   max-width: 640px;
 }
+
+.dashboard-skeleton-stat {
+  height: 108px;
+  border: var(--border-width) solid var(--color-border-soft);
+}

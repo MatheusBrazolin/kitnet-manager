@@ -7,7 +7,12 @@ export function Layout() {
   const { user, isLoading } = useAuth();
 
   if (isLoading) {
-    return <div className="layout-loading">Carregando...</div>;
+    return (
+      <div className="layout-loading">
+        <span className="layout-loading-spinner" aria-hidden="true" />
+        Carregando...
+      </div>
+    );
   }
 
   if (!user) {

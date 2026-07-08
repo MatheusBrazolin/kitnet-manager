@@ -68,11 +68,16 @@ a {
   text-transform: uppercase;
   letter-spacing: 0.02em;
   box-shadow: var(--shadow-sm);
-  transition: transform var(--duration-fast) var(--ease-out-expo), box-shadow var(--duration-fast);
+  transition: transform var(--duration-normal) var(--ease-out-expo), box-shadow var(--duration-normal) var(--ease-out-expo);
   white-space: nowrap;
 }
 
-.btn:active {
+.btn:not(:disabled):hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn:not(:disabled):active {
   transform: translate(3px, 3px);
   box-shadow: none;
 }
@@ -156,4 +161,68 @@ a {
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
   font-weight: 600;
+  animation: shake-in var(--duration-slow) var(--ease-out-expo) both;
+}
+
+@keyframes fade-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shake-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  60% {
+    transform: translateY(1px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-in {
+  animation: fade-slide-up var(--duration-slow) var(--ease-out-expo) both;
+  animation-delay: calc(var(--stagger, 0) * 60ms);
+}
+
+.skeleton {
+  background: var(--color-surface-sunken);
+  border-radius: var(--radius-sm);
+  animation: pulse-soft 1.4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

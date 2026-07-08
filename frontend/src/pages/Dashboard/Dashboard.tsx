@@ -28,6 +28,14 @@ export function Dashboard() {
 
       {error && <p className="form-error">{error}</p>}
 
+      {!summary && !error && (
+        <div className="dashboard-stats">
+          <div className="skeleton dashboard-skeleton-stat" />
+          <div className="skeleton dashboard-skeleton-stat" />
+          <div className="skeleton dashboard-skeleton-stat" />
+        </div>
+      )}
+
       {summary && (
         <>
           <div className="dashboard-stats">

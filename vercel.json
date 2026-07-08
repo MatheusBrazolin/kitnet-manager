@@ -13,7 +13,9 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "backend/src/main.ts" },
+    { "src": "/assets/(.*)", "dest": "/frontend/assets/$1" },
+    { "src": "/favicon.svg", "dest": "/frontend/favicon.svg" },
     { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
+    { "src": "/(.*)", "dest": "/frontend/index.html" }
   ]
 }

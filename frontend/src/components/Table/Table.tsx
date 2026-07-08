@@ -1,5 +1,7 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import './table.css';
+
+const MAX_STAGGER_ROWS = 8;
 
 export interface TableColumn<T> {
   header: string;
@@ -32,8 +34,12 @@ export function Table<T>({ columns, rows, rowKey, emptyMessage = 'Nenhum registr
           </tr>
         </thead>
         <tbody>
-          {rows.map((row) => (
-            <tr key={rowKey(row)}>
+          {rows.map((row, index) => (
+            <tr
+              key={rowKey(row)}
+              className="animate-in"
+              style={{ '--stagger': Math.min(index, MAX_STAGGER_ROWS) } as CSSProperties}
+            >
               {columns.map((column) => (
                 <td key={column.header} style={{ textAlign: column.align ?? 'left' }}>
                   {column.render(row)}
