@@ -6,6 +6,7 @@ import { Card, StatCard } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { Header } from '../../components/Header/Header';
 import { formatVencimentoLabel } from '../../utils/dates';
+import { FinanceBars } from './FinanceBars';
 import './dashboard.css';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -34,6 +35,9 @@ export function Dashboard() {
           <div className="skeleton dashboard-skeleton-stat" />
           <div className="skeleton dashboard-skeleton-stat" />
           <div className="skeleton dashboard-skeleton-stat" />
+          <div className="skeleton dashboard-skeleton-stat" />
+          <div className="skeleton dashboard-skeleton-stat" />
+          <div className="skeleton dashboard-skeleton-stat" />
         </div>
       )}
 
@@ -52,7 +56,27 @@ export function Dashboard() {
               value={currencyFormatter.format(summary.valorMensal)}
               tone="warning"
             />
+            <StatCard
+              label="Gastos no mês"
+              value={currencyFormatter.format(summary.gastoMensal)}
+              tone="danger"
+            />
+            <StatCard
+              label="Lucro líquido"
+              value={currencyFormatter.format(summary.lucroLiquido)}
+              hint="Recebido - gastos do mês"
+              tone={summary.lucroLiquido >= 0 ? 'success' : 'danger'}
+            />
+            <StatCard
+              label="Total em atraso"
+              value={currencyFormatter.format(summary.totalEmAtraso)}
+              tone={summary.totalEmAtraso > 0 ? 'danger' : 'success'}
+            />
           </div>
+
+          <Card title="Receita x gastos (mês atual)" className="dashboard-finance">
+            <FinanceBars receita={summary.receitaMensal} gasto={summary.gastoMensal} />
+          </Card>
 
           <Card title="Próximos vencimentos" className="dashboard-upcoming">
             <Table

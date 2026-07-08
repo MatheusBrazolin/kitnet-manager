@@ -5,8 +5,71 @@
   margin-bottom: var(--space-6);
 }
 
-.dashboard-upcoming {
+.dashboard-upcoming,
+.dashboard-finance {
   max-width: 640px;
+}
+
+.dashboard-finance {
+  margin-bottom: var(--space-6);
+}
+
+.finance-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.finance-bar-row {
+  display: grid;
+  grid-template-columns: 90px 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.finance-bar-label {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-muted);
+}
+
+.finance-bar-track {
+  height: 14px;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--color-ink);
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+}
+
+.finance-bar-fill {
+  height: 100%;
+  transform-origin: left;
+  animation: finance-bar-grow 700ms var(--ease-out-expo) both;
+}
+
+@keyframes finance-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.finance-bar-fill-success {
+  background: var(--color-success);
+}
+
+.finance-bar-fill-danger {
+  background: var(--color-danger);
+}
+
+.finance-bar-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .dashboard-skeleton-stat {
