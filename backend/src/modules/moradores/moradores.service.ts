@@ -26,6 +26,15 @@ export class MoradoresService {
     return morador;
   }
 
+  async findDetail(userId: number, id: number) {
+    const morador = await this.findOwnedOrThrow(userId, id);
+    const pagamentos = await this.prisma.pagamento.findMany({
+      where: { moradorId: id },
+      orderBy: { vencimento: 'desc' },
+    });
+    return { ...morador, pagamentos };
+  }
+
   private async assertKitnetOwnership(userId: number, kitnetId: number) {
     const kitnet = await this.prisma.kitnet.findUnique({ where: { id: kitnetId } });
     if (!kitnet) {

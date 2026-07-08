@@ -5,12 +5,13 @@ interface ModalProps {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  className?: string;
 }
 
-export function Modal({ title, onClose, children }: ModalProps) {
+export function Modal({ title, onClose, children, className }: ModalProps) {
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(event) => event.stopPropagation()}>
+      <div className={`modal${className ? ` ${className}` : ''}`} onClick={(event) => event.stopPropagation()}>
         <header className="modal-header">
           <h2>{title}</h2>
           <button type="button" className="modal-close" onClick={onClose} aria-label="Fechar">

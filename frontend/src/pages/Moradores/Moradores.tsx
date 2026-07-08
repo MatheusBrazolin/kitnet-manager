@@ -5,6 +5,7 @@ import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
+import { MoradorDetailModal } from '../../components/MoradorDetailModal/MoradorDetailModal';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
 
@@ -21,6 +22,7 @@ export function Moradores() {
   const [kitnetId, setKitnetId] = useState('');
   const [dataEntrada, setDataEntrada] = useState(todayIsoDate());
   const [diaVencimento, setDiaVencimento] = useState('10');
+  const [selectedMoradorId, setSelectedMoradorId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -104,6 +106,7 @@ export function Moradores() {
           rows={moradores}
           rowKey={(row) => row.id}
           emptyMessage="Nenhum morador cadastrado ainda."
+          onRowClick={(row) => setSelectedMoradorId(row.id)}
           columns={[
             { header: 'Nome', render: (row) => row.nome },
             { header: 'Telefone', render: (row) => row.telefone },
@@ -112,7 +115,14 @@ export function Moradores() {
               header: '',
               align: 'right',
               render: (row) => (
-                <button type="button" className="btn btn-danger" onClick={() => handleDelete(row.id)}>
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleDelete(row.id);
+                  }}
+                >
                   Remover
                 </button>
               ),
@@ -120,6 +130,10 @@ export function Moradores() {
           ]}
         />
       </Card>
+
+      {selectedMoradorId && (
+        <MoradorDetailModal moradorId={selectedMoradorId} onClose={() => setSelectedMoradorId(null)} />
+      )}
 
       {isModalOpen && (
         <Modal title="Novo morador" onClose={() => setIsModalOpen(false)}>

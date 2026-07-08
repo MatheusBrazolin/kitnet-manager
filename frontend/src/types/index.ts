@@ -33,6 +33,18 @@ export interface Pagamento {
   morador: Morador & { kitnet: Kitnet };
 }
 
+export interface PagamentoResumo {
+  id: number;
+  valor: number;
+  vencimento: string;
+  pago: boolean;
+}
+
+export interface MoradorDetail extends Morador {
+  kitnet: Kitnet;
+  pagamentos: PagamentoResumo[];
+}
+
 export interface DashboardSummary {
   totalKitnets: number;
   ocupadas: number;

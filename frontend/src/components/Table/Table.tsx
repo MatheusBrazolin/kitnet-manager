@@ -14,9 +14,16 @@ interface TableProps<T> {
   rows: T[];
   rowKey: (row: T) => string | number;
   emptyMessage?: string;
+  onRowClick?: (row: T) => void;
 }
 
-export function Table<T>({ columns, rows, rowKey, emptyMessage = 'Nenhum registro encontrado.' }: TableProps<T>) {
+export function Table<T>({
+  columns,
+  rows,
+  rowKey,
+  emptyMessage = 'Nenhum registro encontrado.',
+  onRowClick,
+}: TableProps<T>) {
   if (rows.length === 0) {
     return <p className="table-empty">{emptyMessage}</p>;
   }
@@ -37,8 +44,21 @@ export function Table<T>({ columns, rows, rowKey, emptyMessage = 'Nenhum registr
           {rows.map((row, index) => (
             <tr
               key={rowKey(row)}
-              className="animate-in"
+              className={`animate-in${onRowClick ? ' table-row-clickable' : ''}`}
               style={{ '--stagger': Math.min(index, MAX_STAGGER_ROWS) } as CSSProperties}
+              onClick={onRowClick ? () => onRowClick(row) : undefined}
+              role={onRowClick ? 'button' : undefined}
+              tabIndex={onRowClick ? 0 : undefined}
+              onKeyDown={
+                onRowClick
+                  ? (event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        onRowClick(row);
+                      }
+                    }
+                  : undefined
+              }
             >
               {columns.map((column) => (
                 <td key={column.header} style={{ textAlign: column.align ?? 'left' }}>

@@ -28,3 +28,32 @@ export function formatVencimentoLabel(vencimento: string | Date, pago: boolean):
   const atraso = Math.abs(dias);
   return `Atrasado há ${atraso} dia${atraso > 1 ? 's' : ''}`;
 }
+
+export function formatTempoLocacao(dataEntrada: string | Date): string {
+  const inicio = new Date(dataEntrada);
+  const hoje = new Date();
+
+  let anos = hoje.getFullYear() - inicio.getFullYear();
+  let meses = hoje.getMonth() - inicio.getMonth();
+  if (hoje.getDate() < inicio.getDate()) {
+    meses -= 1;
+  }
+  if (meses < 0) {
+    anos -= 1;
+    meses += 12;
+  }
+
+  if (anos <= 0 && meses <= 0) {
+    const dias = Math.max(0, Math.round((hoje.getTime() - inicio.getTime()) / MS_PER_DAY));
+    return dias <= 1 ? 'Chegou hoje' : `${dias} dias`;
+  }
+
+  const partes: string[] = [];
+  if (anos > 0) {
+    partes.push(`${anos} ano${anos > 1 ? 's' : ''}`);
+  }
+  if (meses > 0) {
+    partes.push(`${meses} ${meses > 1 ? 'meses' : 'mês'}`);
+  }
+  return partes.join(' e ');
+}
