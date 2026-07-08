@@ -138,4 +138,4 @@ O rate-limiting do login/registro (`@nestjs/throttler`) guarda tentativas em mem
 
 ### Alternativa: Docker (self-host)
 
-Os `Dockerfile`s de `backend/` e `frontend/` e o `docker-compose.yml` continuam funcionando pra quem preferir um servidor tradicional (Render, Railway, Fly.io, VPS) — nesse caso o backend roda `prisma migrate deploy` sozinho no start, e o nginx do frontend faz proxy de `/api` pro container do backend.
+Os `Dockerfile`s de `backend/` e `frontend/` e o `docker-compose.yml` continuam funcionando pra quem preferir um servidor tradicional (Fly.io, VPS) — nesse caso o backend roda `prisma migrate deploy` sozinho no start, e o nginx do frontend faz proxy de `/api` pro container do backend.
