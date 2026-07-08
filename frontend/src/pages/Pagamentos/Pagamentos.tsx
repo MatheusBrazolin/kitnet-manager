@@ -10,7 +10,12 @@ import { formatVencimentoLabel } from '../../utils/dates';
 import './pagamentos.css';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 
 function isAtrasado(pagamento: Pagamento) {
   return !pagamento.pago && new Date(pagamento.vencimento) < new Date();

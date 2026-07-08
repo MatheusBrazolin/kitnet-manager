@@ -9,7 +9,7 @@ import { formatVencimentoLabel } from '../../utils/dates';
 import './dashboard.css';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long' });
+const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', timeZone: 'UTC' });
 
 export function Dashboard() {
   const { user } = useAuth();

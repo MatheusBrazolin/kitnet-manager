@@ -1,14 +1,15 @@
 const MS_PER_DAY = 86_400_000;
 
-function startOfDay(date: Date): Date {
-  const copy = new Date(date);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
+// Datas "só calendário" (vencimento, data de entrada, data de gasto) são tratadas como
+// dia em UTC, tanto no backend quanto aqui — evita o famoso bug de "um dia a menos/a mais"
+// causado por misturar data local com exibição/parse em UTC.
+function startOfUtcDay(date: Date): Date {
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
 export function diasParaVencimento(vencimento: string | Date): number {
-  const hoje = startOfDay(new Date());
-  const data = startOfDay(new Date(vencimento));
+  const hoje = startOfUtcDay(new Date());
+  const data = startOfUtcDay(new Date(vencimento));
   return Math.round((data.getTime() - hoje.getTime()) / MS_PER_DAY);
 }
 
@@ -30,12 +31,12 @@ export function formatVencimentoLabel(vencimento: string | Date, pago: boolean):
 }
 
 export function formatTempoLocacao(dataEntrada: string | Date): string {
-  const inicio = new Date(dataEntrada);
-  const hoje = new Date();
+  const inicio = startOfUtcDay(new Date(dataEntrada));
+  const hoje = startOfUtcDay(new Date());
 
-  let anos = hoje.getFullYear() - inicio.getFullYear();
-  let meses = hoje.getMonth() - inicio.getMonth();
-  if (hoje.getDate() < inicio.getDate()) {
+  let anos = hoje.getUTCFullYear() - inicio.getUTCFullYear();
+  let meses = hoje.getUTCMonth() - inicio.getUTCMonth();
+  if (hoje.getUTCDate() < inicio.getUTCDate()) {
     meses -= 1;
   }
   if (meses < 0) {

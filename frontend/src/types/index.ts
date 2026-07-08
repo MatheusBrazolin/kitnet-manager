@@ -45,6 +45,15 @@ export interface MoradorDetail extends Morador {
   pagamentos: PagamentoResumo[];
 }
 
+export interface Gasto {
+  id: number;
+  descricao: string;
+  valor: number;
+  data: string;
+  kitnetId: number;
+  kitnet: Kitnet;
+}
+
 export interface DashboardSummary {
   totalKitnets: number;
   ocupadas: number;

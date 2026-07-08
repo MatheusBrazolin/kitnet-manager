@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard/Dashboard';
 import { Kitnets } from './pages/Kitnets/Kitnets';
 import { Moradores } from './pages/Moradores/Moradores';
 import { Pagamentos } from './pages/Pagamentos/Pagamentos';
+import { Gastos } from './pages/Gastos/Gastos';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
         <Route path="/kitnets" element={<Kitnets />} />
         <Route path="/moradores" element={<Moradores />} />
         <Route path="/pagamentos" element={<Pagamentos />} />
+        <Route path="/gastos" element={<Gastos />} />
       </Route>
     </Routes>
   );
