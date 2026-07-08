@@ -5,6 +5,7 @@ import type { DashboardSummary } from '../../types';
 import { Card, StatCard } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { Header } from '../../components/Header/Header';
+import { formatVencimentoLabel } from '../../utils/dates';
 import './dashboard.css';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -60,7 +61,15 @@ export function Dashboard() {
               emptyMessage="Nenhum pagamento pendente por aqui."
               columns={[
                 { header: 'Morador', render: (row) => row.morador },
-                { header: 'Vencimento', render: (row) => dateFormatter.format(new Date(row.vencimento)) },
+                {
+                  header: 'Vencimento',
+                  render: (row) => (
+                    <div className="dashboard-vencimento">
+                      <span>{dateFormatter.format(new Date(row.vencimento))}</span>
+                      <span className="dashboard-vencimento-hint">{formatVencimentoLabel(row.vencimento, false)}</span>
+                    </div>
+                  ),
+                },
                 {
                   header: 'Valor',
                   align: 'right',

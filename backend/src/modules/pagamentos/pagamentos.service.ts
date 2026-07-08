@@ -7,11 +7,51 @@ import { UpdatePagamentoDto } from './dto/update-pagamento.dto';
 export class PagamentosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(userId: number) {
+  async findAll(userId: number) {
+    await this.ensureCurrentMonthPagamentos(userId);
     return this.prisma.pagamento.findMany({
       where: { morador: { kitnet: { userId } } },
       include: { morador: { include: { kitnet: true } } },
       orderBy: { vencimento: 'asc' },
+    });
+  }
+
+  async ensureCurrentMonthPagamentos(userId: number) {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const periodStart = new Date(year, month, 1);
+    const periodEnd = new Date(year, month + 1, 1);
+
+    const moradores = await this.prisma.morador.findMany({
+      where: { kitnet: { userId } },
+      include: { kitnet: true },
+    });
+    if (moradores.length === 0) {
+      return;
+    }
+
+    const existentes = await this.prisma.pagamento.findMany({
+      where: {
+        moradorId: { in: moradores.map((morador) => morador.id) },
+        vencimento: { gte: periodStart, lt: periodEnd },
+      },
+      select: { moradorId: true },
+    });
+    const jaGerados = new Set(existentes.map((pagamento) => pagamento.moradorId));
+
+    const pendentes = moradores.filter((morador) => !jaGerados.has(morador.id));
+    if (pendentes.length === 0) {
+      return;
+    }
+
+    const diasNoMes = new Date(year, month + 1, 0).getDate();
+    await this.prisma.pagamento.createMany({
+      data: pendentes.map((morador) => ({
+        moradorId: morador.id,
+        valor: morador.kitnet.valor,
+        vencimento: new Date(year, month, Math.min(morador.diaVencimento, diasNoMes)),
+      })),
     });
   }
 

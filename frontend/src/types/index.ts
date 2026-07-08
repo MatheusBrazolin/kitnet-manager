@@ -12,6 +12,8 @@ export interface Morador {
   nome: string;
   telefone: string;
   kitnetId: number;
+  dataEntrada: string;
+  diaVencimento: number;
 }
 
 export interface Kitnet {

@@ -42,11 +42,13 @@ model Kitnet {
 }
 
 model Morador {
-  id        Int      @id @default(autoincrement())
-  nome      String
-  telefone  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  nome          String
+  telefone      String
+  dataEntrada   DateTime @default(now())
+  diaVencimento Int      @default(10)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   kitnetId Int
   kitnet   Kitnet @relation(fields: [kitnetId], references: [id], onDelete: Cascade)

@@ -1,13 +1,19 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { PagamentosService } from '../pagamentos/pagamentos.service';
 
 const PROXIMOS_VENCIMENTOS_LIMIT = 5;
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pagamentosService: PagamentosService,
+  ) {}
 
   async getSummary(userId: number) {
+    await this.pagamentosService.ensureCurrentMonthPagamentos(userId);
+
     const kitnets = await this.prisma.kitnet.findMany({ where: { userId } });
     const totalKitnets = kitnets.length;
     const ocupadas = kitnets.filter((kitnet) => kitnet.status === 'ocupada').length;

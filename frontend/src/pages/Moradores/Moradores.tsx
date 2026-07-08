@@ -8,6 +8,10 @@ import { Header } from '../../components/Header/Header';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
 
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 export function Moradores() {
   const [moradores, setMoradores] = useState<MoradorRow[]>([]);
   const [kitnets, setKitnets] = useState<Kitnet[]>([]);
@@ -15,6 +19,8 @@ export function Moradores() {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [kitnetId, setKitnetId] = useState('');
+  const [dataEntrada, setDataEntrada] = useState(todayIsoDate());
+  const [diaVencimento, setDiaVencimento] = useState('10');
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -38,6 +44,8 @@ export function Moradores() {
     setNome('');
     setTelefone('');
     setKitnetId(kitnets[0] ? String(kitnets[0].id) : '');
+    setDataEntrada(todayIsoDate());
+    setDiaVencimento('10');
     setError(null);
     setIsModalOpen(true);
   }
@@ -47,7 +55,13 @@ export function Moradores() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/moradores', { nome, telefone, kitnetId: Number(kitnetId) });
+      await api.post('/moradores', {
+        nome,
+        telefone,
+        kitnetId: Number(kitnetId),
+        dataEntrada,
+        diaVencimento: Number(diaVencimento),
+      });
       setIsModalOpen(false);
       loadMoradores();
     } catch (err) {
@@ -135,6 +149,28 @@ export function Moradores() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="field">
+              <label htmlFor="dataEntrada">Data de entrada</label>
+              <input
+                id="dataEntrada"
+                type="date"
+                required
+                value={dataEntrada}
+                onChange={(event) => setDataEntrada(event.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="diaVencimento">Dia de vencimento do aluguel</label>
+              <input
+                id="diaVencimento"
+                type="number"
+                min={1}
+                max={31}
+                required
+                value={diaVencimento}
+                onChange={(event) => setDiaVencimento(event.target.value)}
+              />
             </div>
             <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
               {isSubmitting ? 'Salvando...' : 'Salvar'}
