@@ -71,6 +71,10 @@ export interface DashboardSummary {
   ocupadas: number;
   vagas: number;
   valorMensal: number;
+  receitaMensal: number;
+  gastoMensal: number;
+  lucroLiquido: number;
+  totalEmAtraso: number;
   proximosVencimentos: Array<{
     id: number;
     morador: string;
