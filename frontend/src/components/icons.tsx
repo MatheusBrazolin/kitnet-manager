@@ -54,6 +54,14 @@ export function WalletIcon({ className }: IconProps) {
   );
 }
 
+export function WrenchIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <path d="M14.7 6.3a4 4 0 0 0-5.6 4.6L3 17l2 2 6.1-6.1a4 4 0 0 0 4.6-5.6l-2.6 2.6-2-2z" />
+    </svg>
+  );
+}
+
 export function LogoutIcon({ className }: IconProps) {
   return (
     <svg {...BASE_PROPS} className={className}>

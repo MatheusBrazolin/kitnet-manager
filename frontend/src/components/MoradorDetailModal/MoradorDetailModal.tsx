@@ -8,7 +8,12 @@ import { formatTempoLocacao, formatVencimentoLabel } from '../../utils/dates';
 import './morador-detail-modal.css';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 
 function isAtrasado(pagamento: PagamentoResumo) {
   return !pagamento.pago && new Date(pagamento.vencimento) < new Date();

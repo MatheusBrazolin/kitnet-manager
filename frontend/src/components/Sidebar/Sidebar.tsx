@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { BuildingIcon, HomeIcon, LogoutIcon, UsersIcon, WalletIcon } from '../icons';
+import { BuildingIcon, HomeIcon, LogoutIcon, UsersIcon, WalletIcon, WrenchIcon } from '../icons';
 import './sidebar.css';
 
 const NAV_ITEMS = [
@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: '/kitnets', label: 'Kitnets', icon: BuildingIcon },
   { to: '/moradores', label: 'Moradores', icon: UsersIcon },
   { to: '/pagamentos', label: 'Pagamentos', icon: WalletIcon },
+  { to: '/gastos', label: 'Gastos', icon: WrenchIcon },
 ];
 
 export function Sidebar() {
