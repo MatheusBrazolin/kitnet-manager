@@ -1,31 +1,40 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import type { DashboardSummary } from '../../types';
 import { Card, StatCard } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { Header } from '../../components/Header/Header';
+import { BarChart } from '../../components/charts/BarChart';
+import { DonutChart } from '../../components/charts/DonutChart';
 import { formatVencimentoLabel } from '../../utils/dates';
-import { FinanceBars } from './FinanceBars';
 import './dashboard.css';
 
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+const compactCurrencyFormatter = new Intl.NumberFormat('pt-BR', {
+  style: 'currency',
+  currency: 'BRL',
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', timeZone: 'UTC' });
+
+const KITNET_COLORS = ['var(--color-brand)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-danger)', 'var(--color-ink-muted)'];
 
 export function Dashboard() {
   const { user } = useAuth();
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: summary,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: () => api.get<DashboardSummary>('/dashboard').then((response) => response.data),
+  });
 
-  useEffect(() => {
-    api
-      .get<DashboardSummary>('/dashboard')
-      .then((response) => setSummary(response.data))
-      .catch((err) => setError(getApiErrorMessage(err, 'Não foi possível carregar o dashboard.')));
-  }, []);
+  const error = queryError ? getApiErrorMessage(queryError, 'Não foi possível carregar o dashboard.') : null;
 
   return (
-    <div>
+    <div className="dashboard">
       <Header title={`Olá, ${user?.name.split(' ')[0]}`} subtitle="Aqui está o resumo das suas kitnets hoje." />
 
       {error && <p className="form-error">{error}</p>}
@@ -51,11 +60,7 @@ export function Dashboard() {
               hint={`${summary.vagas} vagas`}
               tone="success"
             />
-            <StatCard
-              label="Valor mensal"
-              value={currencyFormatter.format(summary.valorMensal)}
-              tone="warning"
-            />
+            <StatCard label="Valor mensal" value={currencyFormatter.format(summary.valorMensal)} tone="warning" />
             <StatCard
               label="Gastos no mês"
               value={currencyFormatter.format(summary.gastoMensal)}
@@ -74,9 +79,30 @@ export function Dashboard() {
             />
           </div>
 
-          <Card title="Receita x gastos (mês atual)" className="dashboard-finance">
-            <FinanceBars receita={summary.receitaMensal} gasto={summary.gastoMensal} />
-          </Card>
+          <div className="dashboard-grid">
+            <Card title="Receita vs. gastos (6 meses)" className="dashboard-chart-card">
+              <BarChart
+                data={summary.historico.map((point) => ({ label: point.label, values: [point.receita, point.gasto] }))}
+                series={[
+                  { label: 'Receita', color: 'var(--color-success)' },
+                  { label: 'Gastos', color: 'var(--color-danger)' },
+                ]}
+                formatValue={(value) => compactCurrencyFormatter.format(value)}
+              />
+            </Card>
+
+            <Card title="Gastos por kitnet (mês atual)" className="dashboard-chart-card">
+              <DonutChart
+                data={summary.gastosPorKitnet.map((item, index) => ({
+                  label: `Kitnet ${item.kitnet}`,
+                  value: item.total,
+                  color: KITNET_COLORS[index % KITNET_COLORS.length],
+                }))}
+                formatValue={(value) => currencyFormatter.format(value)}
+                emptyMessage="Nenhum gasto lançado neste mês."
+              />
+            </Card>
+          </div>
 
           <Card title="Próximos vencimentos" className="dashboard-upcoming">
             <Table

@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import type { Morador, Pagamento } from '../../types';
 import { Card } from '../../components/Card/Card';
@@ -22,8 +23,15 @@ function isAtrasado(pagamento: Pagamento) {
 }
 
 export function Pagamentos() {
-  const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
-  const [moradores, setMoradores] = useState<Morador[]>([]);
+  const queryClient = useQueryClient();
+  const { data: pagamentos = [], error: pagamentosQueryError } = useQuery({
+    queryKey: ['pagamentos'],
+    queryFn: () => api.get<Pagamento[]>('/pagamentos').then((response) => response.data),
+  });
+  const { data: moradores = [], error: moradoresQueryError } = useQuery({
+    queryKey: ['moradores'],
+    queryFn: () => api.get<Morador[]>('/moradores').then((response) => response.data),
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [valor, setValor] = useState('');
   const [vencimento, setVencimento] = useState('');
@@ -32,20 +40,13 @@ export function Pagamentos() {
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function loadPagamentos() {
-    api
-      .get<Pagamento[]>('/pagamentos')
-      .then((response) => setPagamentos(response.data))
-      .catch((err) => setListError(getApiErrorMessage(err, 'Não foi possível carregar os pagamentos.')));
-  }
-
-  useEffect(loadPagamentos, []);
-  useEffect(() => {
-    api
-      .get<Morador[]>('/moradores')
-      .then((response) => setMoradores(response.data))
-      .catch((err) => setListError(getApiErrorMessage(err, 'Não foi possível carregar os moradores.')));
-  }, []);
+  const displayedError =
+    listError ??
+    (pagamentosQueryError
+      ? getApiErrorMessage(pagamentosQueryError, 'Não foi possível carregar os pagamentos.')
+      : moradoresQueryError
+        ? getApiErrorMessage(moradoresQueryError, 'Não foi possível carregar os moradores.')
+        : null);
 
   function openModal() {
     setValor('');
@@ -62,7 +63,7 @@ export function Pagamentos() {
     try {
       await api.post('/pagamentos', { valor: Number(valor), vencimento, moradorId: Number(moradorId) });
       setIsModalOpen(false);
-      loadPagamentos();
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível lançar o pagamento.'));
     } finally {
@@ -74,7 +75,7 @@ export function Pagamentos() {
     setListError(null);
     try {
       await api.patch(`/pagamentos/${pagamento.id}`, { pago: !pagamento.pago });
-      loadPagamentos();
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível atualizar o pagamento.'));
     }
@@ -93,7 +94,7 @@ export function Pagamentos() {
       />
 
       {moradores.length === 0 && <p className="form-error">Cadastre um morador antes de lançar pagamentos.</p>}
-      {listError && <p className="form-error">{listError}</p>}
+      {displayedError && <p className="form-error">{displayedError}</p>}
 
       <Card>
         <Table

@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import type { Kitnet, Morador } from '../../types';
 import { Card } from '../../components/Card/Card';
@@ -14,8 +15,15 @@ function todayIsoDate(): string {
 }
 
 export function Moradores() {
-  const [moradores, setMoradores] = useState<MoradorRow[]>([]);
-  const [kitnets, setKitnets] = useState<Kitnet[]>([]);
+  const queryClient = useQueryClient();
+  const { data: moradores = [], error: moradoresQueryError } = useQuery({
+    queryKey: ['moradores'],
+    queryFn: () => api.get<MoradorRow[]>('/moradores').then((response) => response.data),
+  });
+  const { data: kitnets = [], error: kitnetsQueryError } = useQuery({
+    queryKey: ['kitnets'],
+    queryFn: () => api.get<Kitnet[]>('/kitnets').then((response) => response.data),
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -27,20 +35,13 @@ export function Moradores() {
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function loadMoradores() {
-    api
-      .get<MoradorRow[]>('/moradores')
-      .then((response) => setMoradores(response.data))
-      .catch((err) => setListError(getApiErrorMessage(err, 'Não foi possível carregar os moradores.')));
-  }
-
-  useEffect(loadMoradores, []);
-  useEffect(() => {
-    api
-      .get<Kitnet[]>('/kitnets')
-      .then((response) => setKitnets(response.data))
-      .catch((err) => setListError(getApiErrorMessage(err, 'Não foi possível carregar as kitnets.')));
-  }, []);
+  const displayedError =
+    listError ??
+    (moradoresQueryError
+      ? getApiErrorMessage(moradoresQueryError, 'Não foi possível carregar os moradores.')
+      : kitnetsQueryError
+        ? getApiErrorMessage(kitnetsQueryError, 'Não foi possível carregar as kitnets.')
+        : null);
 
   function openModal() {
     setNome('');
@@ -65,7 +66,8 @@ export function Moradores() {
         diaVencimento: Number(diaVencimento),
       });
       setIsModalOpen(false);
-      loadMoradores();
+      queryClient.invalidateQueries({ queryKey: ['moradores'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnets'] });
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível cadastrar o morador.'));
     } finally {
@@ -80,7 +82,8 @@ export function Moradores() {
     setListError(null);
     try {
       await api.delete(`/moradores/${id}`);
-      loadMoradores();
+      queryClient.invalidateQueries({ queryKey: ['moradores'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnets'] });
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o morador.'));
     }
@@ -99,7 +102,7 @@ export function Moradores() {
       />
 
       {kitnets.length === 0 && <p className="form-error">Cadastre uma kitnet antes de adicionar moradores.</p>}
-      {listError && <p className="form-error">{listError}</p>}
+      {displayedError && <p className="form-error">{displayedError}</p>}
 
       <Card>
         <Table

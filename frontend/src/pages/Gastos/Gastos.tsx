@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import type { Gasto, Kitnet } from '../../types';
 import { Card } from '../../components/Card/Card';
@@ -19,8 +20,15 @@ function todayIsoDate(): string {
 }
 
 export function Gastos() {
-  const [gastos, setGastos] = useState<Gasto[]>([]);
-  const [kitnets, setKitnets] = useState<Kitnet[]>([]);
+  const queryClient = useQueryClient();
+  const { data: gastos = [], error: gastosQueryError } = useQuery({
+    queryKey: ['gastos'],
+    queryFn: () => api.get<Gasto[]>('/gastos').then((response) => response.data),
+  });
+  const { data: kitnets = [], error: kitnetsQueryError } = useQuery({
+    queryKey: ['kitnets'],
+    queryFn: () => api.get<Kitnet[]>('/kitnets').then((response) => response.data),
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState('');
@@ -30,20 +38,13 @@ export function Gastos() {
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function loadGastos() {
-    api
-      .get<Gasto[]>('/gastos')
-      .then((response) => setGastos(response.data))
-      .catch((err) => setListError(getApiErrorMessage(err, 'Não foi possível carregar os gastos.')));
-  }
-
-  useEffect(loadGastos, []);
-  useEffect(() => {
-    api
-      .get<Kitnet[]>('/kitnets')
-      .then((response) => setKitnets(response.data))
-      .catch((err) => setListError(getApiErrorMessage(err, 'Não foi possível carregar as kitnets.')));
-  }, []);
+  const displayedError =
+    listError ??
+    (gastosQueryError
+      ? getApiErrorMessage(gastosQueryError, 'Não foi possível carregar os gastos.')
+      : kitnetsQueryError
+        ? getApiErrorMessage(kitnetsQueryError, 'Não foi possível carregar as kitnets.')
+        : null);
 
   function openModal() {
     setDescricao('');
@@ -61,7 +62,7 @@ export function Gastos() {
     try {
       await api.post('/gastos', { descricao, valor: Number(valor), data, kitnetId: Number(kitnetId) });
       setIsModalOpen(false);
-      loadGastos();
+      queryClient.invalidateQueries({ queryKey: ['gastos'] });
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível lançar o gasto.'));
     } finally {
@@ -76,7 +77,7 @@ export function Gastos() {
     setListError(null);
     try {
       await api.delete(`/gastos/${id}`);
-      loadGastos();
+      queryClient.invalidateQueries({ queryKey: ['gastos'] });
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o gasto.'));
     }
@@ -95,7 +96,7 @@ export function Gastos() {
       />
 
       {kitnets.length === 0 && <p className="form-error">Cadastre uma kitnet antes de lançar gastos.</p>}
-      {listError && <p className="form-error">{listError}</p>}
+      {displayedError && <p className="form-error">{displayedError}</p>}
 
       <Card>
         <Table

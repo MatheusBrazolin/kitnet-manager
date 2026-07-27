@@ -1,0 +1,133 @@
+.bar-chart-svg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.bar-chart-axis {
+  stroke: var(--color-ink);
+  stroke-width: 2;
+}
+
+.bar-chart-bar {
+  stroke: var(--color-ink);
+  stroke-width: 2;
+  transition: opacity var(--duration-normal) var(--ease-out-expo);
+}
+
+.bar-chart-bar:hover {
+  opacity: 0.8;
+}
+
+.bar-chart-label {
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--color-ink-muted);
+  text-anchor: middle;
+  text-transform: uppercase;
+}
+
+.bar-chart-legend {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.bar-chart-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-ink-muted);
+}
+
+.bar-chart-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border: var(--border-width) solid var(--color-ink);
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.donut-chart {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.donut-chart-svg {
+  width: 180px;
+  height: 180px;
+  flex-shrink: 0;
+}
+
+.donut-chart-slice {
+  transition: opacity var(--duration-normal) var(--ease-out-expo);
+}
+
+.donut-chart-slice:hover {
+  opacity: 0.75;
+}
+
+.donut-chart-total-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  fill: var(--color-ink-muted);
+}
+
+.donut-chart-total-value {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  fill: var(--color-ink);
+}
+
+.donut-chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  min-width: 160px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.donut-chart-legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.donut-chart-legend-item strong {
+  margin-left: auto;
+  color: var(--color-ink);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.donut-chart-legend-swatch {
+  width: 10px;
+  height: 10px;
+  border: var(--border-width) solid var(--color-ink);
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.donut-chart-empty {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  padding: var(--space-4) 0;
+}

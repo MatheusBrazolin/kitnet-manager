@@ -1,4 +1,5 @@
-import { useEffect, useState, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import type { Kitnet } from '../../types';
 import { Card } from '../../components/Card/Card';
@@ -11,7 +12,14 @@ import { KitnetDetailModal } from '../../components/KitnetDetailModal/KitnetDeta
 const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export function Kitnets() {
-  const [kitnets, setKitnets] = useState<Kitnet[]>([]);
+  const queryClient = useQueryClient();
+  const {
+    data: kitnets = [],
+    error: queryError,
+  } = useQuery({
+    queryKey: ['kitnets'],
+    queryFn: () => api.get<Kitnet[]>('/kitnets').then((response) => response.data),
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [numero, setNumero] = useState('');
   const [valor, setValor] = useState('');
@@ -20,14 +28,7 @@ export function Kitnets() {
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function loadKitnets() {
-    api
-      .get<Kitnet[]>('/kitnets')
-      .then((response) => setKitnets(response.data))
-      .catch((err) => setListError(getApiErrorMessage(err, 'Não foi possível carregar as kitnets.')));
-  }
-
-  useEffect(loadKitnets, []);
+  const displayedError = listError ?? (queryError ? getApiErrorMessage(queryError, 'Não foi possível carregar as kitnets.') : null);
 
   function openModal() {
     setNumero('');
@@ -43,7 +44,7 @@ export function Kitnets() {
     try {
       await api.post('/kitnets', { numero, valor: Number(valor) });
       setIsModalOpen(false);
-      loadKitnets();
+      queryClient.invalidateQueries({ queryKey: ['kitnets'] });
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível criar a kitnet.'));
     } finally {
@@ -58,7 +59,7 @@ export function Kitnets() {
     setListError(null);
     try {
       await api.delete(`/kitnets/${id}`);
-      loadKitnets();
+      queryClient.invalidateQueries({ queryKey: ['kitnets'] });
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover a kitnet.'));
     }
@@ -76,7 +77,7 @@ export function Kitnets() {
         }
       />
 
-      {listError && <p className="form-error">{listError}</p>}
+      {displayedError && <p className="form-error">{displayedError}</p>}
 
       <Card>
         <Table
