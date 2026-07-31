@@ -5,9 +5,9 @@ import { Modal } from '../Modal/Modal';
 import { StatusBadge } from '../StatusBadge';
 import { Table } from '../Table/Table';
 import { formatTempoLocacao, formatVencimentoLabel } from '../../utils/dates';
+import { formatCurrency } from '../../utils/currency';
 import './morador-detail-modal.css';
 
-const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
   month: '2-digit',
@@ -87,7 +87,7 @@ export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalPro
             emptyMessage="Nenhum pagamento lançado ainda."
             columns={[
               { header: 'Vencimento', render: (row) => dateFormatter.format(new Date(row.vencimento)) },
-              { header: 'Valor', render: (row) => currencyFormatter.format(row.valor) },
+              { header: 'Valor', render: (row) => formatCurrency(row.valor) },
               {
                 header: 'Status',
                 render: (row) => <StatusBadge label={row.pago ? 'pago' : isAtrasado(row) ? 'atrasado' : 'pendente'} />,

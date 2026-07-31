@@ -4,6 +4,7 @@ import { api, getApiErrorMessage } from '../../services/api';
 import type { Kitnet, Morador } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
+import { TableSkeleton } from '../../components/Table/TableSkeleton';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { MoradorDetailModal } from '../../components/MoradorDetailModal/MoradorDetailModal';
@@ -16,7 +17,7 @@ function todayIsoDate(): string {
 
 export function Moradores() {
   const queryClient = useQueryClient();
-  const { data: moradores = [], error: moradoresQueryError } = useQuery({
+  const { data: moradores = [], error: moradoresQueryError, isLoading } = useQuery({
     queryKey: ['moradores'],
     queryFn: () => api.get<MoradorRow[]>('/moradores').then((response) => response.data),
   });
@@ -105,6 +106,9 @@ export function Moradores() {
       {displayedError && <p className="form-error">{displayedError}</p>}
 
       <Card>
+        {isLoading ? (
+          <TableSkeleton />
+        ) : (
         <Table
           rows={moradores}
           rowKey={(row) => row.id}
@@ -132,6 +136,7 @@ export function Moradores() {
             },
           ]}
         />
+        )}
       </Card>
 
       {selectedMoradorId && (

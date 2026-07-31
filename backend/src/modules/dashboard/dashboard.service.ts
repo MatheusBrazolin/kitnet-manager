@@ -15,9 +15,11 @@ export class DashboardService {
   ) {}
 
   async getSummary(userId: number) {
-    await this.pagamentosService.ensureCurrentMonthPagamentos(userId);
+    const [, kitnets] = await Promise.all([
+      this.pagamentosService.ensureCurrentMonthPagamentos(userId),
+      this.prisma.kitnet.findMany({ where: { userId } }),
+    ]);
 
-    const kitnets = await this.prisma.kitnet.findMany({ where: { userId } });
     const totalKitnets = kitnets.length;
     const ocupadas = kitnets.filter((kitnet) => kitnet.status === 'ocupada').length;
     const valorMensal = kitnets.reduce((total, kitnet) => total + kitnet.valor, 0);

@@ -4,9 +4,9 @@ import type { KitnetDetail } from '../../types';
 import { Modal } from '../Modal/Modal';
 import { StatusBadge } from '../StatusBadge';
 import { Table } from '../Table/Table';
+import { formatCurrency } from '../../utils/currency';
 import './kitnet-detail-modal.css';
 
-const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
   month: '2-digit',
@@ -44,7 +44,7 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
           <dl className="kitnet-detail-grid">
             <div>
               <dt>Aluguel</dt>
-              <dd>{currencyFormatter.format(kitnet.valor)}</dd>
+              <dd>{formatCurrency(kitnet.valor)}</dd>
             </div>
             <div>
               <dt>Status</dt>
@@ -58,7 +58,7 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
             </div>
             <div>
               <dt>Total gasto</dt>
-              <dd className="kitnet-detail-total-gasto">{currencyFormatter.format(kitnet.totalGasto)}</dd>
+              <dd className="kitnet-detail-total-gasto">{formatCurrency(kitnet.totalGasto)}</dd>
             </div>
           </dl>
 
@@ -70,7 +70,7 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
             columns={[
               { header: 'Descrição', render: (row) => row.descricao },
               { header: 'Data', render: (row) => dateFormatter.format(new Date(row.data)) },
-              { header: 'Valor', align: 'right', render: (row) => currencyFormatter.format(row.valor) },
+              { header: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
             ]}
           />
         </div>

@@ -27,22 +27,16 @@ export class PagamentosService {
 
     const moradores = await this.prisma.morador.findMany({
       where: { kitnet: { userId } },
-      include: { kitnet: true },
+      include: {
+        kitnet: true,
+        pagamentos: { where: { vencimento: { gte: periodStart, lt: periodEnd } }, select: { id: true } },
+      },
     });
     if (moradores.length === 0) {
       return;
     }
 
-    const existentes = await this.prisma.pagamento.findMany({
-      where: {
-        moradorId: { in: moradores.map((morador) => morador.id) },
-        vencimento: { gte: periodStart, lt: periodEnd },
-      },
-      select: { moradorId: true },
-    });
-    const jaGerados = new Set(existentes.map((pagamento) => pagamento.moradorId));
-
-    const pendentes = moradores.filter((morador) => !jaGerados.has(morador.id));
+    const pendentes = moradores.filter((morador) => morador.pagamentos.length === 0);
     if (pendentes.length === 0) {
       return;
     }

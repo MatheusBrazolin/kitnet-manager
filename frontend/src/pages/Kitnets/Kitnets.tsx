@@ -4,18 +4,19 @@ import { api, getApiErrorMessage } from '../../services/api';
 import type { Kitnet } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
+import { TableSkeleton } from '../../components/Table/TableSkeleton';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { KitnetDetailModal } from '../../components/KitnetDetailModal/KitnetDetailModal';
-
-const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
+import { formatCurrency } from '../../utils/currency';
 
 export function Kitnets() {
   const queryClient = useQueryClient();
   const {
     data: kitnets = [],
     error: queryError,
+    isLoading,
   } = useQuery({
     queryKey: ['kitnets'],
     queryFn: () => api.get<Kitnet[]>('/kitnets').then((response) => response.data),
@@ -80,6 +81,9 @@ export function Kitnets() {
       {displayedError && <p className="form-error">{displayedError}</p>}
 
       <Card>
+        {isLoading ? (
+          <TableSkeleton />
+        ) : (
         <Table
           rows={kitnets}
           rowKey={(row) => row.id}
@@ -87,7 +91,7 @@ export function Kitnets() {
           onRowClick={(row) => setSelectedKitnetId(row.id)}
           columns={[
             { header: 'Número', render: (row) => row.numero },
-            { header: 'Valor', render: (row) => currencyFormatter.format(row.valor) },
+            { header: 'Valor', render: (row) => formatCurrency(row.valor) },
             { header: 'Status', render: (row) => <StatusBadge label={row.status} /> },
             { header: 'Moradores', render: (row) => row.moradores.length },
             {
@@ -108,6 +112,7 @@ export function Kitnets() {
             },
           ]}
         />
+        )}
       </Card>
 
       {selectedKitnetId && (

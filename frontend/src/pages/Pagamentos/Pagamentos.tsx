@@ -4,13 +4,14 @@ import { api, getApiErrorMessage } from '../../services/api';
 import type { Morador, Pagamento } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
+import { TableSkeleton } from '../../components/Table/TableSkeleton';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { formatVencimentoLabel } from '../../utils/dates';
+import { formatCurrency } from '../../utils/currency';
 import './pagamentos.css';
 
-const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
   month: '2-digit',
@@ -24,7 +25,7 @@ function isAtrasado(pagamento: Pagamento) {
 
 export function Pagamentos() {
   const queryClient = useQueryClient();
-  const { data: pagamentos = [], error: pagamentosQueryError } = useQuery({
+  const { data: pagamentos = [], error: pagamentosQueryError, isLoading } = useQuery({
     queryKey: ['pagamentos'],
     queryFn: () => api.get<Pagamento[]>('/pagamentos').then((response) => response.data),
   });
@@ -97,6 +98,9 @@ export function Pagamentos() {
       {displayedError && <p className="form-error">{displayedError}</p>}
 
       <Card>
+        {isLoading ? (
+          <TableSkeleton />
+        ) : (
         <Table
           rows={pagamentos}
           rowKey={(row) => row.id}
@@ -105,7 +109,7 @@ export function Pagamentos() {
             { header: 'Morador', render: (row) => row.morador.nome },
             { header: 'Kitnet', render: (row) => row.morador.kitnet.numero },
             { header: 'Vencimento', render: (row) => dateFormatter.format(new Date(row.vencimento)) },
-            { header: 'Valor', render: (row) => currencyFormatter.format(row.valor) },
+            { header: 'Valor', render: (row) => formatCurrency(row.valor) },
             {
               header: 'Status',
               render: (row) => (
@@ -132,6 +136,7 @@ export function Pagamentos() {
             },
           ]}
         />
+        )}
       </Card>
 
       {isModalOpen && (

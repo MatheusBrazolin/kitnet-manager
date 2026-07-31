@@ -4,10 +4,11 @@ import { api, getApiErrorMessage } from '../../services/api';
 import type { Gasto, Kitnet } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
+import { TableSkeleton } from '../../components/Table/TableSkeleton';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
+import { formatCurrency } from '../../utils/currency';
 
-const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
   month: '2-digit',
@@ -21,7 +22,7 @@ function todayIsoDate(): string {
 
 export function Gastos() {
   const queryClient = useQueryClient();
-  const { data: gastos = [], error: gastosQueryError } = useQuery({
+  const { data: gastos = [], error: gastosQueryError, isLoading } = useQuery({
     queryKey: ['gastos'],
     queryFn: () => api.get<Gasto[]>('/gastos').then((response) => response.data),
   });
@@ -99,6 +100,9 @@ export function Gastos() {
       {displayedError && <p className="form-error">{displayedError}</p>}
 
       <Card>
+        {isLoading ? (
+          <TableSkeleton />
+        ) : (
         <Table
           rows={gastos}
           rowKey={(row) => row.id}
@@ -107,7 +111,7 @@ export function Gastos() {
             { header: 'Descrição', render: (row) => row.descricao },
             { header: 'Kitnet', render: (row) => row.kitnet.numero },
             { header: 'Data', render: (row) => dateFormatter.format(new Date(row.data)) },
-            { header: 'Valor', align: 'right', render: (row) => currencyFormatter.format(row.valor) },
+            { header: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
             {
               header: '',
               align: 'right',
@@ -119,6 +123,7 @@ export function Gastos() {
             },
           ]}
         />
+        )}
       </Card>
 
       {isModalOpen && (

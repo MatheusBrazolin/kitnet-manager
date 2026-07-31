@@ -8,15 +8,9 @@ import { Header } from '../../components/Header/Header';
 import { BarChart } from '../../components/charts/BarChart';
 import { DonutChart } from '../../components/charts/DonutChart';
 import { formatVencimentoLabel } from '../../utils/dates';
+import { formatCurrency, formatCompactCurrency } from '../../utils/currency';
 import './dashboard.css';
 
-const currencyFormatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
-const compactCurrencyFormatter = new Intl.NumberFormat('pt-BR', {
-  style: 'currency',
-  currency: 'BRL',
-  notation: 'compact',
-  maximumFractionDigits: 1,
-});
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', timeZone: 'UTC' });
 
 const KITNET_COLORS = ['var(--color-brand)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-danger)', 'var(--color-ink-muted)'];
@@ -60,21 +54,21 @@ export function Dashboard() {
               hint={`${summary.vagas} vagas`}
               tone="success"
             />
-            <StatCard label="Valor mensal" value={currencyFormatter.format(summary.valorMensal)} tone="warning" />
+            <StatCard label="Valor mensal" value={formatCurrency(summary.valorMensal)} tone="warning" />
             <StatCard
               label="Gastos no mês"
-              value={currencyFormatter.format(summary.gastoMensal)}
+              value={formatCurrency(summary.gastoMensal)}
               tone="danger"
             />
             <StatCard
               label="Lucro líquido"
-              value={currencyFormatter.format(summary.lucroLiquido)}
+              value={formatCurrency(summary.lucroLiquido)}
               hint="Recebido - gastos do mês"
               tone={summary.lucroLiquido >= 0 ? 'success' : 'danger'}
             />
             <StatCard
               label="Total em atraso"
-              value={currencyFormatter.format(summary.totalEmAtraso)}
+              value={formatCurrency(summary.totalEmAtraso)}
               tone={summary.totalEmAtraso > 0 ? 'danger' : 'success'}
             />
           </div>
@@ -87,7 +81,7 @@ export function Dashboard() {
                   { label: 'Receita', color: 'var(--color-success)' },
                   { label: 'Gastos', color: 'var(--color-danger)' },
                 ]}
-                formatValue={(value) => compactCurrencyFormatter.format(value)}
+                formatValue={(value) => formatCompactCurrency(value)}
               />
             </Card>
 
@@ -98,7 +92,7 @@ export function Dashboard() {
                   value: item.total,
                   color: KITNET_COLORS[index % KITNET_COLORS.length],
                 }))}
-                formatValue={(value) => currencyFormatter.format(value)}
+                formatValue={(value) => formatCurrency(value)}
                 emptyMessage="Nenhum gasto lançado neste mês."
               />
             </Card>
@@ -123,7 +117,7 @@ export function Dashboard() {
                 {
                   header: 'Valor',
                   align: 'right',
-                  render: (row) => currencyFormatter.format(row.valor),
+                  render: (row) => formatCurrency(row.valor),
                 },
               ]}
             />
