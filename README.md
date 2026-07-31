@@ -111,20 +111,22 @@ curl http://localhost:3000/api/kitnets \
 
 ## Deploy (Vercel — projeto único, mesma origem)
 
-Frontend e backend sobem juntos num único projeto Vercel, definido pelo `vercel.json` na raiz do repo. O `vercel.json` declara dois builds:
+Frontend e backend sobem juntos num único projeto Vercel usando o modelo de **services**, definido pelo `vercel.json` na raiz do repo:
 
-- `@vercel/static-build` sobre `frontend/package.json` → gera o build estático do Vite (`frontend/dist`);
-- `@vercel/node` sobre `backend/src/main.ts` → transforma o NestJS numa função serverless.
+- `frontend` (`root: frontend`, `framework: vite`) → build estático do Vite;
+- `backend` (`root: backend`) → NestJS detectado automaticamente pela Vercel (entrypoint `src/main.ts`) e publicado como Vercel Function.
 
-O roteamento manda `/api/*` pra função do backend, serve os arquivos estáticos do frontend quando existem e faz fallback pra `index.html` nas rotas do React Router — tudo na mesma origem, sem CORS.
+Os `rewrites` no topo do `vercel.json` expõem os dois serviços publicamente: `/api/*` vai pro `backend`, o resto vai pro `frontend` — tudo na mesma origem, sem CORS.
 
-1. No Vercel, **Add New → Project** → importe o repo. Ele lê o `vercel.json` da raiz automaticamente (deixe o *Root Directory* como a raiz do repositório).
+1. No Vercel, **Add New → Project** → importe o repo. Ele detecta os dois serviços (frontend/backend) automaticamente a partir do `vercel.json` (deixe o *Root Directory* como a raiz do repositório).
 2. Em **Environment Variables** do projeto, adicione: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN` (ex: `7d`).
 3. Deploy.
 
 Não precisa configurar `VITE_API_URL` nem `CORS_ORIGIN` em produção — como front e back respondem no mesmo domínio, o frontend já chama `/api` por padrão.
 
-> O `backend/src/main.ts` roda em dois modos: localmente/Docker sobe um servidor HTTP (`app.listen`); na Vercel (variável `VERCEL` presente) exporta um handler Express reaproveitado entre invocações.
+> `backend/src/main.ts` sempre sobe com `app.listen()` — localmente, no Docker/VPS e também na Vercel, cujo runtime de services intercepta esse listen e roteia as requisições para a função por trás dos panos (zero-config para NestJS).
+
+Pra rodar os dois serviços localmente do jeito que a Vercel roda em produção: `vercel dev` (requer Vercel CLI ≥ 48.4.0).
 
 **Migrações:** o Vercel não roda `prisma migrate deploy` sozinho. Rode localmente antes de cada deploy com schema novo:
 ```bash
