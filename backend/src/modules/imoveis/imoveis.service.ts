@@ -1,9 +1,8 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateImovelDto } from './dto/create-imovel.dto';
 import { UpdateImovelDto } from './dto/update-imovel.dto';
 import { CreateUnidadesLoteDto } from './dto/create-unidades-lote.dto';
-import { PLAN_KITNET_LIMITS } from '../../common/plan-limits';
 
 @Injectable()
 export class ImoveisService {
@@ -51,33 +50,16 @@ export class ImoveisService {
   }
 
   async createUnidadesLote(userId: number, imovelId: number, dto: CreateUnidadesLoteDto) {
-    const imovel = await this.findOwnedOrThrow(userId, imovelId);
+    await this.findOwnedOrThrow(userId, imovelId);
 
-    return this.prisma.$transaction(
-      async (tx) => {
-        const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
-        const total = await tx.kitnet.count({ where: { userId } });
-        const limit = PLAN_KITNET_LIMITS[user.plano];
+    const novas = dto.unidades.map((unidade) => ({
+      numero: unidade.numero,
+      valor: unidade.valor,
+      userId,
+      imovelId,
+    }));
 
-        if (total + dto.quantidade > limit) {
-          throw new BadRequestException(
-            `Limite de ${limit} unidades do plano ${user.plano} atingido. Faça upgrade para cadastrar mais.`,
-          );
-        }
-
-        const existentes = imovel.kitnets.length;
-        const prefixo = dto.prefixo ?? '';
-        const novas = Array.from({ length: dto.quantidade }, (_, index) => ({
-          numero: `${prefixo}${String(existentes + index + 1).padStart(2, '0')}`,
-          valor: dto.valor,
-          userId,
-          imovelId,
-        }));
-
-        await tx.kitnet.createMany({ data: novas });
-        return tx.kitnet.findMany({ where: { imovelId }, include: { moradores: true }, orderBy: { numero: 'asc' } });
-      },
-      { isolationLevel: 'Serializable' },
-    );
+    await this.prisma.kitnet.createMany({ data: novas });
+    return this.prisma.kitnet.findMany({ where: { imovelId }, include: { moradores: true }, orderBy: { numero: 'asc' } });
   }
 }

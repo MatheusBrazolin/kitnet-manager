@@ -1,17 +1,20 @@
-import { IsInt, IsNumber, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { ArrayMaxSize, ArrayMinSize, IsNumber, IsString, Min, MinLength, ValidateNested } from 'class-validator';
 
-export class CreateUnidadesLoteDto {
-  @IsInt()
-  @Min(1)
-  @Max(50)
-  quantidade: number;
+export class UnidadeLoteItemDto {
+  @IsString()
+  @MinLength(1)
+  numero: string;
 
   @IsNumber()
   @Min(0)
   valor: number;
+}
 
-  @IsOptional()
-  @IsString()
-  @MinLength(1)
-  prefixo?: string;
+export class CreateUnidadesLoteDto {
+  @ArrayMinSize(1)
+  @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => UnidadeLoteItemDto)
+  unidades: UnidadeLoteItemDto[];
 }

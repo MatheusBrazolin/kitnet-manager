@@ -44,7 +44,6 @@ export function Sidebar() {
           <div className="sidebar-avatar">{user?.name.charAt(0).toUpperCase()}</div>
           <div className="sidebar-user-info">
             <span className="sidebar-user-name">{user?.name}</span>
-            <span className="sidebar-user-plan">Plano {user?.plano}</span>
           </div>
         </div>
         <button type="button" className="btn btn-ghost sidebar-logout" onClick={logout}>

@@ -139,14 +139,6 @@
   white-space: nowrap;
 }
 
-.sidebar-user-plan {
-  font-size: var(--text-xs);
-  color: var(--color-bg);
-  opacity: 0.6;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
 .sidebar-logout {
   width: 100%;
   background: var(--color-ink);

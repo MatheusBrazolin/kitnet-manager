@@ -38,8 +38,8 @@ export function Register() {
           <span>K</span> KitManager
         </div>
         <div className="auth-showcase-copy">
-          <h1>Comece grátis, cresça quando precisar.</h1>
-          <p>O plano FREE cobre até 3 kitnets. Faça upgrade para o PRO quando expandir seu negócio.</p>
+          <h1>Organize seus imóveis sem limites.</h1>
+          <p>Cadastre quantos imóveis e unidades precisar, sem restrição de plano.</p>
         </div>
         <p className="auth-showcase-foot">© {new Date().getFullYear()} KitManager</p>
       </section>

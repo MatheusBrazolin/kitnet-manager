@@ -21,3 +21,60 @@
   color: var(--color-ink-muted);
   font-size: var(--text-sm);
 }
+
+.imovel-lote-config {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.imovel-lote-config .field {
+  flex: 1;
+  min-width: 120px;
+}
+
+.imovel-lote-valor-padrao {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--color-surface-sunken);
+  border: var(--border-width) solid var(--color-border-soft);
+  border-radius: var(--radius-sm);
+}
+
+.imovel-lote-valor-padrao .field {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.imovel-lote-linhas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+.imovel-lote-linha {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+}
+
+.imovel-lote-linha input {
+  min-width: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--color-ink);
+  background: var(--color-surface);
+  outline: none;
+  transition: box-shadow var(--duration-fast), transform var(--duration-fast);
+}
+
+.imovel-lote-linha input:focus {
+  box-shadow: var(--shadow-sm);
+  transform: translate(-1px, -1px);
+}

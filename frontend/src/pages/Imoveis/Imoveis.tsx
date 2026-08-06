@@ -31,8 +31,9 @@ export function Imoveis() {
 
   const [loteImovelId, setLoteImovelId] = useState<number | null>(null);
   const [loteQuantidade, setLoteQuantidade] = useState('1');
-  const [loteValor, setLoteValor] = useState('');
   const [lotePrefixo, setLotePrefixo] = useState('');
+  const [loteLinhas, setLoteLinhas] = useState<Array<{ numero: string; valor: string }> | null>(null);
+  const [loteValorPadrao, setLoteValorPadrao] = useState('');
   const [loteError, setLoteError] = useState<string | null>(null);
   const [isLoteSubmitting, setIsLoteSubmitting] = useState(false);
 
@@ -93,24 +94,50 @@ export function Imoveis() {
   function openLoteModal(imovel: Imovel) {
     setLoteImovelId(imovel.id);
     setLoteQuantidade('1');
-    setLoteValor('');
     setLotePrefixo('');
+    setLoteLinhas(null);
+    setLoteValorPadrao('');
     setLoteError(null);
+  }
+
+  function gerarLinhas(imovel: Imovel) {
+    const quantidade = Math.max(1, Math.min(50, Number(loteQuantidade) || 1));
+    const existentes = imovel.kitnets.length;
+    setLoteLinhas(
+      Array.from({ length: quantidade }, (_, index) => ({
+        numero: `${lotePrefixo}${String(existentes + index + 1).padStart(2, '0')}`,
+        valor: '',
+      })),
+    );
+    setLoteError(null);
+  }
+
+  function atualizarLinha(index: number, campo: 'numero' | 'valor', valor: string) {
+    setLoteLinhas((linhas) =>
+      linhas ? linhas.map((linha, i) => (i === index ? { ...linha, [campo]: valor } : linha)) : linhas,
+    );
+  }
+
+  function aplicarValorPadrao() {
+    setLoteLinhas((linhas) => (linhas ? linhas.map((linha) => ({ ...linha, valor: loteValorPadrao })) : linhas));
   }
 
   async function handleCreateLote(event: FormEvent) {
     event.preventDefault();
-    if (loteImovelId === null) {
+    if (loteImovelId === null || !loteLinhas) {
       return;
     }
     setLoteError(null);
+
+    const unidades = loteLinhas.map((linha) => ({ numero: linha.numero.trim(), valor: Number(linha.valor) }));
+    if (unidades.some((unidade) => !unidade.numero || Number.isNaN(unidade.valor) || unidade.valor < 0)) {
+      setLoteError('Preencha o número e o valor de cada unidade.');
+      return;
+    }
+
     setIsLoteSubmitting(true);
     try {
-      await api.post(`/imoveis/${loteImovelId}/unidades-lote`, {
-        quantidade: Number(loteQuantidade),
-        valor: Number(loteValor),
-        prefixo: lotePrefixo || undefined,
-      });
+      await api.post(`/imoveis/${loteImovelId}/unidades-lote`, { unidades });
       setLoteImovelId(null);
       queryClient.invalidateQueries({ queryKey: ['imoveis'] });
       queryClient.invalidateQueries({ queryKey: ['kitnets'] });
@@ -226,47 +253,86 @@ export function Imoveis() {
       )}
 
       {loteImovel && (
-        <Modal title={`Adicionar unidades · ${loteImovel.nome}`} onClose={() => setLoteImovelId(null)}>
+        <Modal title={`Adicionar unidades · ${loteImovel.nome}`} onClose={() => setLoteImovelId(null)} className="modal-wide">
           <form onSubmit={handleCreateLote} className="field-group">
             {loteError && <p className="form-error">{loteError}</p>}
             <p className="imovel-lote-hint">
-              Use quantidade 1 para uma casa/unidade única, ou mais para cadastrar de uma vez todos os quartos de
-              uma kitnet (ex.: 10 unidades numeradas automaticamente).
+              Use quantidade 1 para uma casa/unidade única, ou mais para cadastrar de uma vez os quartos de uma
+              kitnet — cada unidade pode ter um valor de aluguel diferente.
             </p>
-            <div className="field">
-              <label htmlFor="quantidade">Quantidade de unidades</label>
-              <input
-                id="quantidade"
-                type="number"
-                min={1}
-                max={50}
-                required
-                value={loteQuantidade}
-                onChange={(event) => setLoteQuantidade(event.target.value)}
-              />
+
+            <div className="imovel-lote-config">
+              <div className="field">
+                <label htmlFor="quantidade">Quantidade</label>
+                <input
+                  id="quantidade"
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={loteQuantidade}
+                  onChange={(event) => setLoteQuantidade(event.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="lotePrefixo">Prefixo (opcional)</label>
+                <input
+                  id="lotePrefixo"
+                  placeholder="Ex.: Quarto "
+                  value={lotePrefixo}
+                  onChange={(event) => setLotePrefixo(event.target.value)}
+                />
+              </div>
+              <button type="button" className="btn btn-ghost" onClick={() => gerarLinhas(loteImovel)}>
+                Gerar campos
+              </button>
             </div>
-            <div className="field">
-              <label htmlFor="loteValor">Valor do aluguel (por unidade)</label>
-              <input
-                id="loteValor"
-                type="number"
-                min={0}
-                step="0.01"
-                required
-                value={loteValor}
-                onChange={(event) => setLoteValor(event.target.value)}
-              />
-            </div>
-            <div className="field">
-              <label htmlFor="lotePrefixo">Prefixo do número (opcional)</label>
-              <input
-                id="lotePrefixo"
-                placeholder="Ex.: Quarto "
-                value={lotePrefixo}
-                onChange={(event) => setLotePrefixo(event.target.value)}
-              />
-            </div>
-            <button type="submit" className="btn btn-primary" disabled={isLoteSubmitting}>
+
+            {loteLinhas && (
+              <>
+                <div className="imovel-lote-valor-padrao">
+                  <div className="field">
+                    <label htmlFor="loteValorPadrao">Valor padrão (opcional)</label>
+                    <input
+                      id="loteValorPadrao"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="Ex.: 650"
+                      value={loteValorPadrao}
+                      onChange={(event) => setLoteValorPadrao(event.target.value)}
+                    />
+                  </div>
+                  <button type="button" className="btn btn-ghost" onClick={aplicarValorPadrao}>
+                    Aplicar a todas
+                  </button>
+                </div>
+
+                <div className="imovel-lote-linhas">
+                  {loteLinhas.map((linha, index) => (
+                    <div className="imovel-lote-linha" key={index}>
+                      <input
+                        aria-label={`Número da unidade ${index + 1}`}
+                        required
+                        value={linha.numero}
+                        onChange={(event) => atualizarLinha(index, 'numero', event.target.value)}
+                      />
+                      <input
+                        aria-label={`Valor da unidade ${index + 1}`}
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        required
+                        placeholder="Valor"
+                        value={linha.valor}
+                        onChange={(event) => atualizarLinha(index, 'valor', event.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <button type="submit" className="btn btn-primary" disabled={isLoteSubmitting || !loteLinhas}>
               {isLoteSubmitting ? 'Salvando...' : 'Salvar'}
             </button>
           </form>

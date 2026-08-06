@@ -1,8 +1,7 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateKitnetDto } from './dto/create-kitnet.dto';
 import { UpdateKitnetDto } from './dto/update-kitnet.dto';
-import { PLAN_KITNET_LIMITS } from '../../common/plan-limits';
 
 @Injectable()
 export class KitnetsService {
@@ -52,23 +51,7 @@ export class KitnetsService {
 
   async create(userId: number, dto: CreateKitnetDto) {
     await this.assertImovelOwnership(userId, dto.imovelId);
-
-    return this.prisma.$transaction(
-      async (tx) => {
-        const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
-        const total = await tx.kitnet.count({ where: { userId } });
-        const limit = PLAN_KITNET_LIMITS[user.plano];
-
-        if (total >= limit) {
-          throw new BadRequestException(
-            `Limite de ${limit} kitnets do plano ${user.plano} atingido. Faça upgrade para cadastrar mais.`,
-          );
-        }
-
-        return tx.kitnet.create({ data: { ...dto, userId } });
-      },
-      { isolationLevel: 'Serializable' },
-    );
+    return this.prisma.kitnet.create({ data: { ...dto, userId } });
   }
 
   async update(userId: number, id: number, dto: UpdateKitnetDto) {

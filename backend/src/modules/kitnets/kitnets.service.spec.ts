@@ -1,4 +1,4 @@
-import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { KitnetsService } from './kitnets.service';
 import { PrismaService } from '../../database/prisma.service';
 
@@ -12,8 +12,6 @@ type PrismaMock = {
     delete: jest.Mock;
   };
   imovel: { findUnique: jest.Mock };
-  user: { findUniqueOrThrow: jest.Mock };
-  $transaction: jest.Mock;
 };
 
 describe('KitnetsService', () => {
@@ -43,8 +41,6 @@ describe('KitnetsService', () => {
         delete: jest.fn(),
       },
       imovel: { findUnique: jest.fn().mockResolvedValue({ id: imovelId, userId: ownerId }) },
-      user: { findUniqueOrThrow: jest.fn() },
-      $transaction: jest.fn((callback: (tx: unknown) => unknown) => callback(prisma)),
     };
 
     service = new KitnetsService(prisma as unknown as PrismaService);
@@ -71,19 +67,16 @@ describe('KitnetsService', () => {
   });
 
   describe('create', () => {
-    it('throws BadRequestException when the plan limit is reached', async () => {
-      prisma.user.findUniqueOrThrow.mockResolvedValue({ id: ownerId, plano: 'FREE' });
-      prisma.kitnet.count.mockResolvedValue(3);
+    it('throws ForbiddenException when the imóvel does not belong to the user', async () => {
+      prisma.imovel.findUnique.mockResolvedValue({ id: imovelId, userId: 2 });
 
-      await expect(
-        service.create(ownerId, { numero: '04', valor: 900, imovelId }),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(service.create(ownerId, { numero: '04', valor: 900, imovelId })).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
       expect(prisma.kitnet.create).not.toHaveBeenCalled();
     });
 
-    it('creates the kitnet when under the plan limit', async () => {
-      prisma.user.findUniqueOrThrow.mockResolvedValue({ id: ownerId, plano: 'FREE' });
-      prisma.kitnet.count.mockResolvedValue(1);
+    it('creates the kitnet when the imóvel belongs to the user', async () => {
       prisma.kitnet.create.mockResolvedValue(kitnet);
 
       const result = await service.create(ownerId, { numero: '01', valor: 900, imovelId });
