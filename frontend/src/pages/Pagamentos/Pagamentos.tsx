@@ -107,7 +107,15 @@ export function Pagamentos() {
           emptyMessage="Nenhum pagamento lançado ainda."
           columns={[
             { header: 'Morador', render: (row) => row.morador.nome },
-            { header: 'Kitnet', render: (row) => row.morador.kitnet.numero },
+            {
+              header: 'Unidade',
+              render: (row) =>
+                row.morador.kitnet.imovel
+                  ? `${row.morador.kitnet.imovel.nome}${
+                      row.morador.kitnet.imovel.kitnets?.length > 1 ? ` · ${row.morador.kitnet.numero}` : ''
+                    }`
+                  : row.morador.kitnet.numero,
+            },
             { header: 'Vencimento', render: (row) => dateFormatter.format(new Date(row.vencimento)) },
             { header: 'Valor', render: (row) => formatCurrency(row.valor) },
             {

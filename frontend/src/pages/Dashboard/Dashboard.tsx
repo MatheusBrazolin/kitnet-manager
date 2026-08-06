@@ -29,7 +29,7 @@ export function Dashboard() {
 
   return (
     <div className="dashboard">
-      <Header title={`Olá, ${user?.name.split(' ')[0]}`} subtitle="Aqui está o resumo das suas kitnets hoje." />
+      <Header title={`Olá, ${user?.name.split(' ')[0]}`} subtitle="Aqui está o resumo dos seus imóveis hoje." />
 
       {error && <p className="form-error">{error}</p>}
 
@@ -47,7 +47,7 @@ export function Dashboard() {
       {summary && (
         <>
           <div className="dashboard-stats">
-            <StatCard label="Kitnets cadastradas" value={String(summary.totalKitnets)} />
+            <StatCard label="Unidades cadastradas" value={String(summary.totalKitnets)} />
             <StatCard
               label="Ocupadas"
               value={String(summary.ocupadas)}
@@ -85,10 +85,10 @@ export function Dashboard() {
               />
             </Card>
 
-            <Card title="Gastos por kitnet (mês atual)" className="dashboard-chart-card">
+            <Card title="Gastos por imóvel (mês atual)" className="dashboard-chart-card">
               <DonutChart
-                data={summary.gastosPorKitnet.map((item, index) => ({
-                  label: `Kitnet ${item.kitnet}`,
+                data={summary.gastosPorImovel.map((item, index) => ({
+                  label: item.imovel,
                   value: item.total,
                   color: KITNET_COLORS[index % KITNET_COLORS.length],
                 }))}

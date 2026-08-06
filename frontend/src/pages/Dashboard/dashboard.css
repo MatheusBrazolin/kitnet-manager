@@ -43,3 +43,9 @@
   font-weight: 600;
   color: var(--color-ink-muted);
 }
+
+@media (max-width: 640px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

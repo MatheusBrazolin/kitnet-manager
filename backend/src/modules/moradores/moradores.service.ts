@@ -10,13 +10,16 @@ export class MoradoresService {
   findAll(userId: number) {
     return this.prisma.morador.findMany({
       where: { kitnet: { userId } },
-      include: { kitnet: true },
+      include: { kitnet: { include: { imovel: true } } },
       orderBy: { nome: 'asc' },
     });
   }
 
   async findOwnedOrThrow(userId: number, id: number) {
-    const morador = await this.prisma.morador.findUnique({ where: { id }, include: { kitnet: true } });
+    const morador = await this.prisma.morador.findUnique({
+      where: { id },
+      include: { kitnet: { include: { imovel: true } } },
+    });
     if (!morador) {
       throw new NotFoundException('Morador não encontrado');
     }

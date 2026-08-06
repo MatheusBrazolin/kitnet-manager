@@ -7,6 +7,7 @@ import { Table } from '../../components/Table/Table';
 import { TableSkeleton } from '../../components/Table/TableSkeleton';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
+import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
 import { formatCurrency } from '../../utils/currency';
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
@@ -34,7 +35,7 @@ export function Gastos() {
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState('');
   const [data, setData] = useState(todayIsoDate());
-  const [kitnetId, setKitnetId] = useState('');
+  const [kitnetId, setKitnetId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -44,24 +45,28 @@ export function Gastos() {
     (gastosQueryError
       ? getApiErrorMessage(gastosQueryError, 'Não foi possível carregar os gastos.')
       : kitnetsQueryError
-        ? getApiErrorMessage(kitnetsQueryError, 'Não foi possível carregar as kitnets.')
+        ? getApiErrorMessage(kitnetsQueryError, 'Não foi possível carregar as unidades.')
         : null);
 
   function openModal() {
     setDescricao('');
     setValor('');
     setData(todayIsoDate());
-    setKitnetId(kitnets[0] ? String(kitnets[0].id) : '');
+    setKitnetId(kitnets[0]?.id ?? null);
     setError(null);
     setIsModalOpen(true);
   }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (kitnetId === null) {
+      setError('Selecione uma unidade.');
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/gastos', { descricao, valor: Number(valor), data, kitnetId: Number(kitnetId) });
+      await api.post('/gastos', { descricao, valor: Number(valor), data, kitnetId });
       setIsModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['gastos'] });
     } catch (err) {
@@ -88,7 +93,7 @@ export function Gastos() {
     <div>
       <Header
         title="Gastos"
-        subtitle="Manutenção, reparos e outras despesas por kitnet."
+        subtitle="Manutenção, reparos e outras despesas por unidade."
         action={
           <button type="button" className="btn btn-primary" onClick={openModal} disabled={kitnets.length === 0}>
             + Novo gasto
@@ -96,7 +101,7 @@ export function Gastos() {
         }
       />
 
-      {kitnets.length === 0 && <p className="form-error">Cadastre uma kitnet antes de lançar gastos.</p>}
+      {kitnets.length === 0 && <p className="form-error">Cadastre um imóvel e uma unidade antes de lançar gastos.</p>}
       {displayedError && <p className="form-error">{displayedError}</p>}
 
       <Card>
@@ -109,7 +114,13 @@ export function Gastos() {
           emptyMessage="Nenhum gasto lançado ainda."
           columns={[
             { header: 'Descrição', render: (row) => row.descricao },
-            { header: 'Kitnet', render: (row) => row.kitnet.numero },
+            {
+              header: 'Unidade',
+              render: (row) =>
+                row.kitnet.imovel
+                  ? `${row.kitnet.imovel.nome}${row.kitnet.imovel.kitnets?.length > 1 ? ` · ${row.kitnet.numero}` : ''}`
+                  : row.kitnet.numero,
+            },
             { header: 'Data', render: (row) => dateFormatter.format(new Date(row.data)) },
             { header: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
             {
@@ -141,14 +152,8 @@ export function Gastos() {
               />
             </div>
             <div className="field">
-              <label htmlFor="kitnetId">Kitnet</label>
-              <select id="kitnetId" value={kitnetId} onChange={(event) => setKitnetId(event.target.value)}>
-                {kitnets.map((kitnet) => (
-                  <option key={kitnet.id} value={kitnet.id}>
-                    Kitnet {kitnet.numero}
-                  </option>
-                ))}
-              </select>
+              <label htmlFor="kitnetId">Unidade</label>
+              <UnitPicker id="kitnetId" kitnets={kitnets} value={kitnetId} onChange={setKitnetId} />
             </div>
             <div className="field">
               <label htmlFor="valor">Valor</label>

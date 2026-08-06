@@ -94,7 +94,7 @@ export interface DashboardSummary {
   gastoMensal: number;
   lucroLiquido: number;
   totalEmAtraso: number;
-  gastosPorKitnet: Array<{ kitnet: string; total: number }>;
+  gastosPorImovel: Array<{ imovel: string; total: number }>;
   historico: Array<{ label: string; receita: number; gasto: number }>;
   proximosVencimentos: Array<{
     id: number;

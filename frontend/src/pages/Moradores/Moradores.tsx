@@ -8,6 +8,7 @@ import { TableSkeleton } from '../../components/Table/TableSkeleton';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { MoradorDetailModal } from '../../components/MoradorDetailModal/MoradorDetailModal';
+import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
 
@@ -28,7 +29,7 @@ export function Moradores() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
-  const [kitnetId, setKitnetId] = useState('');
+  const [kitnetId, setKitnetId] = useState<number | null>(null);
   const [dataEntrada, setDataEntrada] = useState(todayIsoDate());
   const [diaVencimento, setDiaVencimento] = useState('10');
   const [selectedMoradorId, setSelectedMoradorId] = useState<number | null>(null);
@@ -41,13 +42,13 @@ export function Moradores() {
     (moradoresQueryError
       ? getApiErrorMessage(moradoresQueryError, 'Não foi possível carregar os moradores.')
       : kitnetsQueryError
-        ? getApiErrorMessage(kitnetsQueryError, 'Não foi possível carregar as kitnets.')
+        ? getApiErrorMessage(kitnetsQueryError, 'Não foi possível carregar as unidades.')
         : null);
 
   function openModal() {
     setNome('');
     setTelefone('');
-    setKitnetId(kitnets[0] ? String(kitnets[0].id) : '');
+    setKitnetId(kitnets[0]?.id ?? null);
     setDataEntrada(todayIsoDate());
     setDiaVencimento('10');
     setError(null);
@@ -56,13 +57,17 @@ export function Moradores() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
+    if (kitnetId === null) {
+      setError('Selecione uma unidade.');
+      return;
+    }
     setError(null);
     setIsSubmitting(true);
     try {
       await api.post('/moradores', {
         nome,
         telefone,
-        kitnetId: Number(kitnetId),
+        kitnetId,
         dataEntrada,
         diaVencimento: Number(diaVencimento),
       });
@@ -94,7 +99,7 @@ export function Moradores() {
     <div>
       <Header
         title="Moradores"
-        subtitle="Quem está morando em cada kitnet."
+        subtitle="Quem está morando em cada unidade."
         action={
           <button type="button" className="btn btn-primary" onClick={openModal} disabled={kitnets.length === 0}>
             + Novo morador
@@ -102,7 +107,7 @@ export function Moradores() {
         }
       />
 
-      {kitnets.length === 0 && <p className="form-error">Cadastre uma kitnet antes de adicionar moradores.</p>}
+      {kitnets.length === 0 && <p className="form-error">Cadastre um imóvel e uma unidade antes de adicionar moradores.</p>}
       {displayedError && <p className="form-error">{displayedError}</p>}
 
       <Card>
@@ -117,7 +122,13 @@ export function Moradores() {
           columns={[
             { header: 'Nome', render: (row) => row.nome },
             { header: 'Telefone', render: (row) => row.telefone },
-            { header: 'Kitnet', render: (row) => row.kitnet.numero },
+            {
+              header: 'Unidade',
+              render: (row) =>
+                row.kitnet.imovel
+                  ? `${row.kitnet.imovel.nome}${row.kitnet.imovel.kitnets?.length > 1 ? ` · ${row.kitnet.numero}` : ''}`
+                  : row.kitnet.numero,
+            },
             {
               header: '',
               align: 'right',
@@ -163,14 +174,8 @@ export function Moradores() {
               />
             </div>
             <div className="field">
-              <label htmlFor="kitnetId">Kitnet</label>
-              <select id="kitnetId" value={kitnetId} onChange={(event) => setKitnetId(event.target.value)}>
-                {kitnets.map((kitnet) => (
-                  <option key={kitnet.id} value={kitnet.id}>
-                    Kitnet {kitnet.numero}
-                  </option>
-                ))}
-              </select>
+              <label htmlFor="kitnetId">Unidade</label>
+              <UnitPicker id="kitnetId" kitnets={kitnets} value={kitnetId} onChange={setKitnetId} />
             </div>
             <div className="field">
               <label htmlFor="dataEntrada">Data de entrada</label>

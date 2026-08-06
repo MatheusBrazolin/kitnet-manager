@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import type { Imovel } from '../../types';
@@ -9,6 +9,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { KitnetDetailModal } from '../../components/KitnetDetailModal/KitnetDetailModal';
+import { PencilIcon } from '../../components/icons';
 import { formatCurrency } from '../../utils/currency';
 import './imoveis.css';
 
@@ -39,6 +40,34 @@ export function Imoveis() {
 
   const [selectedKitnetId, setSelectedKitnetId] = useState<number | null>(null);
   const [listError, setListError] = useState<string | null>(null);
+  const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
+  const [menuImovelId, setMenuImovelId] = useState<number | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (menuImovelId === null) {
+      return;
+    }
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuImovelId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [menuImovelId]);
+
+  function toggleExpandido(imovelId: number) {
+    setExpandidos((atual) => {
+      const proximo = new Set(atual);
+      if (proximo.has(imovelId)) {
+        proximo.delete(imovelId);
+      } else {
+        proximo.add(imovelId);
+      }
+      return proximo;
+    });
+  }
 
   const displayedError = listError ?? (queryError ? getApiErrorMessage(queryError, 'Não foi possível carregar os imóveis.') : null);
 
@@ -174,52 +203,116 @@ export function Imoveis() {
         </Card>
       ) : (
         <div className="imoveis-list">
-          {imoveis.map((imovel) => (
-            <Card
-              key={imovel.id}
-              title={imovel.nome}
-              action={
-                <div className="imovel-card-actions">
-                  <span className="imovel-card-endereco">{imovel.endereco}</span>
-                  <button type="button" className="btn btn-ghost" onClick={() => openLoteModal(imovel)}>
-                    + Unidades
-                  </button>
-                  <button type="button" className="btn btn-danger" onClick={() => handleDeleteImovel(imovel.id)}>
-                    Remover
-                  </button>
-                </div>
-              }
-            >
-              <Table
-                rows={imovel.kitnets}
-                rowKey={(row) => row.id}
-                emptyMessage="Nenhuma unidade neste imóvel ainda. Use “+ Unidades” para cadastrar."
-                onRowClick={(row) => setSelectedKitnetId(row.id)}
-                columns={[
-                  { header: 'Unidade', render: (row) => row.numero },
-                  { header: 'Valor', render: (row) => formatCurrency(row.valor) },
-                  { header: 'Status', render: (row) => <StatusBadge label={row.status} /> },
-                  { header: 'Moradores', render: (row) => row.moradores.length },
-                  {
-                    header: '',
-                    align: 'right',
-                    render: (row) => (
+          {imoveis.map((imovel) => {
+            const aberto = expandidos.has(imovel.id);
+            const totalValor = imovel.kitnets.reduce((total, kitnet) => total + kitnet.valor, 0);
+            const totalMoradores = imovel.kitnets.reduce((total, kitnet) => total + kitnet.moradores.length, 0);
+
+            return (
+              <section className="imovel-card" key={imovel.id}>
+                <button
+                  type="button"
+                  className="imovel-card-summary-row"
+                  onClick={() => toggleExpandido(imovel.id)}
+                  aria-expanded={aberto}
+                >
+                  <div className="imovel-card-summary-main">
+                    <span className={`imovel-card-chevron${aberto ? ' imovel-card-chevron-open' : ''}`} aria-hidden="true">
+                      ▾
+                    </span>
+                    <div className="imovel-card-summary-title">
+                      <span className="imovel-card-nome">{imovel.nome}</span>
+                      {imovel.endereco && <span className="imovel-card-endereco">{imovel.endereco}</span>}
+                    </div>
+                  </div>
+                  <div className="imovel-card-summary-stats">
+                    <span className="imovel-card-stat">
+                      {imovel.kitnets.length} unidade{imovel.kitnets.length === 1 ? '' : 's'}
+                    </span>
+                    <span className="imovel-card-stat">
+                      {totalMoradores} morador{totalMoradores === 1 ? '' : 'es'}
+                    </span>
+                    <span className="imovel-card-stat imovel-card-stat-valor">{formatCurrency(totalValor)}</span>
+                  </div>
+                </button>
+
+                {aberto && (
+                  <div className="imovel-card-body">
+                    <div
+                      className="imovel-card-edit"
+                      ref={menuImovelId === imovel.id ? menuRef : undefined}
+                    >
                       <button
                         type="button"
-                        className="btn btn-danger"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleDeleteKitnet(row.id);
-                        }}
+                        className="imovel-card-edit-trigger"
+                        aria-label={`Editar ${imovel.nome}`}
+                        aria-haspopup="menu"
+                        aria-expanded={menuImovelId === imovel.id}
+                        onClick={() => setMenuImovelId((atual) => (atual === imovel.id ? null : imovel.id))}
                       >
-                        Remover
+                        <PencilIcon />
                       </button>
-                    ),
-                  },
-                ]}
-              />
-            </Card>
-          ))}
+
+                      {menuImovelId === imovel.id && (
+                        <div className="imovel-card-edit-menu" role="menu">
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setMenuImovelId(null);
+                              openLoteModal(imovel);
+                            }}
+                          >
+                            + Adicionar unidades
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            className="imovel-card-edit-menu-danger"
+                            onClick={() => {
+                              setMenuImovelId(null);
+                              handleDeleteImovel(imovel.id);
+                            }}
+                          >
+                            Remover imóvel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <Table
+                      rows={imovel.kitnets}
+                      rowKey={(row) => row.id}
+                      emptyMessage="Nenhuma unidade neste imóvel ainda. Use “+ Unidades” para cadastrar."
+                      onRowClick={(row) => setSelectedKitnetId(row.id)}
+                      columns={[
+                        { header: 'Unidade', render: (row) => row.numero },
+                        { header: 'Valor', render: (row) => formatCurrency(row.valor) },
+                        { header: 'Status', render: (row) => <StatusBadge label={row.status} /> },
+                        { header: 'Moradores', render: (row) => row.moradores.length },
+                        {
+                          header: '',
+                          align: 'right',
+                          render: (row) => (
+                            <button
+                              type="button"
+                              className="btn btn-danger"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleDeleteKitnet(row.id);
+                              }}
+                            >
+                              Remover
+                            </button>
+                          ),
+                        },
+                      ]}
+                    />
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
 

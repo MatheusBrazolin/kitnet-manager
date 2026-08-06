@@ -11,7 +11,7 @@ export class PagamentosService {
     await this.ensureCurrentMonthPagamentos(userId);
     return this.prisma.pagamento.findMany({
       where: { morador: { kitnet: { userId } } },
-      include: { morador: { include: { kitnet: true } } },
+      include: { morador: { include: { kitnet: { include: { imovel: true } } } } },
       orderBy: { vencimento: 'asc' },
     });
   }

@@ -52,8 +52,13 @@ export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalPro
               <dd>{morador.telefone}</dd>
             </div>
             <div>
-              <dt>Kitnet</dt>
-              <dd>{morador.kitnet.numero}</dd>
+              <dt>Imóvel</dt>
+              <dd>
+                {morador.kitnet.imovel?.nome ?? '—'}
+                {morador.kitnet.imovel?.kitnets && morador.kitnet.imovel.kitnets.length > 1
+                  ? ` · ${morador.kitnet.numero}`
+                  : ''}
+              </dd>
             </div>
             <div>
               <dt>Morando há</dt>

@@ -10,7 +10,7 @@ export class GastosService {
   findAll(userId: number) {
     return this.prisma.gasto.findMany({
       where: { kitnet: { userId } },
-      include: { kitnet: true },
+      include: { kitnet: { include: { imovel: true } } },
       orderBy: { data: 'desc' },
     });
   }

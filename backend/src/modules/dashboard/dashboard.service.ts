@@ -55,7 +55,7 @@ export class DashboardService {
       }),
       this.prisma.gasto.findMany({
         where: { data: { gte: periodStart, lt: periodEnd }, kitnet: { userId } },
-        include: { kitnet: true },
+        include: { kitnet: { include: { imovel: true } } },
       }),
       this.getHistorico(userId, year, month),
     ]);
@@ -63,10 +63,10 @@ export class DashboardService {
     const receitaMensal = receitaAgg._sum.valor ?? 0;
     const gastoMensal = gastoAgg._sum.valor ?? 0;
 
-    const gastosPorKitnet = Object.values(
-      gastosMesPorKitnet.reduce<Record<number, { kitnet: string; total: number }>>((acc, gasto) => {
-        const key = gasto.kitnetId;
-        acc[key] = acc[key] ?? { kitnet: gasto.kitnet.numero, total: 0 };
+    const gastosPorImovel = Object.values(
+      gastosMesPorKitnet.reduce<Record<number, { imovel: string; total: number }>>((acc, gasto) => {
+        const key = gasto.kitnet.imovelId;
+        acc[key] = acc[key] ?? { imovel: gasto.kitnet.imovel.nome, total: 0 };
         acc[key].total += gasto.valor;
         return acc;
       }, {}),
@@ -81,7 +81,7 @@ export class DashboardService {
       gastoMensal,
       lucroLiquido: receitaMensal - gastoMensal,
       totalEmAtraso: atrasoAgg._sum.valor ?? 0,
-      gastosPorKitnet,
+      gastosPorImovel,
       historico,
       proximosVencimentos: proximosVencimentos.map((pagamento) => ({
         id: pagamento.id,

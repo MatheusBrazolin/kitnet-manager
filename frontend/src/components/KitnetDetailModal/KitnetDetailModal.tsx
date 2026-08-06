@@ -35,7 +35,11 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
   const morador = kitnet?.moradores[0];
 
   return (
-    <Modal title={kitnet ? `Kitnet ${kitnet.numero}` : 'Kitnet'} onClose={onClose} className="modal-wide">
+    <Modal
+      title={kitnet ? `${kitnet.imovel?.nome ?? 'Unidade'} · ${kitnet.numero}` : 'Unidade'}
+      onClose={onClose}
+      className="modal-wide"
+    >
       {error && <p className="form-error">{error}</p>}
       {!kitnet && !error && <div className="skeleton kitnet-detail-skeleton" />}
 
