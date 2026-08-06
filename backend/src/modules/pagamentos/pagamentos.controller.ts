@@ -15,6 +15,11 @@ export class PagamentosController {
     return this.pagamentosService.findAll(user.id);
   }
 
+  @Get('alertas')
+  getAlertas(@CurrentUser() user: AuthenticatedUser) {
+    return this.pagamentosService.getAlertas(user.id);
+  }
+
   @Get(':id')
   findOne(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
     return this.pagamentosService.findOwnedOrThrow(user.id, id);

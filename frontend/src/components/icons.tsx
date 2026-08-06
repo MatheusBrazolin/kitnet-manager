@@ -32,6 +32,17 @@ export function BuildingIcon({ className }: IconProps) {
   );
 }
 
+export function GridIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+
 export function UsersIcon({ className }: IconProps) {
   return (
     <svg {...BASE_PROPS} className={className}>
@@ -58,6 +69,15 @@ export function WrenchIcon({ className }: IconProps) {
   return (
     <svg {...BASE_PROPS} className={className}>
       <path d="M14.7 6.3a4 4 0 0 0-5.6 4.6L3 17l2 2 6.1-6.1a4 4 0 0 0 4.6-5.6l-2.6 2.6-2-2z" />
+    </svg>
+  );
+}
+
+export function BellIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <path d="M6 8a6 6 0 0 1 12 0c0 3.2 1 5.2 2 6.5a1 1 0 0 1-.8 1.5H4.8a1 1 0 0 1-.8-1.5C5 13.2 6 11.2 6 8Z" />
+      <path d="M9.5 19a2.5 2.5 0 0 0 5 0" />
     </svg>
   );
 }

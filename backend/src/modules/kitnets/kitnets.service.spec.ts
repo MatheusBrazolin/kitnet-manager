@@ -11,6 +11,7 @@ type PrismaMock = {
     update: jest.Mock;
     delete: jest.Mock;
   };
+  imovel: { findUnique: jest.Mock };
   user: { findUniqueOrThrow: jest.Mock };
   $transaction: jest.Mock;
 };
@@ -20,7 +21,16 @@ describe('KitnetsService', () => {
   let prisma: PrismaMock;
 
   const ownerId = 1;
-  const kitnet = { id: 10, numero: '01', valor: 900, status: 'vaga', userId: ownerId, moradores: [] };
+  const imovelId = 100;
+  const kitnet = {
+    id: 10,
+    numero: '01',
+    valor: 900,
+    status: 'vaga',
+    userId: ownerId,
+    imovelId,
+    moradores: [],
+  };
 
   beforeEach(() => {
     prisma = {
@@ -32,6 +42,7 @@ describe('KitnetsService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      imovel: { findUnique: jest.fn().mockResolvedValue({ id: imovelId, userId: ownerId }) },
       user: { findUniqueOrThrow: jest.fn() },
       $transaction: jest.fn((callback: (tx: unknown) => unknown) => callback(prisma)),
     };
@@ -64,9 +75,9 @@ describe('KitnetsService', () => {
       prisma.user.findUniqueOrThrow.mockResolvedValue({ id: ownerId, plano: 'FREE' });
       prisma.kitnet.count.mockResolvedValue(3);
 
-      await expect(service.create(ownerId, { numero: '04', valor: 900 })).rejects.toBeInstanceOf(
-        BadRequestException,
-      );
+      await expect(
+        service.create(ownerId, { numero: '04', valor: 900, imovelId }),
+      ).rejects.toBeInstanceOf(BadRequestException);
       expect(prisma.kitnet.create).not.toHaveBeenCalled();
     });
 
@@ -75,9 +86,11 @@ describe('KitnetsService', () => {
       prisma.kitnet.count.mockResolvedValue(1);
       prisma.kitnet.create.mockResolvedValue(kitnet);
 
-      const result = await service.create(ownerId, { numero: '01', valor: 900 });
+      const result = await service.create(ownerId, { numero: '01', valor: 900, imovelId });
 
-      expect(prisma.kitnet.create).toHaveBeenCalledWith({ data: { numero: '01', valor: 900, userId: ownerId } });
+      expect(prisma.kitnet.create).toHaveBeenCalledWith({
+        data: { numero: '01', valor: 900, imovelId, userId: ownerId },
+      });
       expect(result).toEqual(kitnet);
     });
   });

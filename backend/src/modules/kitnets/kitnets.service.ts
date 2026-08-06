@@ -11,13 +11,16 @@ export class KitnetsService {
   findAll(userId: number) {
     return this.prisma.kitnet.findMany({
       where: { userId },
-      include: { moradores: true },
+      include: { moradores: true, imovel: true },
       orderBy: { numero: 'asc' },
     });
   }
 
   async findOwnedOrThrow(userId: number, id: number) {
-    const kitnet = await this.prisma.kitnet.findUnique({ where: { id }, include: { moradores: true } });
+    const kitnet = await this.prisma.kitnet.findUnique({
+      where: { id },
+      include: { moradores: true, imovel: true },
+    });
     if (!kitnet) {
       throw new NotFoundException('Kitnet não encontrada');
     }
@@ -37,7 +40,19 @@ export class KitnetsService {
     return { ...kitnet, gastos, totalGasto };
   }
 
+  private async assertImovelOwnership(userId: number, imovelId: number) {
+    const imovel = await this.prisma.imovel.findUnique({ where: { id: imovelId } });
+    if (!imovel) {
+      throw new NotFoundException('Imóvel não encontrado');
+    }
+    if (imovel.userId !== userId) {
+      throw new ForbiddenException('Você não tem acesso a este imóvel');
+    }
+  }
+
   async create(userId: number, dto: CreateKitnetDto) {
+    await this.assertImovelOwnership(userId, dto.imovelId);
+
     return this.prisma.$transaction(
       async (tx) => {
         const user = await tx.user.findUniqueOrThrow({ where: { id: userId } });
@@ -58,6 +73,9 @@ export class KitnetsService {
 
   async update(userId: number, id: number, dto: UpdateKitnetDto) {
     await this.findOwnedOrThrow(userId, id);
+    if (dto.imovelId !== undefined) {
+      await this.assertImovelOwnership(userId, dto.imovelId);
+    }
     return this.prisma.kitnet.update({ where: { id }, data: dto });
   }
 

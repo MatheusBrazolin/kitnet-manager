@@ -43,6 +43,10 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
         <div className="kitnet-detail">
           <dl className="kitnet-detail-grid">
             <div>
+              <dt>Imóvel</dt>
+              <dd>{kitnet.imovel?.nome ?? '—'}</dd>
+            </div>
+            <div>
               <dt>Aluguel</dt>
               <dd>{formatCurrency(kitnet.valor)}</dd>
             </div>

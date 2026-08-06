@@ -21,7 +21,26 @@ export interface Kitnet {
   numero: string;
   valor: number;
   status: 'vaga' | 'ocupada';
+  imovelId: number;
   moradores: Morador[];
+  imovel?: Imovel;
+}
+
+export interface Imovel {
+  id: number;
+  nome: string;
+  endereco?: string | null;
+  kitnets: Kitnet[];
+}
+
+export interface PagamentoAlerta {
+  id: number;
+  valor: number;
+  vencimento: string;
+  morador: string;
+  kitnet: string;
+  imovel: string;
+  venceHoje: boolean;
 }
 
 export interface Pagamento {

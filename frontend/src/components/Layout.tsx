@@ -1,6 +1,7 @@
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Sidebar } from './Sidebar/Sidebar';
+import { NotificationBell } from './NotificationBell/NotificationBell';
 import './layout.css';
 
 export function Layout() {
@@ -23,6 +24,9 @@ export function Layout() {
     <div className="layout">
       <Sidebar />
       <main className="layout-content">
+        <div className="layout-topbar">
+          <NotificationBell />
+        </div>
         <Outlet />
       </main>
     </div>

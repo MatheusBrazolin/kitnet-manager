@@ -12,6 +12,12 @@
   margin: 0 auto;
 }
 
+.layout-topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--space-4);
+}
+
 .layout-loading {
   min-height: 100vh;
   display: flex;

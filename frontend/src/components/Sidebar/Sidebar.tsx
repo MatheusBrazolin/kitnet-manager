@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { BuildingIcon, HomeIcon, LogoutIcon, UsersIcon, WalletIcon, WrenchIcon } from '../icons';
+import { BuildingIcon, GridIcon, HomeIcon, LogoutIcon, UsersIcon, WalletIcon, WrenchIcon } from '../icons';
 import './sidebar.css';
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', end: true, icon: HomeIcon },
-  { to: '/kitnets', label: 'Kitnets', icon: BuildingIcon },
+  { to: '/imoveis', label: 'Imóveis', icon: BuildingIcon },
+  { to: '/kitnets', label: 'Unidades', icon: GridIcon },
   { to: '/moradores', label: 'Moradores', icon: UsersIcon },
   { to: '/pagamentos', label: 'Pagamentos', icon: WalletIcon },
   { to: '/gastos', label: 'Gastos', icon: WrenchIcon },

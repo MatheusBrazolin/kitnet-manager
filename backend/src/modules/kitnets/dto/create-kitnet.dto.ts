@@ -1,4 +1,4 @@
-import { IsNumber, IsString, Min, MinLength } from 'class-validator';
+import { IsInt, IsNumber, IsString, Min, MinLength } from 'class-validator';
 
 export class CreateKitnetDto {
   @IsString()
@@ -8,4 +8,7 @@ export class CreateKitnetDto {
   @IsNumber()
   @Min(0)
   valor: number;
+
+  @IsInt()
+  imovelId: number;
 }

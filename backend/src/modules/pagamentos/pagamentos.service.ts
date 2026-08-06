@@ -51,6 +51,38 @@ export class PagamentosService {
     });
   }
 
+  async getAlertas(userId: number) {
+    await this.ensureCurrentMonthPagamentos(userId);
+
+    // "Vencendo hoje ou já vencido e ainda não confirmado como pago" — calendário em UTC,
+    // igual ao resto do módulo, pra não variar com o timezone do processo.
+    const now = new Date();
+    const hojeFimDoDia = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1));
+
+    const pendentes = await this.prisma.pagamento.findMany({
+      where: {
+        pago: false,
+        vencimento: { lt: hojeFimDoDia },
+        morador: { kitnet: { userId } },
+      },
+      include: { morador: { include: { kitnet: { include: { imovel: true } } } } },
+      orderBy: { vencimento: 'asc' },
+    });
+
+    return pendentes.map((pagamento) => ({
+      id: pagamento.id,
+      valor: pagamento.valor,
+      vencimento: pagamento.vencimento,
+      morador: pagamento.morador.nome,
+      kitnet: pagamento.morador.kitnet.numero,
+      imovel: pagamento.morador.kitnet.imovel.nome,
+      venceHoje:
+        pagamento.vencimento.getUTCFullYear() === now.getUTCFullYear() &&
+        pagamento.vencimento.getUTCMonth() === now.getUTCMonth() &&
+        pagamento.vencimento.getUTCDate() === now.getUTCDate(),
+    }));
+  }
+
   async findOwnedOrThrow(userId: number, id: number) {
     const pagamento = await this.prisma.pagamento.findUnique({
       where: { id },

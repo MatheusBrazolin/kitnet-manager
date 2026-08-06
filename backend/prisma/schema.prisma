@@ -23,6 +23,20 @@ model User {
   updatedAt DateTime @updatedAt
 
   kitnets Kitnet[]
+  imoveis Imovel[]
+}
+
+model Imovel {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  endereco  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  kitnets Kitnet[]
 }
 
 model Kitnet {
@@ -36,10 +50,13 @@ model Kitnet {
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  imovelId Int
+  imovel   Imovel @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+
   moradores Morador[]
   gastos    Gasto[]
 
-  @@unique([userId, numero])
+  @@unique([imovelId, numero])
 }
 
 model Morador {
