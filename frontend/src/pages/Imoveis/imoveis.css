@@ -195,6 +195,7 @@
   display: flex;
   align-items: flex-end;
   gap: var(--space-3);
+  flex-wrap: wrap;
   padding: var(--space-3);
   background: var(--color-surface-sunken);
   border: var(--border-width) solid var(--color-border-soft);
