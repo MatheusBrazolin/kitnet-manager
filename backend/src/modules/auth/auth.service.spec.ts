@@ -3,11 +3,13 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
+import { ContaService } from '../../common/conta/conta.service';
 
 describe('AuthService', () => {
   let authService: AuthService;
   let usersService: { findByEmail: jest.Mock; create: jest.Mock };
   let jwtService: { sign: jest.Mock };
+  let contaService: { resolve: jest.Mock };
 
   const existingUser = {
     id: 1,
@@ -20,8 +22,13 @@ describe('AuthService', () => {
   beforeEach(() => {
     usersService = { findByEmail: jest.fn(), create: jest.fn() };
     jwtService = { sign: jest.fn().mockReturnValue('signed-token') };
+    contaService = { resolve: jest.fn().mockResolvedValue({ contaId: existingUser.id, papel: 'OWNER' }) };
 
-    authService = new AuthService(usersService as unknown as UsersService, jwtService as unknown as JwtService);
+    authService = new AuthService(
+      usersService as unknown as UsersService,
+      jwtService as unknown as JwtService,
+      contaService as unknown as ContaService,
+    );
   });
 
   describe('register', () => {
@@ -47,7 +54,15 @@ describe('AuthService', () => {
       expect(await bcrypt.compare('senha123', createArgs.password)).toBe(true);
       expect(result).toEqual({
         token: 'signed-token',
-        user: { id: 1, name: 'Maria', email: 'maria@example.com', plano: 'FREE' },
+        user: {
+          id: 1,
+          name: 'Maria',
+          email: 'maria@example.com',
+          plano: 'FREE',
+          contaId: 1,
+          papel: 'OWNER',
+          donoNome: undefined,
+        },
       });
     });
   });

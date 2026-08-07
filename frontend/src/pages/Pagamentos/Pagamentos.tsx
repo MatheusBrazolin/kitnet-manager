@@ -10,6 +10,7 @@ import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { formatVencimentoLabel } from '../../utils/dates';
 import { formatCurrency } from '../../utils/currency';
+import { useAuth } from '../../hooks/useAuth';
 import './pagamentos.css';
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
@@ -25,6 +26,8 @@ function isAtrasado(pagamento: Pagamento) {
 
 export function Pagamentos() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isViewer = user?.papel === 'VISUALIZADOR';
   const { data: pagamentos = [], error: pagamentosQueryError, isLoading } = useQuery({
     queryKey: ['pagamentos'],
     queryFn: () => api.get<Pagamento[]>('/pagamentos').then((response) => response.data),
@@ -88,9 +91,11 @@ export function Pagamentos() {
         title="Pagamentos"
         subtitle="Controle de aluguéis pagos e pendentes."
         action={
-          <button type="button" className="btn btn-primary" onClick={openModal} disabled={moradores.length === 0}>
-            + Novo pagamento
-          </button>
+          !isViewer && (
+            <button type="button" className="btn btn-primary" onClick={openModal} disabled={moradores.length === 0}>
+              + Novo pagamento
+            </button>
+          )
         }
       />
 
@@ -133,15 +138,19 @@ export function Pagamentos() {
                 </div>
               ),
             },
-            {
-              header: '',
-              align: 'right',
-              render: (row) => (
-                <button type="button" className="btn btn-ghost" onClick={() => togglePago(row)}>
-                  {row.pago ? 'Marcar pendente' : 'Marcar pago'}
-                </button>
-              ),
-            },
+            ...(isViewer
+              ? []
+              : [
+                  {
+                    header: '',
+                    align: 'right' as const,
+                    render: (row: Pagamento) => (
+                      <button type="button" className="btn btn-ghost" onClick={() => togglePago(row)}>
+                        {row.pago ? 'Marcar pendente' : 'Marcar pago'}
+                      </button>
+                    ),
+                  },
+                ]),
           ]}
         />
         )}

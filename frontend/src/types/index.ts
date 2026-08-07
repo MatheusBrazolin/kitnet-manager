@@ -1,10 +1,25 @@
 export type Plano = 'FREE' | 'PRO';
+export type Papel = 'OWNER' | 'GERENTE' | 'VISUALIZADOR';
 
 export interface User {
   id: number;
   name: string;
   email: string;
   plano: Plano;
+  contaId: number;
+  papel: Papel;
+  donoNome?: string;
+}
+
+export interface Membro {
+  id: number;
+  papel: 'GERENTE' | 'VISUALIZADOR';
+  createdAt: string;
+  user: {
+    id: number;
+    name: string;
+    email: string;
+  };
 }
 
 export interface Morador {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
-import type { Imovel } from '../../types';
+import type { Imovel, Kitnet } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { TableSkeleton } from '../../components/Table/TableSkeleton';
@@ -10,11 +10,16 @@ import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { KitnetDetailModal } from '../../components/KitnetDetailModal/KitnetDetailModal';
 import { PencilIcon } from '../../components/icons';
+import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
+import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../utils/currency';
 import './imoveis.css';
 
 export function Imoveis() {
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
+  const { user } = useAuth();
+  const isViewer = user?.papel === 'VISUALIZADOR';
   const {
     data: imoveis = [],
     error: queryError,
@@ -25,10 +30,17 @@ export function Imoveis() {
   });
 
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingImovelId, setEditingImovelId] = useState<number | null>(null);
   const [nome, setNome] = useState('');
   const [endereco, setEndereco] = useState('');
   const [createError, setCreateError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [editingKitnet, setEditingKitnet] = useState<Kitnet | null>(null);
+  const [editNumero, setEditNumero] = useState('');
+  const [editValor, setEditValor] = useState('');
+  const [editKitnetError, setEditKitnetError] = useState<string | null>(null);
+  const [isEditKitnetSubmitting, setIsEditKitnetSubmitting] = useState(false);
 
   const [loteImovelId, setLoteImovelId] = useState<number | null>(null);
   const [loteQuantidade, setLoteQuantidade] = useState('1');
@@ -72,8 +84,17 @@ export function Imoveis() {
   const displayedError = listError ?? (queryError ? getApiErrorMessage(queryError, 'Não foi possível carregar os imóveis.') : null);
 
   function openCreateModal() {
+    setEditingImovelId(null);
     setNome('');
     setEndereco('');
+    setCreateError(null);
+    setIsCreateOpen(true);
+  }
+
+  function openEditImovelModal(imovel: Imovel) {
+    setEditingImovelId(imovel.id);
+    setNome(imovel.nome);
+    setEndereco(imovel.endereco ?? '');
     setCreateError(null);
     setIsCreateOpen(true);
   }
@@ -83,18 +104,54 @@ export function Imoveis() {
     setCreateError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/imoveis', { nome, endereco: endereco || undefined });
+      if (editingImovelId !== null) {
+        await api.patch(`/imoveis/${editingImovelId}`, { nome, endereco: endereco || undefined });
+      } else {
+        await api.post('/imoveis', { nome, endereco: endereco || undefined });
+      }
       setIsCreateOpen(false);
       queryClient.invalidateQueries({ queryKey: ['imoveis'] });
     } catch (err) {
-      setCreateError(getApiErrorMessage(err, 'Não foi possível criar o imóvel.'));
+      setCreateError(getApiErrorMessage(err, `Não foi possível ${editingImovelId !== null ? 'atualizar' : 'criar'} o imóvel.`));
     } finally {
       setIsSubmitting(false);
     }
   }
 
+  function openEditKitnetModal(kitnet: Kitnet) {
+    setEditingKitnet(kitnet);
+    setEditNumero(kitnet.numero);
+    setEditValor(String(kitnet.valor));
+    setEditKitnetError(null);
+  }
+
+  async function handleEditKitnet(event: FormEvent) {
+    event.preventDefault();
+    if (!editingKitnet) {
+      return;
+    }
+    setEditKitnetError(null);
+    setIsEditKitnetSubmitting(true);
+    try {
+      await api.patch(`/kitnets/${editingKitnet.id}`, { numero: editNumero, valor: Number(editValor) });
+      setEditingKitnet(null);
+      queryClient.invalidateQueries({ queryKey: ['imoveis'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnets'] });
+    } catch (err) {
+      setEditKitnetError(getApiErrorMessage(err, 'Não foi possível atualizar a unidade.'));
+    } finally {
+      setIsEditKitnetSubmitting(false);
+    }
+  }
+
   async function handleDeleteImovel(id: number) {
-    if (!confirm('Remover este imóvel?')) {
+    const ok = await confirm({
+      title: 'Remover imóvel',
+      message: 'Remover este imóvel? Essa ação não pode ser desfeita.',
+      confirmLabel: 'Remover',
+      danger: true,
+    });
+    if (!ok) {
       return;
     }
     setListError(null);
@@ -107,7 +164,13 @@ export function Imoveis() {
   }
 
   async function handleDeleteKitnet(id: number) {
-    if (!confirm('Remover esta unidade? Moradores e pagamentos vinculados também serão removidos.')) {
+    const ok = await confirm({
+      title: 'Remover unidade',
+      message: 'Remover esta unidade? Moradores e pagamentos vinculados também serão removidos.',
+      confirmLabel: 'Remover',
+      danger: true,
+    });
+    if (!ok) {
       return;
     }
     setListError(null);
@@ -185,9 +248,11 @@ export function Imoveis() {
         title="Imóveis"
         subtitle="Agrupe suas casas, apartamentos e kitnets. Cada imóvel pode ter uma ou várias unidades."
         action={
-          <button type="button" className="btn btn-primary" onClick={openCreateModal}>
-            + Novo imóvel
-          </button>
+          !isViewer && (
+            <button type="button" className="btn btn-primary" onClick={openCreateModal}>
+              + Novo imóvel
+            </button>
+          )
         }
       />
 
@@ -238,6 +303,7 @@ export function Imoveis() {
 
                 {aberto && (
                   <div className="imovel-card-body">
+                    {!isViewer && (
                     <div
                       className="imovel-card-edit"
                       ref={menuImovelId === imovel.id ? menuRef : undefined}
@@ -255,6 +321,16 @@ export function Imoveis() {
 
                       {menuImovelId === imovel.id && (
                         <div className="imovel-card-edit-menu" role="menu">
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => {
+                              setMenuImovelId(null);
+                              openEditImovelModal(imovel);
+                            }}
+                          >
+                            Editar imóvel
+                          </button>
                           <button
                             type="button"
                             role="menuitem"
@@ -279,6 +355,7 @@ export function Imoveis() {
                         </div>
                       )}
                     </div>
+                    )}
 
                     <Table
                       rows={imovel.kitnets}
@@ -290,22 +367,38 @@ export function Imoveis() {
                         { header: 'Valor', render: (row) => formatCurrency(row.valor) },
                         { header: 'Status', render: (row) => <StatusBadge label={row.status} /> },
                         { header: 'Moradores', render: (row) => row.moradores.length },
-                        {
-                          header: '',
-                          align: 'right',
-                          render: (row) => (
-                            <button
-                              type="button"
-                              className="btn btn-danger"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleDeleteKitnet(row.id);
-                              }}
-                            >
-                              Remover
-                            </button>
-                          ),
-                        },
+                        ...(isViewer
+                          ? []
+                          : [
+                              {
+                                header: '',
+                                align: 'right' as const,
+                                render: (row: Kitnet) => (
+                                  <div className="table-row-actions">
+                                    <button
+                                      type="button"
+                                      className="btn btn-ghost"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        openEditKitnetModal(row);
+                                      }}
+                                    >
+                                      Editar
+                                    </button>
+                                    <button
+                                      type="button"
+                                      className="btn btn-danger"
+                                      onClick={(event) => {
+                                        event.stopPropagation();
+                                        handleDeleteKitnet(row.id);
+                                      }}
+                                    >
+                                      Remover
+                                    </button>
+                                  </div>
+                                ),
+                              },
+                            ]),
                       ]}
                     />
                   </div>
@@ -321,7 +414,7 @@ export function Imoveis() {
       )}
 
       {isCreateOpen && (
-        <Modal title="Novo imóvel" onClose={() => setIsCreateOpen(false)}>
+        <Modal title={editingImovelId !== null ? 'Editar imóvel' : 'Novo imóvel'} onClose={() => setIsCreateOpen(false)}>
           <form onSubmit={handleCreate} className="field-group">
             {createError && <p className="form-error">{createError}</p>}
             <div className="field">
@@ -427,6 +520,33 @@ export function Imoveis() {
 
             <button type="submit" className="btn btn-primary" disabled={isLoteSubmitting || !loteLinhas}>
               {isLoteSubmitting ? 'Salvando...' : 'Salvar'}
+            </button>
+          </form>
+        </Modal>
+      )}
+
+      {editingKitnet && (
+        <Modal title={`Editar unidade · ${editingKitnet.numero}`} onClose={() => setEditingKitnet(null)}>
+          <form onSubmit={handleEditKitnet} className="field-group">
+            {editKitnetError && <p className="form-error">{editKitnetError}</p>}
+            <div className="field">
+              <label htmlFor="editNumero">Número</label>
+              <input id="editNumero" required value={editNumero} onChange={(event) => setEditNumero(event.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="editValor">Valor do aluguel</label>
+              <input
+                id="editValor"
+                type="number"
+                min={0}
+                step="0.01"
+                required
+                value={editValor}
+                onChange={(event) => setEditValor(event.target.value)}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={isEditKitnetSubmitting}>
+              {isEditKitnetSubmitting ? 'Salvando...' : 'Salvar'}
             </button>
           </form>
         </Modal>

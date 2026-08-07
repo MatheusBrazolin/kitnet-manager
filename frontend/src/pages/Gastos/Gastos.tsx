@@ -8,6 +8,8 @@ import { TableSkeleton } from '../../components/Table/TableSkeleton';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
+import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
+import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../utils/currency';
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
@@ -23,6 +25,9 @@ function todayIsoDate(): string {
 
 export function Gastos() {
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
+  const { user } = useAuth();
+  const isViewer = user?.papel === 'VISUALIZADOR';
   const { data: gastos = [], error: gastosQueryError, isLoading } = useQuery({
     queryKey: ['gastos'],
     queryFn: () => api.get<Gasto[]>('/gastos').then((response) => response.data),
@@ -32,6 +37,7 @@ export function Gastos() {
     queryFn: () => api.get<Kitnet[]>('/kitnets').then((response) => response.data),
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState('');
   const [data, setData] = useState(todayIsoDate());
@@ -49,6 +55,7 @@ export function Gastos() {
         : null);
 
   function openModal() {
+    setEditingId(null);
     setDescricao('');
     setValor('');
     setData(todayIsoDate());
@@ -57,27 +64,47 @@ export function Gastos() {
     setIsModalOpen(true);
   }
 
+  function openEditModal(gasto: Gasto) {
+    setEditingId(gasto.id);
+    setDescricao(gasto.descricao);
+    setValor(String(gasto.valor));
+    setData(gasto.data.slice(0, 10));
+    setKitnetId(gasto.kitnetId);
+    setError(null);
+    setIsModalOpen(true);
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (kitnetId === null) {
+    if (editingId === null && kitnetId === null) {
       setError('Selecione uma unidade.');
       return;
     }
     setError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/gastos', { descricao, valor: Number(valor), data, kitnetId });
+      if (editingId !== null) {
+        await api.patch(`/gastos/${editingId}`, { descricao, valor: Number(valor), data });
+      } else {
+        await api.post('/gastos', { descricao, valor: Number(valor), data, kitnetId });
+      }
       setIsModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['gastos'] });
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Não foi possível lançar o gasto.'));
+      setError(getApiErrorMessage(err, `Não foi possível ${editingId !== null ? 'atualizar' : 'lançar'} o gasto.`));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm('Remover este gasto?')) {
+    const ok = await confirm({
+      title: 'Remover gasto',
+      message: 'Remover este gasto? Essa ação não pode ser desfeita.',
+      confirmLabel: 'Remover',
+      danger: true,
+    });
+    if (!ok) {
       return;
     }
     setListError(null);
@@ -95,9 +122,11 @@ export function Gastos() {
         title="Gastos"
         subtitle="Manutenção, reparos e outras despesas por unidade."
         action={
-          <button type="button" className="btn btn-primary" onClick={openModal} disabled={kitnets.length === 0}>
-            + Novo gasto
-          </button>
+          !isViewer && (
+            <button type="button" className="btn btn-primary" onClick={openModal} disabled={kitnets.length === 0}>
+              + Novo gasto
+            </button>
+          )
         }
       />
 
@@ -123,22 +152,31 @@ export function Gastos() {
             },
             { header: 'Data', render: (row) => dateFormatter.format(new Date(row.data)) },
             { header: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
-            {
-              header: '',
-              align: 'right',
-              render: (row) => (
-                <button type="button" className="btn btn-danger" onClick={() => handleDelete(row.id)}>
-                  Remover
-                </button>
-              ),
-            },
+            ...(isViewer
+              ? []
+              : [
+                  {
+                    header: '',
+                    align: 'right' as const,
+                    render: (row: Gasto) => (
+                      <div className="table-row-actions">
+                        <button type="button" className="btn btn-ghost" onClick={() => openEditModal(row)}>
+                          Editar
+                        </button>
+                        <button type="button" className="btn btn-danger" onClick={() => handleDelete(row.id)}>
+                          Remover
+                        </button>
+                      </div>
+                    ),
+                  },
+                ]),
           ]}
         />
         )}
       </Card>
 
       {isModalOpen && (
-        <Modal title="Novo gasto" onClose={() => setIsModalOpen(false)}>
+        <Modal title={editingId !== null ? 'Editar gasto' : 'Novo gasto'} onClose={() => setIsModalOpen(false)}>
           <form onSubmit={handleSubmit} className="field-group">
             {error && <p className="form-error">{error}</p>}
             <div className="field">
@@ -153,7 +191,13 @@ export function Gastos() {
             </div>
             <div className="field">
               <label htmlFor="kitnetId">Unidade</label>
-              <UnitPicker id="kitnetId" kitnets={kitnets} value={kitnetId} onChange={setKitnetId} />
+              {editingId !== null ? (
+                <p className="field-static-hint">
+                  Não é possível trocar a unidade de um gasto já lançado — remova e lance de novo se precisar mudá-lo.
+                </p>
+              ) : (
+                <UnitPicker id="kitnetId" kitnets={kitnets} value={kitnetId} onChange={setKitnetId} />
+              )}
             </div>
             <div className="field">
               <label htmlFor="valor">Valor</label>

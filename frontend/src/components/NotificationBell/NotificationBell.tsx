@@ -6,6 +6,7 @@ import type { PagamentoAlerta } from '../../types';
 import { formatCurrency } from '../../utils/currency';
 import { diasParaVencimento } from '../../utils/dates';
 import { BellIcon } from '../icons';
+import { useAuth } from '../../hooks/useAuth';
 import './notification-bell.css';
 
 const REFRESH_MS = 60_000;
@@ -20,6 +21,8 @@ function alertaLabel(alerta: PagamentoAlerta): string {
 
 export function NotificationBell() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  const isViewer = user?.papel === 'VISUALIZADOR';
   const [isOpen, setIsOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -94,13 +97,15 @@ export function NotificationBell() {
                       {alertaLabel(alerta)} · {formatCurrency(alerta.valor)}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    className="btn btn-primary notification-bell-item-action"
-                    onClick={() => marcarPago(alerta.id)}
-                  >
-                    Confirmar
-                  </button>
+                  {!isViewer && (
+                    <button
+                      type="button"
+                      className="btn btn-primary notification-bell-item-action"
+                      onClick={() => marcarPago(alerta.id)}
+                    >
+                      Confirmar
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

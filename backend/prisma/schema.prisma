@@ -13,6 +13,11 @@ enum Plano {
   PRO
 }
 
+enum PapelMembro {
+  GERENTE
+  VISUALIZADOR
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -24,6 +29,24 @@ model User {
 
   kitnets Kitnet[]
   imoveis Imovel[]
+
+  // Pessoas com acesso à minha conta (eu sou o "dono" dos dados).
+  membros Membro[] @relation("MembrosDaConta")
+  // Minha própria filiação, caso eu seja membro da conta de outra pessoa.
+  filiacao Membro? @relation("FiliacaoDoUsuario")
+}
+
+model Membro {
+  id        Int         @id @default(autoincrement())
+  papel     PapelMembro @default(GERENTE)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  donoId Int
+  dono   User @relation("MembrosDaConta", fields: [donoId], references: [id], onDelete: Cascade)
+
+  userId Int  @unique
+  user   User @relation("FiliacaoDoUsuario", fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Imovel {

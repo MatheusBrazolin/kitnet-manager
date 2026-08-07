@@ -18,6 +18,17 @@
   margin-bottom: var(--space-4);
 }
 
+.layout-membro-banner {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-ink);
+  border: var(--border-width) solid var(--color-ink);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-4);
+}
+
 .layout-loading {
   min-height: 100vh;
   display: flex;

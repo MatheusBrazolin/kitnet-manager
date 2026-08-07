@@ -82,6 +82,16 @@ export function BellIcon({ className }: IconProps) {
   );
 }
 
+export function UserPlusIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <circle cx="9" cy="8" r="3" />
+      <path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" />
+      <path d="M19 8v6M22 11h-6" />
+    </svg>
+  );
+}
+
 export function PencilIcon({ className }: IconProps) {
   return (
     <svg {...BASE_PROPS} className={className}>

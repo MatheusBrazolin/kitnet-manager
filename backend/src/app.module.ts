@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './database/prisma.module';
+import { ContaModule } from './common/conta/conta.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { KitnetsModule } from './modules/kitnets/kitnets.module';
@@ -11,12 +12,14 @@ import { MoradoresModule } from './modules/moradores/moradores.module';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module';
 import { GastosModule } from './modules/gastos/gastos.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { MembrosModule } from './modules/membros/membros.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     PrismaModule,
+    ContaModule,
     AuthModule,
     UsersModule,
     KitnetsModule,
@@ -25,6 +28,7 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     PagamentosModule,
     GastosModule,
     DashboardModule,
+    MembrosModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }],
 })

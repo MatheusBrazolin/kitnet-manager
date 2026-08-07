@@ -2,6 +2,7 @@ import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/co
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
+import { ContaService } from '../../common/conta/conta.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 
@@ -12,6 +13,7 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly contaService: ContaService,
   ) {}
 
   async register(dto: RegisterDto) {
@@ -27,7 +29,7 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    return this.buildAuthResponse(user);
+    return await this.buildAuthResponse(user);
   }
 
   async login(dto: LoginDto) {
@@ -44,8 +46,9 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
-  private buildAuthResponse(user: { id: number; name: string; email: string; plano: string }) {
+  private async buildAuthResponse(user: { id: number; name: string; email: string; plano: string }) {
     const token = this.jwtService.sign({ sub: user.id, email: user.email });
+    const conta = await this.contaService.resolve(user.id);
 
     return {
       token,
@@ -54,6 +57,9 @@ export class AuthService {
         name: user.name,
         email: user.email,
         plano: user.plano,
+        contaId: conta.contaId,
+        papel: conta.papel,
+        donoNome: conta.donoNome,
       },
     };
   }

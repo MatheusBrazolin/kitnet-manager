@@ -24,6 +24,13 @@ export function Layout() {
     <div className="layout">
       <Sidebar />
       <main className="layout-content">
+        {user.papel !== 'OWNER' && (
+          <div className="layout-membro-banner">
+            Você está {user.papel === 'VISUALIZADOR' ? 'visualizando' : 'gerenciando'} os dados de{' '}
+            <strong>{user.donoNome}</strong>
+            {user.papel === 'VISUALIZADOR' && ' — acesso somente leitura.'}
+          </div>
+        )}
         <div className="layout-topbar">
           <NotificationBell />
         </div>

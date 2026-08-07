@@ -7,6 +7,7 @@ import { Imoveis } from './pages/Imoveis/Imoveis';
 import { Moradores } from './pages/Moradores/Moradores';
 import { Pagamentos } from './pages/Pagamentos/Pagamentos';
 import { Gastos } from './pages/Gastos/Gastos';
+import { Equipe } from './pages/Equipe/Equipe';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
         <Route path="/moradores" element={<Moradores />} />
         <Route path="/pagamentos" element={<Pagamentos />} />
         <Route path="/gastos" element={<Gastos />} />
+        <Route path="/equipe" element={<Equipe />} />
       </Route>
     </Routes>
   );

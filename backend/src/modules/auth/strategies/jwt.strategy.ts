@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { UsersService } from '../../users/users.service';
+import { ContaService } from '../../../common/conta/conta.service';
 
 interface JwtPayload {
   sub: number;
@@ -14,6 +15,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
     private readonly usersService: UsersService,
+    private readonly contaService: ContaService,
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
@@ -29,6 +31,16 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException();
     }
 
-    return { id: user.id, name: user.name, email: user.email, plano: user.plano };
+    const conta = await this.contaService.resolve(user.id);
+
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      plano: user.plano,
+      contaId: conta.contaId,
+      papel: conta.papel,
+      donoNome: conta.donoNome,
+    };
   }
 }

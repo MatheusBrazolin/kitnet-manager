@@ -9,6 +9,8 @@ import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { MoradorDetailModal } from '../../components/MoradorDetailModal/MoradorDetailModal';
 import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
+import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
+import { useAuth } from '../../hooks/useAuth';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
 
@@ -18,6 +20,9 @@ function todayIsoDate(): string {
 
 export function Moradores() {
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
+  const { user } = useAuth();
+  const isViewer = user?.papel === 'VISUALIZADOR';
   const { data: moradores = [], error: moradoresQueryError, isLoading } = useQuery({
     queryKey: ['moradores'],
     queryFn: () => api.get<MoradorRow[]>('/moradores').then((response) => response.data),
@@ -27,6 +32,7 @@ export function Moradores() {
     queryFn: () => api.get<Kitnet[]>('/kitnets').then((response) => response.data),
   });
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [kitnetId, setKitnetId] = useState<number | null>(null);
@@ -46,6 +52,7 @@ export function Moradores() {
         : null);
 
   function openModal() {
+    setEditingId(null);
     setNome('');
     setTelefone('');
     setKitnetId(kitnets[0]?.id ?? null);
@@ -55,34 +62,60 @@ export function Moradores() {
     setIsModalOpen(true);
   }
 
+  function openEditModal(morador: MoradorRow) {
+    setEditingId(morador.id);
+    setNome(morador.nome);
+    setTelefone(morador.telefone);
+    setKitnetId(morador.kitnetId);
+    setDataEntrada(morador.dataEntrada.slice(0, 10));
+    setDiaVencimento(String(morador.diaVencimento));
+    setError(null);
+    setIsModalOpen(true);
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (kitnetId === null) {
+    if (editingId === null && kitnetId === null) {
       setError('Selecione uma unidade.');
       return;
     }
     setError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/moradores', {
-        nome,
-        telefone,
-        kitnetId,
-        dataEntrada,
-        diaVencimento: Number(diaVencimento),
-      });
+      if (editingId !== null) {
+        await api.patch(`/moradores/${editingId}`, {
+          nome,
+          telefone,
+          dataEntrada,
+          diaVencimento: Number(diaVencimento),
+        });
+      } else {
+        await api.post('/moradores', {
+          nome,
+          telefone,
+          kitnetId,
+          dataEntrada,
+          diaVencimento: Number(diaVencimento),
+        });
+      }
       setIsModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['moradores'] });
       queryClient.invalidateQueries({ queryKey: ['kitnets'] });
     } catch (err) {
-      setError(getApiErrorMessage(err, 'Não foi possível cadastrar o morador.'));
+      setError(getApiErrorMessage(err, `Não foi possível ${editingId !== null ? 'atualizar' : 'cadastrar'} o morador.`));
     } finally {
       setIsSubmitting(false);
     }
   }
 
   async function handleDelete(id: number) {
-    if (!confirm('Remover este morador?')) {
+    const ok = await confirm({
+      title: 'Remover morador',
+      message: 'Remover este morador? Essa ação não pode ser desfeita.',
+      confirmLabel: 'Remover',
+      danger: true,
+    });
+    if (!ok) {
       return;
     }
     setListError(null);
@@ -101,9 +134,11 @@ export function Moradores() {
         title="Moradores"
         subtitle="Quem está morando em cada unidade."
         action={
-          <button type="button" className="btn btn-primary" onClick={openModal} disabled={kitnets.length === 0}>
-            + Novo morador
-          </button>
+          !isViewer && (
+            <button type="button" className="btn btn-primary" onClick={openModal} disabled={kitnets.length === 0}>
+              + Novo morador
+            </button>
+          )
         }
       />
 
@@ -129,22 +164,38 @@ export function Moradores() {
                   ? `${row.kitnet.imovel.nome}${row.kitnet.imovel.kitnets?.length > 1 ? ` · ${row.kitnet.numero}` : ''}`
                   : row.kitnet.numero,
             },
-            {
-              header: '',
-              align: 'right',
-              render: (row) => (
-                <button
-                  type="button"
-                  className="btn btn-danger"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    handleDelete(row.id);
-                  }}
-                >
-                  Remover
-                </button>
-              ),
-            },
+            ...(isViewer
+              ? []
+              : [
+                  {
+                    header: '',
+                    align: 'right' as const,
+                    render: (row: MoradorRow) => (
+                      <div className="table-row-actions">
+                        <button
+                          type="button"
+                          className="btn btn-ghost"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            openEditModal(row);
+                          }}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-danger"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleDelete(row.id);
+                          }}
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    ),
+                  },
+                ]),
           ]}
         />
         )}
@@ -155,7 +206,7 @@ export function Moradores() {
       )}
 
       {isModalOpen && (
-        <Modal title="Novo morador" onClose={() => setIsModalOpen(false)}>
+        <Modal title={editingId !== null ? 'Editar morador' : 'Novo morador'} onClose={() => setIsModalOpen(false)}>
           <form onSubmit={handleSubmit} className="field-group">
             {error && <p className="form-error">{error}</p>}
             <div className="field">
@@ -175,7 +226,13 @@ export function Moradores() {
             </div>
             <div className="field">
               <label htmlFor="kitnetId">Unidade</label>
-              <UnitPicker id="kitnetId" kitnets={kitnets} value={kitnetId} onChange={setKitnetId} />
+              {editingId !== null ? (
+                <p className="field-static-hint">
+                  Não é possível trocar a unidade de um morador já cadastrado — remova e cadastre de novo se precisar mudá-lo.
+                </p>
+              ) : (
+                <UnitPicker id="kitnetId" kitnets={kitnets} value={kitnetId} onChange={setKitnetId} />
+              )}
             </div>
             <div className="field">
               <label htmlFor="dataEntrada">Data de entrada</label>
