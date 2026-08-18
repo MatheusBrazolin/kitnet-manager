@@ -48,6 +48,8 @@ export interface Imovel {
   kitnets: Kitnet[];
 }
 
+export type StatusPagamento = 'PENDENTE' | 'PAGO' | 'ATRASADO';
+
 export interface PagamentoAlerta {
   id: number;
   valor: number;
@@ -61,8 +63,11 @@ export interface PagamentoAlerta {
 export interface Pagamento {
   id: number;
   valor: number;
+  mesReferencia: string;
   vencimento: string;
-  pago: boolean;
+  status: StatusPagamento;
+  dataPagamento: string | null;
+  formaPagamento: string | null;
   moradorId: number;
   morador: Morador & { kitnet: Kitnet };
 }
@@ -70,8 +75,11 @@ export interface Pagamento {
 export interface PagamentoResumo {
   id: number;
   valor: number;
+  mesReferencia: string;
   vencimento: string;
-  pago: boolean;
+  status: StatusPagamento;
+  dataPagamento: string | null;
+  formaPagamento: string | null;
 }
 
 export interface MoradorDetail extends Morador {

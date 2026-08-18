@@ -18,6 +18,12 @@ enum PapelMembro {
   VISUALIZADOR
 }
 
+enum StatusPagamento {
+  PENDENTE
+  PAGO
+  ATRASADO
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -98,15 +104,23 @@ model Morador {
 }
 
 model Pagamento {
-  id         Int      @id @default(autoincrement())
-  valor      Float
-  vencimento DateTime
-  pago       Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id             Int             @id @default(autoincrement())
+  valor          Float
+  // Mês de competência do aluguel (sempre truncado no dia 1, UTC) — um registro por mês.
+  mesReferencia  DateTime
+  vencimento     DateTime
+  status         StatusPagamento @default(PENDENTE)
+  // Data em que o valor foi efetivamente recebido; preenchida só quando status = PAGO.
+  dataPagamento  DateTime?
+  formaPagamento String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 
   moradorId Int
   morador   Morador @relation(fields: [moradorId], references: [id], onDelete: Cascade)
+
+  @@unique([moradorId, mesReferencia])
+  @@index([moradorId])
 }
 
 model Gasto {

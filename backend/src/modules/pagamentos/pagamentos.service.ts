@@ -1,58 +1,121 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, StatusPagamento } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { CreatePagamentoDto } from './dto/create-pagamento.dto';
 import { UpdatePagamentoDto } from './dto/update-pagamento.dto';
+import { MarcarPagoDto } from './dto/marcar-pago.dto';
+
+type MoradorParaGeracao = {
+  id: number;
+  dataEntrada: Date;
+  diaVencimento: number;
+  kitnet: { valor: number };
+};
+
+// Todas as datas de pagamento são "só calendário" (sem hora) e tratadas em UTC — pra não
+// depender do timezone de onde o processo Node roda (dev local vs. função na Vercel).
+function truncarMes(data: Date) {
+  return new Date(Date.UTC(data.getUTCFullYear(), data.getUTCMonth(), 1));
+}
+
+function diasNoMes(mesReferencia: Date) {
+  return new Date(Date.UTC(mesReferencia.getUTCFullYear(), mesReferencia.getUTCMonth() + 1, 0)).getUTCDate();
+}
+
+function vencimentoDoMes(mesReferencia: Date, diaVencimento: number) {
+  const dia = Math.min(diaVencimento, diasNoMes(mesReferencia));
+  return new Date(Date.UTC(mesReferencia.getUTCFullYear(), mesReferencia.getUTCMonth(), dia));
+}
+
+function enumerarMeses(inicio: Date, fim: Date) {
+  const meses: Date[] = [];
+  const cursor = new Date(inicio);
+  while (cursor.getTime() <= fim.getTime()) {
+    meses.push(new Date(cursor));
+    cursor.setUTCMonth(cursor.getUTCMonth() + 1);
+  }
+  return meses;
+}
 
 @Injectable()
 export class PagamentosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(userId: number) {
-    await this.ensureCurrentMonthPagamentos(userId);
-    return this.prisma.pagamento.findMany({
-      where: { morador: { kitnet: { userId } } },
-      include: { morador: { include: { kitnet: { include: { imovel: true } } } } },
-      orderBy: { vencimento: 'asc' },
+  // Um pagamento "PENDENTE" cujo vencimento já passou é exibido como "ATRASADO" — esse
+  // estado não é gravado no banco (evita write amplification / cron), é resolvido na leitura.
+  // Público porque outros módulos (ex.: MoradoresService) também exibem pagamentos e
+  // precisam aplicar a mesma regra, em vez de duplicá-la.
+  comStatusEfetivo<T extends { status: StatusPagamento; vencimento: Date }>(pagamento: T, agora: Date = new Date()): T {
+    if (pagamento.status === 'PENDENTE' && pagamento.vencimento < agora) {
+      return { ...pagamento, status: 'ATRASADO' };
+    }
+    return pagamento;
+  }
+
+  /** Pagamentos de um único morador, já com o status ATRASADO resolvido — usado pelo histórico. */
+  async listarPorMorador(moradorId: number) {
+    const now = new Date();
+    const pagamentos = await this.prisma.pagamento.findMany({
+      where: { moradorId },
+      orderBy: { mesReferencia: 'desc' },
+    });
+    return pagamentos.map((pagamento) => this.comStatusEfetivo(pagamento, now));
+  }
+
+  /**
+   * Garante que exista uma parcela (registro de Pagamento) para cada mês de competência
+   * entre o mês de entrada do morador e o mês atual — inclusive os meses "esquecidos"
+   * (ex.: morador cadastrado essa semana mas que já morava há 2 meses). Nunca duplica um
+   * mês já existente (protegido pela unique constraint [moradorId, mesReferencia]).
+   */
+  async ensurePagamentosParaMorador(morador: MoradorParaGeracao) {
+    const mesEntrada = truncarMes(morador.dataEntrada);
+    const mesAtual = truncarMes(new Date());
+    const meses = enumerarMeses(mesEntrada, mesAtual);
+
+    const existentes = await this.prisma.pagamento.findMany({
+      where: { moradorId: morador.id, mesReferencia: { in: meses } },
+      select: { mesReferencia: true },
+    });
+    const jaExistem = new Set(existentes.map((p) => p.mesReferencia.getTime()));
+    const faltantes = meses.filter((mes) => !jaExistem.has(mes.getTime()));
+    if (faltantes.length === 0) {
+      return;
+    }
+
+    await this.prisma.pagamento.createMany({
+      data: faltantes.map((mesReferencia) => ({
+        moradorId: morador.id,
+        valor: morador.kitnet.valor,
+        mesReferencia,
+        vencimento: vencimentoDoMes(mesReferencia, morador.diaVencimento),
+        status: StatusPagamento.PENDENTE,
+      })),
+      skipDuplicates: true,
     });
   }
 
-  async ensureCurrentMonthPagamentos(userId: number) {
-    // Datas de vencimento são "só calendário" (sem hora) — tudo calculado em UTC pra não
-    // depender do timezone de onde o processo Node roda (dev local vs. função na Vercel).
-    const now = new Date();
-    const year = now.getUTCFullYear();
-    const month = now.getUTCMonth();
-    const periodStart = new Date(Date.UTC(year, month, 1));
-    const periodEnd = new Date(Date.UTC(year, month + 1, 1));
-
+  async ensurePagamentosParaConta(userId: number) {
     const moradores = await this.prisma.morador.findMany({
       where: { kitnet: { userId } },
-      include: {
-        kitnet: true,
-        pagamentos: { where: { vencimento: { gte: periodStart, lt: periodEnd } }, select: { id: true } },
-      },
+      include: { kitnet: true },
     });
-    if (moradores.length === 0) {
-      return;
-    }
+    await Promise.all(moradores.map((morador) => this.ensurePagamentosParaMorador(morador)));
+  }
 
-    const pendentes = moradores.filter((morador) => morador.pagamentos.length === 0);
-    if (pendentes.length === 0) {
-      return;
-    }
-
-    const diasNoMes = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-    await this.prisma.pagamento.createMany({
-      data: pendentes.map((morador) => ({
-        moradorId: morador.id,
-        valor: morador.kitnet.valor,
-        vencimento: new Date(Date.UTC(year, month, Math.min(morador.diaVencimento, diasNoMes))),
-      })),
+  async findAll(userId: number) {
+    await this.ensurePagamentosParaConta(userId);
+    const now = new Date();
+    const pagamentos = await this.prisma.pagamento.findMany({
+      where: { morador: { kitnet: { userId } } },
+      include: { morador: { include: { kitnet: { include: { imovel: true } } } } },
+      orderBy: [{ mesReferencia: 'desc' }, { vencimento: 'asc' }],
     });
+    return pagamentos.map((pagamento) => this.comStatusEfetivo(pagamento, now));
   }
 
   async getAlertas(userId: number) {
-    await this.ensureCurrentMonthPagamentos(userId);
+    await this.ensurePagamentosParaConta(userId);
 
     // "Vencendo hoje ou já vencido e ainda não confirmado como pago" — calendário em UTC,
     // igual ao resto do módulo, pra não variar com o timezone do processo.
@@ -61,7 +124,7 @@ export class PagamentosService {
 
     const pendentes = await this.prisma.pagamento.findMany({
       where: {
-        pago: false,
+        status: StatusPagamento.PENDENTE,
         vencimento: { lt: hojeFimDoDia },
         morador: { kitnet: { userId } },
       },
@@ -109,24 +172,62 @@ export class PagamentosService {
 
   async create(userId: number, dto: CreatePagamentoDto) {
     await this.assertMoradorOwnership(userId, dto.moradorId);
-    return this.prisma.pagamento.create({
-      data: {
-        valor: dto.valor,
-        vencimento: new Date(dto.vencimento),
-        pago: dto.pago ?? false,
-        moradorId: dto.moradorId,
-      },
-    });
+    const vencimento = new Date(dto.vencimento);
+    try {
+      return await this.prisma.pagamento.create({
+        data: {
+          valor: dto.valor,
+          vencimento,
+          mesReferencia: truncarMes(vencimento),
+          status: StatusPagamento.PENDENTE,
+          moradorId: dto.moradorId,
+        },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException('Este morador já tem um pagamento lançado para esse mês.');
+      }
+      throw err;
+    }
   }
 
   async update(userId: number, id: number, dto: UpdatePagamentoDto) {
     await this.findOwnedOrThrow(userId, id);
+    const vencimento = dto.vencimento ? new Date(dto.vencimento) : undefined;
+    try {
+      return await this.prisma.pagamento.update({
+        where: { id },
+        data: {
+          ...dto,
+          vencimento,
+          mesReferencia: vencimento ? truncarMes(vencimento) : undefined,
+        },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException('Este morador já tem um pagamento lançado para esse mês.');
+      }
+      throw err;
+    }
+  }
+
+  async marcarPago(userId: number, id: number, dto: MarcarPagoDto) {
+    await this.findOwnedOrThrow(userId, id);
     return this.prisma.pagamento.update({
       where: { id },
       data: {
-        ...dto,
-        vencimento: dto.vencimento ? new Date(dto.vencimento) : undefined,
+        status: StatusPagamento.PAGO,
+        dataPagamento: dto.dataPagamento ? new Date(dto.dataPagamento) : new Date(),
+        formaPagamento: dto.formaPagamento ?? null,
       },
+    });
+  }
+
+  async desfazerPagamento(userId: number, id: number) {
+    await this.findOwnedOrThrow(userId, id);
+    return this.prisma.pagamento.update({
+      where: { id },
+      data: { status: StatusPagamento.PENDENTE, dataPagamento: null, formaPagamento: null },
     });
   }
 
