@@ -1,11 +1,15 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { PagamentosService } from '../pagamentos/pagamentos.service';
 import { CreateMoradorDto } from './dto/create-morador.dto';
 import { UpdateMoradorDto } from './dto/update-morador.dto';
 
 @Injectable()
 export class MoradoresService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly pagamentosService: PagamentosService,
+  ) {}
 
   findAll(userId: number) {
     return this.prisma.morador.findMany({
@@ -31,10 +35,7 @@ export class MoradoresService {
 
   async findDetail(userId: number, id: number) {
     const morador = await this.findOwnedOrThrow(userId, id);
-    const pagamentos = await this.prisma.pagamento.findMany({
-      where: { moradorId: id },
-      orderBy: { vencimento: 'desc' },
-    });
+    const pagamentos = await this.pagamentosService.listarPorMorador(id);
     return { ...morador, pagamentos };
   }
 
@@ -46,10 +47,11 @@ export class MoradoresService {
     if (kitnet.userId !== userId) {
       throw new ForbiddenException('Você não tem acesso a esta kitnet');
     }
+    return kitnet;
   }
 
   async create(userId: number, dto: CreateMoradorDto) {
-    await this.assertKitnetOwnership(userId, dto.kitnetId);
+    const kitnet = await this.assertKitnetOwnership(userId, dto.kitnetId);
 
     const dataEntrada = dto.dataEntrada ? new Date(dto.dataEntrada) : new Date();
     const diaVencimento = dto.diaVencimento ?? dataEntrada.getDate();
@@ -66,6 +68,16 @@ export class MoradoresService {
     await this.prisma.kitnet.update({
       where: { id: dto.kitnetId },
       data: { status: 'ocupada' },
+    });
+
+    // Gera já a(s) parcela(s) retroativa(s) até o mês atual, sem esperar o próximo GET
+    // em /pagamentos — evita o morador ficar sem nenhuma parcela lançada até alguém abrir
+    // a tela de Pagamentos.
+    await this.pagamentosService.ensurePagamentosParaMorador({
+      id: morador.id,
+      dataEntrada: morador.dataEntrada,
+      diaVencimento: morador.diaVencimento,
+      kitnet: { valor: kitnet.valor },
     });
 
     return morador;

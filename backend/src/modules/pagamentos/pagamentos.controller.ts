@@ -5,6 +5,7 @@ import { CurrentUser, type AuthenticatedUser } from '../../common/decorators/cur
 import { PagamentosService } from './pagamentos.service';
 import { CreatePagamentoDto } from './dto/create-pagamento.dto';
 import { UpdatePagamentoDto } from './dto/update-pagamento.dto';
+import { MarcarPagoDto } from './dto/marcar-pago.dto';
 
 @UseGuards(JwtAuthGuard, ViewerReadOnlyGuard)
 @Controller('pagamentos')
@@ -38,6 +39,20 @@ export class PagamentosController {
     @Body() dto: UpdatePagamentoDto,
   ) {
     return this.pagamentosService.update(user.contaId, id, dto);
+  }
+
+  @Patch(':id/marcar-pago')
+  marcarPago(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: MarcarPagoDto,
+  ) {
+    return this.pagamentosService.marcarPago(user.contaId, id, dto);
+  }
+
+  @Patch(':id/desfazer-pagamento')
+  desfazerPagamento(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+    return this.pagamentosService.desfazerPagamento(user.contaId, id);
   }
 
   @Delete(':id')

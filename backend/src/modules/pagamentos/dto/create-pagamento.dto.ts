@@ -1,4 +1,4 @@
-import { IsBoolean, IsDateString, IsInt, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsDateString, IsInt, IsNumber, Min } from 'class-validator';
 
 export class CreatePagamentoDto {
   @IsNumber()
@@ -7,10 +7,6 @@ export class CreatePagamentoDto {
 
   @IsDateString()
   vencimento: string;
-
-  @IsOptional()
-  @IsBoolean()
-  pago?: boolean;
 
   @IsInt()
   moradorId: number;

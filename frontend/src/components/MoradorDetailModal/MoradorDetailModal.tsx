@@ -4,7 +4,7 @@ import type { MoradorDetail, PagamentoResumo } from '../../types';
 import { Modal } from '../Modal/Modal';
 import { StatusBadge } from '../StatusBadge';
 import { Table } from '../Table/Table';
-import { formatTempoLocacao, formatVencimentoLabel } from '../../utils/dates';
+import { formatMesReferencia, formatTempoLocacao, formatVencimentoLabel } from '../../utils/dates';
 import { formatCurrency } from '../../utils/currency';
 import './morador-detail-modal.css';
 
@@ -14,10 +14,6 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   year: 'numeric',
   timeZone: 'UTC',
 });
-
-function isAtrasado(pagamento: PagamentoResumo) {
-  return !pagamento.pago && new Date(pagamento.vencimento) < new Date();
-}
 
 interface MoradorDetailModalProps {
   moradorId: number;
@@ -37,7 +33,7 @@ export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalPro
       .catch((err) => setError(getApiErrorMessage(err, 'Não foi possível carregar os detalhes do morador.')));
   }, [moradorId]);
 
-  const pendente = morador?.pagamentos.find((pagamento) => !pagamento.pago);
+  const pendente = morador?.pagamentos.find((pagamento) => pagamento.status !== 'PAGO');
 
   return (
     <Modal title={morador?.nome ?? 'Morador'} onClose={onClose} className="modal-wide">
@@ -75,9 +71,11 @@ export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalPro
                   <span className="morador-detail-hint">Nenhum pagamento registrado ainda.</span>
                 ) : (
                   <>
-                    <StatusBadge label={pendente ? (isAtrasado(pendente) ? 'atrasado' : 'pendente') : 'pago'} />
+                    <StatusBadge label={pendente ? pendente.status.toLowerCase() : 'pago'} />
                     {pendente && (
-                      <span className="morador-detail-hint">{formatVencimentoLabel(pendente.vencimento, false)}</span>
+                      <span className="morador-detail-hint">
+                        {formatVencimentoLabel(pendente.vencimento, false)}
+                      </span>
                     )}
                   </>
                 )}
@@ -91,11 +89,17 @@ export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalPro
             rowKey={(row) => row.id}
             emptyMessage="Nenhum pagamento lançado ainda."
             columns={[
+              { header: 'Mês', render: (row) => formatMesReferencia(row.mesReferencia) },
               { header: 'Vencimento', render: (row) => dateFormatter.format(new Date(row.vencimento)) },
               { header: 'Valor', render: (row) => formatCurrency(row.valor) },
               {
                 header: 'Status',
-                render: (row) => <StatusBadge label={row.pago ? 'pago' : isAtrasado(row) ? 'atrasado' : 'pendente'} />,
+                render: (row) => <StatusBadge label={row.status.toLowerCase()} />,
+              },
+              {
+                header: 'Pago em',
+                render: (row: PagamentoResumo) =>
+                  row.dataPagamento ? dateFormatter.format(new Date(row.dataPagamento)) : '—',
               },
             ]}
           />

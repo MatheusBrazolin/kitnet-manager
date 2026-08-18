@@ -30,6 +30,27 @@ export function formatVencimentoLabel(vencimento: string | Date, pago: boolean):
   return `Atrasado há ${atraso} dia${atraso > 1 ? 's' : ''}`;
 }
 
+const MES_LABELS = [
+  'Jan',
+  'Fev',
+  'Mar',
+  'Abr',
+  'Mai',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Set',
+  'Out',
+  'Nov',
+  'Dez',
+];
+
+// Formata o mês de competência (ex.: "2026-07-01T00:00:00.000Z" -> "Jul/2026").
+export function formatMesReferencia(mesReferencia: string | Date): string {
+  const data = new Date(mesReferencia);
+  return `${MES_LABELS[data.getUTCMonth()]}/${data.getUTCFullYear()}`;
+}
+
 export function formatTempoLocacao(dataEntrada: string | Date): string {
   const inicio = startOfUtcDay(new Date(dataEntrada));
   const hoje = startOfUtcDay(new Date());
