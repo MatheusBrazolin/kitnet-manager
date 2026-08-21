@@ -13,9 +13,12 @@ SaaS de gestão de kitnets: cadastro de kitnets, moradores e controle de pagamen
 
 - **Contas de usuário:** cada dono de kitnets tem sua própria conta; dados isolados por usuário
 - **Planos:** FREE (até 3 kitnets) e PRO (até 50 kitnets)
+- **Imóveis:** agrupam as kitnets (nome, endereço)
 - **Kitnets:** cadastro, número, valor do aluguel, status (`vaga` / `ocupada`, atualizado automaticamente conforme moradores)
-- **Moradores:** vínculo com kitnet, nome e telefone
-- **Pagamentos:** lançamento por morador, vencimento, status pago/pendente/atrasado
+- **Moradores:** vínculo com kitnet, nome, telefone e dia de vencimento do aluguel
+- **Pagamentos:** um lançamento por morador/mês de competência, vencimento, status pago/pendente/atrasado
+- **Gastos:** despesas por kitnet (descrição, valor, data)
+- **Equipe (membros):** convite de outras pessoas para a conta, com papel `GERENTE` (acesso total) ou `VISUALIZADOR` (somente leitura)
 - **Dashboard:** total de kitnets, ocupação, valor mensal e próximos vencimentos
 
 ## Estrutura do projeto
@@ -23,25 +26,34 @@ SaaS de gestão de kitnets: cadastro de kitnets, moradores e controle de pagamen
 ```
 backend/
 ├── src/
-│   ├── modules/       # auth, users, kitnets, moradores, pagamentos, dashboard
-│   ├── database/       # PrismaService/PrismaModule
-│   ├── common/         # guards, decorators e utilitários compartilhados
+│   ├── modules/         # auth, users, imoveis, kitnets, moradores, gastos,
+│   │                    # pagamentos, membros, dashboard
+│   ├── database/        # PrismaService/PrismaModule
+│   ├── common/          # guards, decorators, ContaService e utilitários
+│   │                    # compartilhados entre módulos
+│   ├── config/          # configuração tipada (ex: JWT)
+│   ├── app.ts           # bootstrap da aplicação Nest (usado por main.ts e pelos testes e2e)
 │   └── main.ts
-├── prisma/              # schema.prisma e migrations
+├── prisma/               # schema.prisma e migrations
 └── Dockerfile
 
 frontend/
 ├── src/
-│   ├── pages/           # Login, Dashboard, Kitnets, Moradores, Pagamentos
-│   ├── components/      # Sidebar, Header, Card, Table, Modal
-│   ├── services/        # api.ts (axios)
-│   ├── context/         # AuthContext
-│   ├── hooks/           # useAuth
+│   ├── pages/            # Login, Dashboard, Imoveis, Moradores, Gastos,
+│   │                     # Pagamentos, Equipe
+│   ├── components/       # Sidebar, Header, Card, Table, Modal, ConfirmDialog,
+│   │                     # KitnetDetailModal, MoradorDetailModal, NotificationBell,
+│   │                     # PasswordField, UnitPicker, charts/
+│   ├── services/         # api.ts (axios)
+│   ├── context/          # AuthContext
+│   ├── hooks/            # useAuth
+│   ├── styles/           # tokens e estilos globais
+│   ├── utils/
 │   └── types/
 └── Dockerfile
 
 docker-compose.yml
-vercel.json          # config de deploy (frontend estático + backend serverless num só projeto Vercel)
+vercel.json           # config de deploy (frontend estático + backend serverless num só projeto Vercel)
 ```
 
 ## Rodando localmente
