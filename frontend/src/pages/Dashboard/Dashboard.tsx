@@ -64,14 +64,6 @@ export function Dashboard() {
               }
               tone="warning"
             />
-            {summary.totalImobiliaria > 0 && (
-              <StatCard
-                label="Repasse à imobiliária"
-                value={formatCurrency(summary.totalImobiliaria)}
-                hint={`${((summary.totalImobiliaria / summary.valorMensal) * 100).toFixed(1)}% do valor mensal`}
-                tone="danger"
-              />
-            )}
             <StatCard
               label="Gastos no mês"
               value={formatCurrency(summary.gastoMensal)}
