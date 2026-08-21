@@ -12,7 +12,8 @@
     },
     "backend": {
       "root": "backend",
-      "entrypoint": "src/main.ts"
+      "buildCommand": "npm run build",
+      "entrypoint": "dist/main.js"
     }
   },
   "rewrites": [
