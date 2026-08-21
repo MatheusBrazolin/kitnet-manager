@@ -35,6 +35,9 @@ export interface Kitnet {
   id: number;
   numero: string;
   valor: number;
+  // Parte do valor do aluguel retida pela imobiliária, quando a unidade é alugada por
+  // intermediação dela. null/undefined = aluguel direto, sem imobiliária.
+  taxaImobiliaria?: number | null;
   status: 'vaga' | 'ocupada';
   imovelId: number;
   moradores: Morador[];
@@ -113,6 +116,7 @@ export interface DashboardSummary {
   ocupadas: number;
   vagas: number;
   valorMensal: number;
+  totalImobiliaria: number;
   receitaMensal: number;
   gastoMensal: number;
   lucroLiquido: number;

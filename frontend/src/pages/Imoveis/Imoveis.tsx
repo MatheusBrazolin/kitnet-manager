@@ -39,6 +39,7 @@ export function Imoveis() {
   const [editingKitnet, setEditingKitnet] = useState<Kitnet | null>(null);
   const [editNumero, setEditNumero] = useState('');
   const [editValor, setEditValor] = useState('');
+  const [editTaxaImobiliaria, setEditTaxaImobiliaria] = useState('');
   const [editKitnetError, setEditKitnetError] = useState<string | null>(null);
   const [isEditKitnetSubmitting, setIsEditKitnetSubmitting] = useState(false);
 
@@ -122,6 +123,7 @@ export function Imoveis() {
     setEditingKitnet(kitnet);
     setEditNumero(kitnet.numero);
     setEditValor(String(kitnet.valor));
+    setEditTaxaImobiliaria(kitnet.taxaImobiliaria ? String(kitnet.taxaImobiliaria) : '');
     setEditKitnetError(null);
   }
 
@@ -133,7 +135,11 @@ export function Imoveis() {
     setEditKitnetError(null);
     setIsEditKitnetSubmitting(true);
     try {
-      await api.patch(`/kitnets/${editingKitnet.id}`, { numero: editNumero, valor: Number(editValor) });
+      await api.patch(`/kitnets/${editingKitnet.id}`, {
+        numero: editNumero,
+        valor: Number(editValor),
+        taxaImobiliaria: editTaxaImobiliaria ? Number(editTaxaImobiliaria) : null,
+      });
       setEditingKitnet(null);
       queryClient.invalidateQueries({ queryKey: ['imoveis'] });
       queryClient.invalidateQueries({ queryKey: ['kitnets'] });
@@ -364,7 +370,18 @@ export function Imoveis() {
                       onRowClick={(row) => setSelectedKitnetId(row.id)}
                       columns={[
                         { header: 'Unidade', render: (row) => row.numero },
-                        { header: 'Valor', render: (row) => formatCurrency(row.valor) },
+                        {
+                          header: 'Valor',
+                          render: (row) =>
+                            row.taxaImobiliaria ? (
+                              <span className="imovel-valor-com-imobiliaria">
+                                {formatCurrency(row.valor)}
+                                <small>líq. {formatCurrency(row.valor - row.taxaImobiliaria)}</small>
+                              </span>
+                            ) : (
+                              formatCurrency(row.valor)
+                            ),
+                        },
                         { header: 'Status', render: (row) => <StatusBadge label={row.status} /> },
                         { header: 'Moradores', render: (row) => row.moradores.length },
                         ...(isViewer
@@ -544,6 +561,23 @@ export function Imoveis() {
                 value={editValor}
                 onChange={(event) => setEditValor(event.target.value)}
               />
+            </div>
+            <div className="field">
+              <label htmlFor="editTaxaImobiliaria">Taxa da imobiliária (opcional)</label>
+              <input
+                id="editTaxaImobiliaria"
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Ex.: 100 — deixe em branco se o aluguel é direto"
+                value={editTaxaImobiliaria}
+                onChange={(event) => setEditTaxaImobiliaria(event.target.value)}
+              />
+              <p className="field-static-hint">
+                Preencha só se essa unidade é alugada por uma imobiliária que retém parte
+                do aluguel. Ex.: aluguel de R$ 1.400, taxa de R$ 100 → você recebe
+                R$ 1.300.
+              </p>
             </div>
             <button type="submit" className="btn btn-primary" disabled={isEditKitnetSubmitting}>
               {isEditKitnetSubmitting ? 'Salvando...' : 'Salvar'}

@@ -5,7 +5,20 @@ import { PagamentosService } from '../pagamentos/pagamentos.service';
 const PROXIMOS_VENCIMENTOS_LIMIT = 5;
 const HISTORICO_MESES = 6;
 
-const MES_LABELS = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+const MES_LABELS = [
+  'jan',
+  'fev',
+  'mar',
+  'abr',
+  'mai',
+  'jun',
+  'jul',
+  'ago',
+  'set',
+  'out',
+  'nov',
+  'dez',
+];
 
 @Injectable()
 export class DashboardService {
@@ -21,8 +34,19 @@ export class DashboardService {
     ]);
 
     const totalKitnets = kitnets.length;
-    const ocupadas = kitnets.filter((kitnet) => kitnet.status === 'ocupada').length;
-    const valorMensal = kitnets.reduce((total, kitnet) => total + kitnet.valor, 0);
+    const ocupadas = kitnets.filter(
+      (kitnet) => kitnet.status === 'ocupada',
+    ).length;
+    const valorMensal = kitnets.reduce(
+      (total, kitnet) => total + kitnet.valor,
+      0,
+    );
+    // Quanto do valor mensal (projeção com todas as unidades ocupadas, mesma lógica de
+    // `valorMensal`) fica retido com imobiliárias em vez de chegar ao dono.
+    const totalImobiliaria = kitnets.reduce(
+      (total, kitnet) => total + (kitnet.taxaImobiliaria ?? 0),
+      0,
+    );
 
     const now = new Date();
     const year = now.getUTCFullYear();
@@ -30,7 +54,14 @@ export class DashboardService {
     const periodStart = new Date(Date.UTC(year, month, 1));
     const periodEnd = new Date(Date.UTC(year, month + 1, 1));
 
-    const [receitaAgg, gastoAgg, atrasoAgg, proximosVencimentos, gastosMesPorKitnet, historico] = await Promise.all([
+    const [
+      receitaAgg,
+      gastoAgg,
+      atrasoAgg,
+      proximosVencimentos,
+      gastosMesPorKitnet,
+      historico,
+    ] = await Promise.all([
       // Receita "de caixa" do mês: soma pelo que foi de fato recebido dentro do período,
       // usando a data real do pagamento — não a data de vencimento da parcela.
       this.prisma.pagamento.aggregate({
@@ -42,11 +73,18 @@ export class DashboardService {
         _sum: { valor: true },
       }),
       this.prisma.gasto.aggregate({
-        where: { data: { gte: periodStart, lt: periodEnd }, kitnet: { userId } },
+        where: {
+          data: { gte: periodStart, lt: periodEnd },
+          kitnet: { userId },
+        },
         _sum: { valor: true },
       }),
       this.prisma.pagamento.aggregate({
-        where: { status: 'PENDENTE', vencimento: { lt: now }, morador: { kitnet: { userId } } },
+        where: {
+          status: 'PENDENTE',
+          vencimento: { lt: now },
+          morador: { kitnet: { userId } },
+        },
         _sum: { valor: true },
       }),
       this.prisma.pagamento.findMany({
@@ -56,7 +94,10 @@ export class DashboardService {
         take: PROXIMOS_VENCIMENTOS_LIMIT,
       }),
       this.prisma.gasto.findMany({
-        where: { data: { gte: periodStart, lt: periodEnd }, kitnet: { userId } },
+        where: {
+          data: { gte: periodStart, lt: periodEnd },
+          kitnet: { userId },
+        },
         include: { kitnet: { include: { imovel: true } } },
       }),
       this.getHistorico(userId, year, month),
@@ -66,7 +107,9 @@ export class DashboardService {
     const gastoMensal = gastoAgg._sum.valor ?? 0;
 
     const gastosPorImovel = Object.values(
-      gastosMesPorKitnet.reduce<Record<number, { imovel: string; total: number }>>((acc, gasto) => {
+      gastosMesPorKitnet.reduce<
+        Record<number, { imovel: string; total: number }>
+      >((acc, gasto) => {
         const key = gasto.kitnet.imovelId;
         acc[key] = acc[key] ?? { imovel: gasto.kitnet.imovel.nome, total: 0 };
         acc[key].total += gasto.valor;
@@ -79,6 +122,7 @@ export class DashboardService {
       ocupadas,
       vagas: totalKitnets - ocupadas,
       valorMensal,
+      totalImobiliaria,
       receitaMensal,
       gastoMensal,
       lucroLiquido: receitaMensal - gastoMensal,
@@ -95,16 +139,24 @@ export class DashboardService {
   }
 
   private async getHistorico(userId: number, year: number, month: number) {
-    const inicioJanela = new Date(Date.UTC(year, month - (HISTORICO_MESES - 1), 1));
+    const inicioJanela = new Date(
+      Date.UTC(year, month - (HISTORICO_MESES - 1), 1),
+    );
 
     const [pagamentos, gastos] = await Promise.all([
       // Agrupado por dataPagamento (regime de caixa: quando o dinheiro entrou), não por
       // vencimento — senão um pagamento recebido fora do mês do vencimento distorce o mês
       // em que a receita aparece no histórico.
       this.prisma.pagamento.findMany({
-        where: { status: 'PAGO', dataPagamento: { gte: inicioJanela }, morador: { kitnet: { userId } } },
+        where: {
+          status: 'PAGO',
+          dataPagamento: { gte: inicioJanela },
+          morador: { kitnet: { userId } },
+        },
       }),
-      this.prisma.gasto.findMany({ where: { data: { gte: inicioJanela }, kitnet: { userId } } }),
+      this.prisma.gasto.findMany({
+        where: { data: { gte: inicioJanela }, kitnet: { userId } },
+      }),
     ]);
 
     const meses = Array.from({ length: HISTORICO_MESES }, (_, index) => {
@@ -115,14 +167,26 @@ export class DashboardService {
 
     return meses.map(({ ano, mes }) => {
       const receita = pagamentos
-        .filter((p) => p.dataPagamento && p.dataPagamento.getUTCFullYear() === ano && p.dataPagamento.getUTCMonth() === mes)
+        .filter(
+          (p) =>
+            p.dataPagamento &&
+            p.dataPagamento.getUTCFullYear() === ano &&
+            p.dataPagamento.getUTCMonth() === mes,
+        )
         .reduce((total, p) => total + p.valor, 0);
 
       const gastoTotal = gastos
-        .filter((g) => g.data.getUTCFullYear() === ano && g.data.getUTCMonth() === mes)
+        .filter(
+          (g) =>
+            g.data.getUTCFullYear() === ano && g.data.getUTCMonth() === mes,
+        )
         .reduce((total, g) => total + g.valor, 0);
 
-      return { label: `${MES_LABELS[mes]}/${String(ano).slice(2)}`, receita, gasto: gastoTotal };
+      return {
+        label: `${MES_LABELS[mes]}/${String(ano).slice(2)}`,
+        receita,
+        gasto: gastoTotal,
+      };
     });
   }
 }

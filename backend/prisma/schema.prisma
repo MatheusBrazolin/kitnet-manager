@@ -72,6 +72,10 @@ model Kitnet {
   id        Int      @id @default(autoincrement())
   numero    String
   valor     Float
+  // Parte do valor do aluguel retida pela imobiliária, quando a unidade é alugada por
+  // intermediação dela (ex.: aluguel de R$ 1.400, imobiliária fica com R$ 100). Nulo/0
+  // quando o aluguel é direto, sem imobiliária.
+  taxaImobiliaria Float?
   status    String   @default("vaga")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

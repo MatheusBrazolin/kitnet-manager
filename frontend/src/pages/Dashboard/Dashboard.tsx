@@ -54,7 +54,24 @@ export function Dashboard() {
               hint={`${summary.vagas} vagas`}
               tone="success"
             />
-            <StatCard label="Valor mensal" value={formatCurrency(summary.valorMensal)} tone="warning" />
+            <StatCard
+              label="Valor mensal"
+              value={formatCurrency(summary.valorMensal)}
+              hint={
+                summary.totalImobiliaria > 0
+                  ? `dos quais ${formatCurrency(summary.totalImobiliaria)} vão pra imobiliária`
+                  : undefined
+              }
+              tone="warning"
+            />
+            {summary.totalImobiliaria > 0 && (
+              <StatCard
+                label="Repasse à imobiliária"
+                value={formatCurrency(summary.totalImobiliaria)}
+                hint={`${((summary.totalImobiliaria / summary.valorMensal) * 100).toFixed(1)}% do valor mensal`}
+                tone="danger"
+              />
+            )}
             <StatCard
               label="Gastos no mês"
               value={formatCurrency(summary.gastoMensal)}
