@@ -2,6 +2,10 @@
   overflow-x: auto;
 }
 
+.table-mobile-only {
+  display: none;
+}
+
 .table {
   width: 100%;
   border-collapse: collapse;
@@ -49,4 +53,101 @@
   font-weight: 600;
   padding: var(--space-5) 0;
   text-align: center;
+}
+
+/* Abaixo de 640px a tabela vira uma lista de cartões — em telas estreitas,
+   colunas demais (ou botões de ação) espremem o texto e quebram o layout
+   mesmo com scroll horizontal. Ver Table.tsx pra como as colunas são
+   redistribuídas: 1ª coluna = título do cartão, colunas com header vazio
+   (ações) = rodapé, o resto = pares rótulo/valor. */
+@media (max-width: 640px) {
+  .table-desktop-only {
+    display: none;
+  }
+
+  .table-mobile-only {
+    display: flex;
+  }
+}
+
+.table-cards {
+  flex-direction: column;
+  gap: var(--space-3);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.table-card {
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.table-card-clickable {
+  cursor: pointer;
+}
+
+.table-card-clickable:hover {
+  background: var(--color-surface-sunken);
+}
+
+.table-card-clickable:focus-visible {
+  outline: var(--border-width) solid var(--color-ink);
+  outline-offset: -2px;
+}
+
+.table-card-title {
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.table-card-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.table-card-field {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.table-card-field dt {
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-ink-muted);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.table-card-field dd {
+  margin: 0;
+  min-width: 0;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  text-align: right;
+  /* alguns valores (ex.: status de pagamento) são um <div> flex por conta
+     própria, com conteúdo alinhado à esquerda por padrão — flex+flex-end
+     aqui garante que fiquem encostados na borda direita mesmo assim. */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.table-card-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: var(--border-width) solid var(--color-border-soft);
 }
