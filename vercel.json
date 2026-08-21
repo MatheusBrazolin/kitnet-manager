@@ -14,7 +14,7 @@
       "root": "backend",
       "entrypoint": "src/main.ts",
       "installCommand": "npm install",
-      "buildCommand": "echo \"pulando 'npm run build' — a Vercel empacota o NestJS zero-config direto de src/main.ts\""
+      "buildCommand": "echo Skipping project build script — Vercel bundles NestJS zero-config straight from src/main.ts"
     }
   },
   "rewrites": [

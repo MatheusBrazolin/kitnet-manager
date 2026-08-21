@@ -116,6 +116,10 @@ Frontend e backend sobem juntos num único projeto Vercel usando o modelo de **s
 - `frontend` (`root: frontend`, `framework: vite`) → build estático do Vite;
 - `backend` (`root: backend`) → NestJS detectado automaticamente pela Vercel (entrypoint `src/main.ts`) e publicado como Vercel Function.
 
+> ⚠️ **Não remova o `buildCommand` do serviço `backend` no `vercel.json`.** Ele existe de propósito, é um no-op (`echo ...`). Sem ele, a Vercel roda o script `"build": "nest build"` do `backend/package.json` **antes** da própria detecção zero-config de NestJS — o resultado é um build "sem função deployável" e todo request na API quebra em produção com `FUNCTION_INVOCATION_FAILED: Cannot find module '@nestjs/common'` (mesmo com a dependência certinha no `package.json`). Isso já aconteceu várias vezes neste projeto; se for tocar no `vercel.json`, mantenha esse override. Ver commit `c6c0c95`.
+>
+> Há uma trava automática pra isso: `scripts/verify-vercel-config.js`, rodado em CI (`.github/workflows/verify-deploy-config.yml`) a cada push/PR que toque em `vercel.json` ou `backend/package.json`. Se essa checagem falhar, é sinal de que o `buildCommand` do backend voltou a ficar arriscado.
+
 Os `rewrites` no topo do `vercel.json` expõem os dois serviços publicamente: `/api/*` vai pro `backend`, o resto vai pro `frontend` — tudo na mesma origem, sem CORS.
 
 1. No Vercel, **Add New → Project** → importe o repo. Ele detecta os dois serviços (frontend/backend) automaticamente a partir do `vercel.json` (deixe o *Root Directory* como a raiz do repositório).

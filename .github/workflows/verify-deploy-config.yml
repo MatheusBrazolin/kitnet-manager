@@ -1,0 +1,25 @@
+name: Verify deploy config
+
+# Trava de regressão pro problema recorrente de "Cannot find module '@nestjs/common'"
+# em produção (a Vercel roda o build do backend/package.json antes da detecção
+# zero-config de NestJS e não gera função deployável). Ver scripts/verify-vercel-config.js
+# e README.md, seção "Deploy (Vercel)".
+on:
+  push:
+    paths:
+      - 'vercel.json'
+      - 'backend/package.json'
+      - 'scripts/verify-vercel-config.js'
+  pull_request:
+    paths:
+      - 'vercel.json'
+      - 'backend/package.json'
+      - 'scripts/verify-vercel-config.js'
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verifica vercel.json (backend não pode rodar o build do projeto)
+        run: node scripts/verify-vercel-config.js
