@@ -54,6 +54,15 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
               <dt>Aluguel</dt>
               <dd>{formatCurrency(kitnet.valor)}</dd>
             </div>
+            {kitnet.taxaImobiliaria ? (
+              <div>
+                <dt>Taxa da imobiliária</dt>
+                <dd>
+                  {formatCurrency(kitnet.taxaImobiliaria)} · você recebe{' '}
+                  {formatCurrency(kitnet.valor - kitnet.taxaImobiliaria)}
+                </dd>
+              </div>
+            ) : null}
             <div>
               <dt>Status</dt>
               <dd>
