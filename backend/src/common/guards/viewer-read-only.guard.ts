@@ -11,12 +11,12 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 @Injectable()
 export class ViewerReadOnlyGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
-    const request = context.switchToHttp().getRequest();
+    const request = context.switchToHttp().getRequest<{ method: string; user?: AuthenticatedUser }>();
     if (SAFE_METHODS.has(request.method)) {
       return true;
     }
 
-    const user = request.user as AuthenticatedUser | undefined;
+    const user = request.user;
     if (user?.papel === 'VISUALIZADOR') {
       throw new ForbiddenException('Seu acesso é somente leitura — peça ao dono da conta para fazer esta alteração.');
     }
