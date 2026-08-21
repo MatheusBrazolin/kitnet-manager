@@ -1,0 +1,94 @@
+name: CI
+
+# Roda lint + testes + build de backend e frontend em cada PR/push, para pegar
+# regressões antes do merge. Não interfere no deploy da Vercel (vercel.json e
+# scripts/verify-vercel-config.js continuam sendo a fonte de verdade pra isso —
+# ver workflow "Verify deploy config").
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: kitmanager
+          POSTGRES_PASSWORD: kitmanager
+          POSTGRES_DB: kitmanager_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U kitmanager"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://kitmanager:kitmanager@localhost:5432/kitmanager_test
+      JWT_SECRET: ci-test-secret
+      JWT_EXPIRES_IN: 1h
+      CORS_ORIGIN: http://localhost:5173
+
+    defaults:
+      run:
+        working-directory: backend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Instala dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Valida schema do Prisma
+        run: npx prisma validate
+
+      - name: Aplica migrations no banco de teste
+        run: npx prisma migrate deploy
+
+      - name: Testes unitários
+        run: npm test -- --ci
+
+      - name: Testes e2e
+        run: npm run test:e2e -- --ci
+
+      - name: Build
+        run: npm run build
+
+  frontend:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instala dependências
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build

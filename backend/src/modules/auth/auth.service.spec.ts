@@ -50,7 +50,7 @@ describe('AuthService', () => {
         password: 'senha123',
       });
 
-      const [createArgs] = usersService.create.mock.calls[0];
+      const [createArgs] = usersService.create.mock.calls[0] as [{ password: string }];
       expect(await bcrypt.compare('senha123', createArgs.password)).toBe(true);
       expect(result).toEqual({
         token: 'signed-token',
