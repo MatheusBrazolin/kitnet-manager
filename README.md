@@ -79,6 +79,7 @@ Variáveis de ambiente (`backend/.env`):
 | `JWT_EXPIRES_IN` | Validade do token (ex: `7d`) |
 | `PORT` | Porta da API (padrão `3000`) |
 | `CORS_ORIGIN` | Origem do frontend permitida no CORS |
+| `LOG_LEVEL` | Nível do logger (`debug`, `info`, `warn`, `error`; padrão `info`) |
 
 ### Frontend
 
