@@ -6,6 +6,9 @@ import './index.css';
 import App from './App.tsx';
 import { AuthProvider } from './context/AuthContext';
 import { ConfirmProvider } from './components/ConfirmDialog/ConfirmProvider';
+import { initSentry } from './services/sentry';
+
+initSentry();
 
 const queryClient = new QueryClient({
   defaultOptions: {

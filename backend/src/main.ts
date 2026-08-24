@@ -1,3 +1,4 @@
+import './common/observability/instrument';
 import { createApp } from './app';
 
 const PORT = process.env.PORT ?? 3000;

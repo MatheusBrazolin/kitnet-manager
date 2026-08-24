@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { captureException } from '../observability/sentry';
 
 interface ErrorResponseBody {
   statusCode: number;
@@ -33,6 +34,9 @@ export class HttpExceptionFilter implements ExceptionFilter {
         `${request.method} ${request.url} -> ${statusCode}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
+      // Só erro inesperado (5xx) vai pro Sentry — validação/negócio (4xx) é
+      // ruído esperado do dia a dia, não uma falha da aplicação.
+      captureException(exception);
     } else {
       this.logger.warn(`${request.method} ${request.url} -> ${statusCode}`);
     }
