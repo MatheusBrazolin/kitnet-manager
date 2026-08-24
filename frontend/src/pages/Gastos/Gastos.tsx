@@ -1,10 +1,13 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
-import type { Gasto, Kitnet } from '../../types';
+import { firstErrorMessage } from '../../utils/queryError';
+import type { Gasto, Kitnet, PaginatedResponse } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { TableSkeleton } from '../../components/Table/TableSkeleton';
+import { Pagination } from '../../components/Pagination/Pagination';
+import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
@@ -19,6 +22,8 @@ const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   timeZone: 'UTC',
 });
 
+const PAGE_SIZE = 20;
+
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
@@ -28,10 +33,27 @@ export function Gastos() {
   const confirm = useConfirm();
   const { user } = useAuth();
   const isViewer = user?.papel === 'VISUALIZADOR';
-  const { data: gastos = [], error: gastosQueryError, isLoading } = useQuery({
-    queryKey: ['gastos'],
-    queryFn: () => api.get<Gasto[]>('/gastos').then((response) => response.data),
+  const [page, setPage] = useState(1);
+  const {
+    data: gastosPage,
+    error: gastosQueryError,
+    isLoading,
+  } = useQuery({
+    queryKey: ['gastos', page, PAGE_SIZE],
+    queryFn: () =>
+      api
+        .get<PaginatedResponse<Gasto>>('/gastos', { params: { page, limit: PAGE_SIZE } })
+        .then((response) => response.data),
+    placeholderData: (previous) => previous,
   });
+  const gastos = gastosPage?.data ?? [];
+
+  useEffect(() => {
+    if (gastosPage && page > gastosPage.totalPages) {
+      setPage(gastosPage.totalPages);
+    }
+  }, [gastosPage, page]);
+
   const { data: kitnets = [], error: kitnetsQueryError } = useQuery({
     queryKey: ['kitnets'],
     queryFn: () => api.get<Kitnet[]>('/kitnets').then((response) => response.data),
@@ -48,11 +70,10 @@ export function Gastos() {
 
   const displayedError =
     listError ??
-    (gastosQueryError
-      ? getApiErrorMessage(gastosQueryError, 'Não foi possível carregar os gastos.')
-      : kitnetsQueryError
-        ? getApiErrorMessage(kitnetsQueryError, 'Não foi possível carregar as unidades.')
-        : null);
+    firstErrorMessage(
+      { error: gastosQueryError, fallback: 'Não foi possível carregar os gastos.' },
+      { error: kitnetsQueryError, fallback: 'Não foi possível carregar as unidades.' },
+    );
 
   function openModal() {
     setEditingId(null);
@@ -131,7 +152,7 @@ export function Gastos() {
       />
 
       {kitnets.length === 0 && <p className="form-error">Cadastre um imóvel e uma unidade antes de lançar gastos.</p>}
-      {displayedError && <p className="form-error">{displayedError}</p>}
+      <ErrorBanner message={displayedError} />
 
       <Card>
         {isLoading ? (
@@ -173,12 +194,20 @@ export function Gastos() {
           ]}
         />
         )}
+        {gastosPage && (
+          <Pagination
+            page={gastosPage.page}
+            totalPages={gastosPage.totalPages}
+            total={gastosPage.total}
+            onPageChange={setPage}
+          />
+        )}
       </Card>
 
       {isModalOpen && (
         <Modal title={editingId !== null ? 'Editar gasto' : 'Novo gasto'} onClose={() => setIsModalOpen(false)}>
           <form onSubmit={handleSubmit} className="field-group">
-            {error && <p className="form-error">{error}</p>}
+            <ErrorBanner message={error} />
             <div className="field">
               <label htmlFor="descricao">Descrição</label>
               <input

@@ -1,6 +1,15 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { PagamentosService } from '../pagamentos/pagamentos.service';
+import {
+  buildPaginatedResult,
+  isPaginationRequested,
+  type PaginationQueryDto,
+} from '../../common/dto/pagination-query.dto';
 import { CreateMoradorDto } from './dto/create-morador.dto';
 import { UpdateMoradorDto } from './dto/update-morador.dto';
 
@@ -11,12 +20,28 @@ export class MoradoresService {
     private readonly pagamentosService: PagamentosService,
   ) {}
 
-  findAll(userId: number) {
-    return this.prisma.morador.findMany({
-      where: { kitnet: { userId } },
-      include: { kitnet: { include: { imovel: true } } },
-      orderBy: { nome: 'asc' },
-    });
+  async findAll(userId: number, pagination: PaginationQueryDto = {}) {
+    const where = { kitnet: { userId } };
+    const include = { kitnet: { include: { imovel: true } } };
+    const orderBy = { nome: 'asc' as const };
+
+    if (!isPaginationRequested(pagination)) {
+      return this.prisma.morador.findMany({ where, include, orderBy });
+    }
+
+    const limit = pagination.limit ?? 20;
+    const page = pagination.page ?? 1;
+    const [data, total] = await Promise.all([
+      this.prisma.morador.findMany({
+        where,
+        include,
+        orderBy,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.morador.count({ where }),
+    ]);
+    return buildPaginatedResult(data, total, pagination);
   }
 
   async findOwnedOrThrow(userId: number, id: number) {
@@ -40,7 +65,9 @@ export class MoradoresService {
   }
 
   private async assertKitnetOwnership(userId: number, kitnetId: number) {
-    const kitnet = await this.prisma.kitnet.findUnique({ where: { id: kitnetId } });
+    const kitnet = await this.prisma.kitnet.findUnique({
+      where: { id: kitnetId },
+    });
     if (!kitnet) {
       throw new NotFoundException('Kitnet não encontrada');
     }
@@ -53,7 +80,9 @@ export class MoradoresService {
   async create(userId: number, dto: CreateMoradorDto) {
     const kitnet = await this.assertKitnetOwnership(userId, dto.kitnetId);
 
-    const dataEntrada = dto.dataEntrada ? new Date(dto.dataEntrada) : new Date();
+    const dataEntrada = dto.dataEntrada
+      ? new Date(dto.dataEntrada)
+      : new Date();
     const diaVencimento = dto.diaVencimento ?? dataEntrada.getDate();
 
     const morador = await this.prisma.morador.create({
@@ -98,9 +127,14 @@ export class MoradoresService {
     const morador = await this.findOwnedOrThrow(userId, id);
     await this.prisma.morador.delete({ where: { id } });
 
-    const remaining = await this.prisma.morador.count({ where: { kitnetId: morador.kitnetId } });
+    const remaining = await this.prisma.morador.count({
+      where: { kitnetId: morador.kitnetId },
+    });
     if (remaining === 0) {
-      await this.prisma.kitnet.update({ where: { id: morador.kitnetId }, data: { status: 'vaga' } });
+      await this.prisma.kitnet.update({
+        where: { id: morador.kitnetId },
+        data: { status: 'vaga' },
+      });
     }
   }
 }

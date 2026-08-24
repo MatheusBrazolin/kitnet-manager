@@ -1,10 +1,12 @@
 import { useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
+import { firstErrorMessage } from '../../utils/queryError';
 import type { Membro } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { TableSkeleton } from '../../components/Table/TableSkeleton';
+import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -35,7 +37,8 @@ export function Equipe() {
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const displayedError = listError ?? (queryError ? getApiErrorMessage(queryError, 'Não foi possível carregar a equipe.') : null);
+  const displayedError =
+    listError ?? firstErrorMessage({ error: queryError, fallback: 'Não foi possível carregar a equipe.' });
 
   function openModal() {
     setEmail('');
@@ -90,7 +93,7 @@ export function Equipe() {
         }
       />
 
-      {displayedError && <p className="form-error">{displayedError}</p>}
+      <ErrorBanner message={displayedError} />
 
       <Card>
         {isLoading ? (
@@ -121,7 +124,7 @@ export function Equipe() {
       {isModalOpen && (
         <Modal title="Convidar para a equipe" onClose={() => setIsModalOpen(false)}>
           <form onSubmit={handleSubmit} className="field-group">
-            {error && <p className="form-error">{error}</p>}
+            <ErrorBanner message={error} />
             <p className="equipe-hint">
               A pessoa precisa já ter uma conta no KitManager com esse e-mail — peça pra ela se cadastrar antes,
               se ainda não tiver.

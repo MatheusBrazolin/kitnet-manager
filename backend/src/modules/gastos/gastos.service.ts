@@ -1,5 +1,14 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import {
+  buildPaginatedResult,
+  isPaginationRequested,
+  type PaginationQueryDto,
+} from '../../common/dto/pagination-query.dto';
 import { CreateGastoDto } from './dto/create-gasto.dto';
 import { UpdateGastoDto } from './dto/update-gasto.dto';
 
@@ -7,16 +16,35 @@ import { UpdateGastoDto } from './dto/update-gasto.dto';
 export class GastosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  findAll(userId: number) {
-    return this.prisma.gasto.findMany({
-      where: { kitnet: { userId } },
-      include: { kitnet: { include: { imovel: true } } },
-      orderBy: { data: 'desc' },
-    });
+  async findAll(userId: number, pagination: PaginationQueryDto = {}) {
+    const where = { kitnet: { userId } };
+    const include = { kitnet: { include: { imovel: true } } };
+    const orderBy = { data: 'desc' as const };
+
+    if (!isPaginationRequested(pagination)) {
+      return this.prisma.gasto.findMany({ where, include, orderBy });
+    }
+
+    const limit = pagination.limit ?? 20;
+    const page = pagination.page ?? 1;
+    const [data, total] = await Promise.all([
+      this.prisma.gasto.findMany({
+        where,
+        include,
+        orderBy,
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.gasto.count({ where }),
+    ]);
+    return buildPaginatedResult(data, total, pagination);
   }
 
   async findOwnedOrThrow(userId: number, id: number) {
-    const gasto = await this.prisma.gasto.findUnique({ where: { id }, include: { kitnet: true } });
+    const gasto = await this.prisma.gasto.findUnique({
+      where: { id },
+      include: { kitnet: true },
+    });
     if (!gasto) {
       throw new NotFoundException('Gasto não encontrado');
     }
@@ -27,7 +55,9 @@ export class GastosService {
   }
 
   private async assertKitnetOwnership(userId: number, kitnetId: number) {
-    const kitnet = await this.prisma.kitnet.findUnique({ where: { id: kitnetId } });
+    const kitnet = await this.prisma.kitnet.findUnique({
+      where: { id: kitnetId },
+    });
     if (!kitnet) {
       throw new NotFoundException('Kitnet não encontrada');
     }

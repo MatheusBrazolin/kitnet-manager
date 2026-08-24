@@ -5,6 +5,7 @@ import { api, getApiErrorMessage } from '../../services/api';
 import type { PagamentoAlerta } from '../../types';
 import { formatCurrency } from '../../utils/currency';
 import { diasParaVencimento } from '../../utils/dates';
+import { ErrorBanner } from '../ErrorBanner/ErrorBanner';
 import { BellIcon } from '../icons';
 import { useAuth } from '../../hooks/useAuth';
 import './notification-bell.css';
@@ -79,7 +80,7 @@ export function NotificationBell() {
             <span>{alertas.length === 0 ? 'Tudo em dia' : `${alertas.length} pendente${alertas.length > 1 ? 's' : ''}`}</span>
           </header>
 
-          {actionError && <p className="form-error">{actionError}</p>}
+          <ErrorBanner message={actionError} />
 
           {alertas.length === 0 ? (
             <p className="notification-bell-empty">Nenhum aluguel vencendo hoje ou atrasado. 🎉</p>

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { PasswordField } from '../../components/PasswordField/PasswordField';
+import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import './auth.css';
 
 export function Register() {
@@ -51,7 +52,7 @@ export function Register() {
             <p className="auth-form-subtitle">Comece a organizar suas kitnets agora.</p>
           </div>
 
-          {error && <p className="form-error">{error}</p>}
+          <ErrorBanner message={error} />
 
           <div className="field">
             <label htmlFor="name">Nome</label>
@@ -81,8 +82,10 @@ export function Register() {
           <PasswordField
             value={password}
             onChange={setPassword}
-            minLength={6}
-            placeholder="Mínimo 6 caracteres"
+            minLength={8}
+            pattern="(?=.*[A-Za-z])(?=.*\d).+"
+            title="Mínimo 8 caracteres, com ao menos uma letra e um número"
+            placeholder="Mínimo 8 caracteres, com letra e número"
             autoComplete="new-password"
           />
 

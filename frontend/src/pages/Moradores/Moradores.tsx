@@ -1,10 +1,13 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
-import type { Kitnet, Morador } from '../../types';
+import { firstErrorMessage } from '../../utils/queryError';
+import type { Kitnet, Morador, PaginatedResponse } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { TableSkeleton } from '../../components/Table/TableSkeleton';
+import { Pagination } from '../../components/Pagination/Pagination';
+import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { MoradorDetailModal } from '../../components/MoradorDetailModal/MoradorDetailModal';
@@ -13,6 +16,8 @@ import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { useAuth } from '../../hooks/useAuth';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
+
+const PAGE_SIZE = 20;
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -23,10 +28,29 @@ export function Moradores() {
   const confirm = useConfirm();
   const { user } = useAuth();
   const isViewer = user?.papel === 'VISUALIZADOR';
-  const { data: moradores = [], error: moradoresQueryError, isLoading } = useQuery({
-    queryKey: ['moradores'],
-    queryFn: () => api.get<MoradorRow[]>('/moradores').then((response) => response.data),
+  const [page, setPage] = useState(1);
+  const {
+    data: moradoresPage,
+    error: moradoresQueryError,
+    isLoading,
+  } = useQuery({
+    queryKey: ['moradores', page, PAGE_SIZE],
+    queryFn: () =>
+      api
+        .get<PaginatedResponse<MoradorRow>>('/moradores', { params: { page, limit: PAGE_SIZE } })
+        .then((response) => response.data),
+    placeholderData: (previous) => previous,
   });
+  const moradores = moradoresPage?.data ?? [];
+
+  // Se a página atual ficou "fora do range" (ex.: apagou o último morador da última
+  // página), volta pra última página válida em vez de mostrar uma lista vazia confusa.
+  useEffect(() => {
+    if (moradoresPage && page > moradoresPage.totalPages) {
+      setPage(moradoresPage.totalPages);
+    }
+  }, [moradoresPage, page]);
+
   const { data: kitnets = [], error: kitnetsQueryError } = useQuery({
     queryKey: ['kitnets'],
     queryFn: () => api.get<Kitnet[]>('/kitnets').then((response) => response.data),
@@ -45,11 +69,10 @@ export function Moradores() {
 
   const displayedError =
     listError ??
-    (moradoresQueryError
-      ? getApiErrorMessage(moradoresQueryError, 'Não foi possível carregar os moradores.')
-      : kitnetsQueryError
-        ? getApiErrorMessage(kitnetsQueryError, 'Não foi possível carregar as unidades.')
-        : null);
+    firstErrorMessage(
+      { error: moradoresQueryError, fallback: 'Não foi possível carregar os moradores.' },
+      { error: kitnetsQueryError, fallback: 'Não foi possível carregar as unidades.' },
+    );
 
   function openModal() {
     setEditingId(null);
@@ -143,7 +166,7 @@ export function Moradores() {
       />
 
       {kitnets.length === 0 && <p className="form-error">Cadastre um imóvel e uma unidade antes de adicionar moradores.</p>}
-      {displayedError && <p className="form-error">{displayedError}</p>}
+      <ErrorBanner message={displayedError} />
 
       <Card>
         {isLoading ? (
@@ -199,6 +222,14 @@ export function Moradores() {
           ]}
         />
         )}
+        {moradoresPage && (
+          <Pagination
+            page={moradoresPage.page}
+            totalPages={moradoresPage.totalPages}
+            total={moradoresPage.total}
+            onPageChange={setPage}
+          />
+        )}
       </Card>
 
       {selectedMoradorId && (
@@ -208,7 +239,7 @@ export function Moradores() {
       {isModalOpen && (
         <Modal title={editingId !== null ? 'Editar morador' : 'Novo morador'} onClose={() => setIsModalOpen(false)}>
           <form onSubmit={handleSubmit} className="field-group">
-            {error && <p className="form-error">{error}</p>}
+            <ErrorBanner message={error} />
             <div className="field">
               <label htmlFor="nome">Nome</label>
               <input id="nome" required value={nome} onChange={(event) => setNome(event.target.value)} />

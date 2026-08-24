@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { PasswordField } from '../../components/PasswordField/PasswordField';
+import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import './auth.css';
 
 export function Login() {
@@ -50,7 +51,7 @@ export function Login() {
             <p className="auth-form-subtitle">Acesse sua conta para continuar.</p>
           </div>
 
-          {error && <p className="form-error">{error}</p>}
+          <ErrorBanner message={error} />
 
           <div className="field">
             <label htmlFor="email">E-mail</label>
