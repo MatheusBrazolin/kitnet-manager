@@ -10,12 +10,6 @@ npm-debug.log*
 # Bun (usado só para rodar localmente; npm é o gerenciador oficial do projeto)
 bun.lock
 
-# Env
-.env
-
-# Vite
-frontend/dist/
-
 # OS
 .DS_Store
 Thumbs.db
@@ -24,6 +18,9 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Claude Code (config/estado local da ferramenta, não faz parte do projeto)
+.claude/
 
 .vercel
 .env*
