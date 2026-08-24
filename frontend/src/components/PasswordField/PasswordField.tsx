@@ -8,6 +8,8 @@ interface PasswordFieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   minLength?: number;
+  pattern?: string;
+  title?: string;
   autoComplete?: string;
 }
 
@@ -18,6 +20,8 @@ export function PasswordField({
   onChange,
   placeholder,
   minLength,
+  pattern,
+  title,
   autoComplete,
 }: PasswordFieldProps) {
   const [isVisible, setIsVisible] = useState(false);
@@ -31,6 +35,8 @@ export function PasswordField({
           type={isVisible ? 'text' : 'password'}
           required
           minLength={minLength}
+          pattern={pattern}
+          title={title}
           value={value}
           onChange={(event) => onChange(event.target.value)}
           placeholder={placeholder}

@@ -4,6 +4,7 @@ import type { KitnetDetail } from '../../types';
 import { Modal } from '../Modal/Modal';
 import { StatusBadge } from '../StatusBadge';
 import { Table } from '../Table/Table';
+import { ErrorBanner } from '../ErrorBanner/ErrorBanner';
 import { formatCurrency } from '../../utils/currency';
 import './kitnet-detail-modal.css';
 
@@ -40,7 +41,7 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
       onClose={onClose}
       className="modal-wide"
     >
-      {error && <p className="form-error">{error}</p>}
+      <ErrorBanner message={error} />
       {!kitnet && !error && <div className="skeleton kitnet-detail-skeleton" />}
 
       {kitnet && (

@@ -4,6 +4,7 @@ import type { MoradorDetail, PagamentoResumo } from '../../types';
 import { Modal } from '../Modal/Modal';
 import { StatusBadge } from '../StatusBadge';
 import { Table } from '../Table/Table';
+import { ErrorBanner } from '../ErrorBanner/ErrorBanner';
 import { formatMesReferencia, formatTempoLocacao, formatVencimentoLabel } from '../../utils/dates';
 import { formatCurrency } from '../../utils/currency';
 import './morador-detail-modal.css';
@@ -37,7 +38,7 @@ export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalPro
 
   return (
     <Modal title={morador?.nome ?? 'Morador'} onClose={onClose} className="modal-wide">
-      {error && <p className="form-error">{error}</p>}
+      <ErrorBanner message={error} />
       {!morador && !error && <div className="skeleton morador-detail-skeleton" />}
 
       {morador && (

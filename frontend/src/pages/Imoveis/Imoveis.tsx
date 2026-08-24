@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
+import { firstErrorMessage } from '../../utils/queryError';
 import type { Imovel, Kitnet } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { TableSkeleton } from '../../components/Table/TableSkeleton';
+import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
@@ -82,7 +84,8 @@ export function Imoveis() {
     });
   }
 
-  const displayedError = listError ?? (queryError ? getApiErrorMessage(queryError, 'Não foi possível carregar os imóveis.') : null);
+  const displayedError =
+    listError ?? firstErrorMessage({ error: queryError, fallback: 'Não foi possível carregar os imóveis.' });
 
   function openCreateModal() {
     setEditingImovelId(null);
@@ -262,7 +265,7 @@ export function Imoveis() {
         }
       />
 
-      {displayedError && <p className="form-error">{displayedError}</p>}
+      <ErrorBanner message={displayedError} />
 
       {isLoading ? (
         <Card>
@@ -433,7 +436,7 @@ export function Imoveis() {
       {isCreateOpen && (
         <Modal title={editingImovelId !== null ? 'Editar imóvel' : 'Novo imóvel'} onClose={() => setIsCreateOpen(false)}>
           <form onSubmit={handleCreate} className="field-group">
-            {createError && <p className="form-error">{createError}</p>}
+            <ErrorBanner message={createError} />
             <div className="field">
               <label htmlFor="nome">Nome</label>
               <input
@@ -458,7 +461,7 @@ export function Imoveis() {
       {loteImovel && (
         <Modal title={`Adicionar unidades · ${loteImovel.nome}`} onClose={() => setLoteImovelId(null)} className="modal-wide">
           <form onSubmit={handleCreateLote} className="field-group">
-            {loteError && <p className="form-error">{loteError}</p>}
+            <ErrorBanner message={loteError} />
             <p className="imovel-lote-hint">
               Use quantidade 1 para uma casa/unidade única, ou mais para cadastrar de uma vez os quartos de uma
               kitnet — cada unidade pode ter um valor de aluguel diferente.
@@ -545,7 +548,7 @@ export function Imoveis() {
       {editingKitnet && (
         <Modal title={`Editar unidade · ${editingKitnet.numero}`} onClose={() => setEditingKitnet(null)}>
           <form onSubmit={handleEditKitnet} className="field-group">
-            {editKitnetError && <p className="form-error">{editKitnetError}</p>}
+            <ErrorBanner message={editKitnetError} />
             <div className="field">
               <label htmlFor="editNumero">Número</label>
               <input id="editNumero" required value={editNumero} onChange={(event) => setEditNumero(event.target.value)} />

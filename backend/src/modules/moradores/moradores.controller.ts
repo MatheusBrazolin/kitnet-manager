@@ -1,7 +1,22 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ViewerReadOnlyGuard } from '../../common/guards/viewer-read-only.guard';
-import { CurrentUser, type AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../../common/decorators/current-user.decorator';
+import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { MoradoresService } from './moradores.service';
 import { CreateMoradorDto } from './dto/create-morador.dto';
 import { UpdateMoradorDto } from './dto/update-morador.dto';
@@ -12,17 +27,26 @@ export class MoradoresController {
   constructor(private readonly moradoresService: MoradoresService) {}
 
   @Get()
-  findAll(@CurrentUser() user: AuthenticatedUser) {
-    return this.moradoresService.findAll(user.contaId);
+  findAll(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query() pagination: PaginationQueryDto,
+  ) {
+    return this.moradoresService.findAll(user.contaId, pagination);
   }
 
   @Get(':id')
-  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+  findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.moradoresService.findDetail(user.contaId, id);
   }
 
   @Post()
-  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateMoradorDto) {
+  create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateMoradorDto,
+  ) {
     return this.moradoresService.create(user.contaId, dto);
   }
 
@@ -36,7 +60,10 @@ export class MoradoresController {
   }
 
   @Delete(':id')
-  remove(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.moradoresService.remove(user.contaId, id);
   }
 }

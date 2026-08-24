@@ -1,10 +1,12 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
+import { firstErrorMessage } from '../../utils/queryError';
 import type { Morador, Pagamento } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { TableSkeleton } from '../../components/Table/TableSkeleton';
+import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
@@ -64,11 +66,10 @@ export function Pagamentos() {
 
   const displayedError =
     listError ??
-    (pagamentosQueryError
-      ? getApiErrorMessage(pagamentosQueryError, 'Não foi possível carregar os pagamentos.')
-      : moradoresQueryError
-        ? getApiErrorMessage(moradoresQueryError, 'Não foi possível carregar os moradores.')
-        : null);
+    firstErrorMessage(
+      { error: pagamentosQueryError, fallback: 'Não foi possível carregar os pagamentos.' },
+      { error: moradoresQueryError, fallback: 'Não foi possível carregar os moradores.' },
+    );
 
   const grupos = useMemo<GrupoImovel[]>(() => {
     const porImovel = new Map<number, GrupoImovel>();
@@ -197,7 +198,7 @@ export function Pagamentos() {
       />
 
       {moradores.length === 0 && <p className="form-error">Cadastre um morador antes de lançar pagamentos.</p>}
-      {displayedError && <p className="form-error">{displayedError}</p>}
+      <ErrorBanner message={displayedError} />
 
       {isLoading ? (
         <Card>
@@ -309,7 +310,7 @@ export function Pagamentos() {
       {isModalOpen && (
         <Modal title="Novo pagamento" onClose={() => setIsModalOpen(false)}>
           <form onSubmit={handleSubmit} className="field-group">
-            {error && <p className="form-error">{error}</p>}
+            <ErrorBanner message={error} />
             <div className="field">
               <label htmlFor="moradorId">Morador</label>
               <select id="moradorId" value={moradorId} onChange={(event) => setMoradorId(event.target.value)}>
@@ -355,7 +356,7 @@ export function Pagamentos() {
           onClose={() => setMarcandoPago(null)}
         >
           <form onSubmit={handleMarcarPago} className="field-group">
-            {marcarPagoError && <p className="form-error">{marcarPagoError}</p>}
+            <ErrorBanner message={marcarPagoError} />
             <div className="field">
               <label htmlFor="dataPagamento">Data em que o valor foi recebido</label>
               <input

@@ -4,7 +4,14 @@ import { PrismaService } from '../../database/prisma.service';
 import { PagamentosService } from '../pagamentos/pagamentos.service';
 
 type PrismaMock = {
-  morador: { findMany: jest.Mock; findUnique: jest.Mock; create: jest.Mock; update: jest.Mock; delete: jest.Mock; count: jest.Mock };
+  morador: {
+    findMany: jest.Mock;
+    findUnique: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+    delete: jest.Mock;
+    count: jest.Mock;
+  };
   kitnet: { findUnique: jest.Mock; update: jest.Mock };
 };
 
@@ -39,7 +46,44 @@ describe('MoradoresService', () => {
     };
     pagamentosService = { ensurePagamentosParaMorador: jest.fn() };
 
-    service = new MoradoresService(prisma as unknown as PrismaService, pagamentosService as unknown as PagamentosService);
+    service = new MoradoresService(
+      prisma as unknown as PrismaService,
+      pagamentosService as unknown as PagamentosService,
+    );
+  });
+
+  describe('findAll', () => {
+    it('returns the plain array when no pagination params are given', async () => {
+      prisma.morador.findMany.mockResolvedValue([morador]);
+
+      const result = await service.findAll(ownerId);
+
+      const [callArgs] = prisma.morador.findMany.mock.calls[0] as [
+        Record<string, unknown>,
+      ];
+      expect(callArgs).not.toHaveProperty('skip');
+      expect(callArgs).not.toHaveProperty('take');
+      expect(prisma.morador.count).not.toHaveBeenCalled();
+      expect(result).toEqual([morador]);
+    });
+
+    it('returns a paginated envelope when page/limit are given', async () => {
+      prisma.morador.findMany.mockResolvedValue([morador]);
+      prisma.morador.count.mockResolvedValue(37);
+
+      const result = await service.findAll(ownerId, { page: 2, limit: 10 });
+
+      expect(prisma.morador.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({ skip: 10, take: 10 }),
+      );
+      expect(result).toEqual({
+        data: [morador],
+        total: 37,
+        page: 2,
+        limit: 10,
+        totalPages: 4,
+      });
+    });
   });
 
   describe('create', () => {
@@ -47,7 +91,11 @@ describe('MoradoresService', () => {
       prisma.kitnet.findUnique.mockResolvedValue(null);
 
       await expect(
-        service.create(ownerId, { nome: 'João', telefone: '11999990000', kitnetId: 999 }),
+        service.create(ownerId, {
+          nome: 'João',
+          telefone: '11999990000',
+          kitnetId: 999,
+        }),
       ).rejects.toBeInstanceOf(NotFoundException);
     });
 
@@ -55,7 +103,11 @@ describe('MoradoresService', () => {
       prisma.kitnet.findUnique.mockResolvedValue({ ...kitnet, userId: 2 });
 
       await expect(
-        service.create(ownerId, { nome: 'João', telefone: '11999990000', kitnetId: kitnet.id }),
+        service.create(ownerId, {
+          nome: 'João',
+          telefone: '11999990000',
+          kitnetId: kitnet.id,
+        }),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
@@ -63,10 +115,19 @@ describe('MoradoresService', () => {
       prisma.kitnet.findUnique.mockResolvedValue(kitnet);
       prisma.morador.create.mockResolvedValue(morador);
 
-      const result = await service.create(ownerId, { nome: 'João', telefone: '11999990000', kitnetId: kitnet.id });
+      const result = await service.create(ownerId, {
+        nome: 'João',
+        telefone: '11999990000',
+        kitnetId: kitnet.id,
+      });
 
-      expect(prisma.kitnet.update).toHaveBeenCalledWith({ where: { id: kitnet.id }, data: { status: 'ocupada' } });
-      expect(pagamentosService.ensurePagamentosParaMorador).toHaveBeenCalledWith({
+      expect(prisma.kitnet.update).toHaveBeenCalledWith({
+        where: { id: kitnet.id },
+        data: { status: 'ocupada' },
+      });
+      expect(
+        pagamentosService.ensurePagamentosParaMorador,
+      ).toHaveBeenCalledWith({
         id: morador.id,
         dataEntrada: morador.dataEntrada,
         diaVencimento: morador.diaVencimento,
@@ -83,8 +144,13 @@ describe('MoradoresService', () => {
 
       await service.remove(ownerId, morador.id);
 
-      expect(prisma.morador.delete).toHaveBeenCalledWith({ where: { id: morador.id } });
-      expect(prisma.kitnet.update).toHaveBeenCalledWith({ where: { id: kitnet.id }, data: { status: 'vaga' } });
+      expect(prisma.morador.delete).toHaveBeenCalledWith({
+        where: { id: morador.id },
+      });
+      expect(prisma.kitnet.update).toHaveBeenCalledWith({
+        where: { id: kitnet.id },
+        data: { status: 'vaga' },
+      });
     });
 
     it('keeps the kitnet ocupada when other moradores remain', async () => {

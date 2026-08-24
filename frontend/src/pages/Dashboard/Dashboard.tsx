@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import type { DashboardSummary } from '../../types';
 import { Card, StatCard } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
+import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { Header } from '../../components/Header/Header';
 import { BarChart } from '../../components/charts/BarChart';
 import { DonutChart } from '../../components/charts/DonutChart';
@@ -31,7 +32,7 @@ export function Dashboard() {
     <div className="dashboard">
       <Header title={`Olá, ${user?.name.split(' ')[0]}`} subtitle="Aqui está o resumo dos seus imóveis hoje." />
 
-      {error && <p className="form-error">{error}</p>}
+      <ErrorBanner message={error} />
 
       {!summary && !error && (
         <div className="dashboard-stats">
