@@ -10,6 +10,7 @@ import { BarChart } from '../../components/charts/BarChart';
 import { DonutChart } from '../../components/charts/DonutChart';
 import { formatVencimentoLabel } from '../../utils/dates';
 import { formatCurrency, formatCompactCurrency } from '../../utils/currency';
+import { OnboardingEmptyState } from './OnboardingEmptyState';
 import './dashboard.css';
 
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', timeZone: 'UTC' });
@@ -27,10 +28,14 @@ export function Dashboard() {
   });
 
   const error = queryError ? getApiErrorMessage(queryError, 'Não foi possível carregar o dashboard.') : null;
+  const isEmpty = summary?.totalKitnets === 0;
 
   return (
     <div className="dashboard">
-      <Header title={`Olá, ${user?.name.split(' ')[0]}`} subtitle="Aqui está o resumo dos seus imóveis hoje." />
+      <Header
+        title={`Olá, ${user?.name.split(' ')[0]}`}
+        subtitle={isEmpty ? 'Falta pouco para o seu painel ganhar vida.' : 'Aqui está o resumo dos seus imóveis hoje.'}
+      />
 
       <ErrorBanner message={error} />
 
@@ -45,7 +50,9 @@ export function Dashboard() {
         </div>
       )}
 
-      {summary && (
+      {summary && isEmpty && <OnboardingEmptyState />}
+
+      {summary && !isEmpty && (
         <>
           <div className="dashboard-stats">
             <StatCard label="Unidades cadastradas" value={String(summary.totalKitnets)} />
