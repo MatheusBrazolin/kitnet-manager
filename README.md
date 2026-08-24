@@ -80,6 +80,7 @@ Variáveis de ambiente (`backend/.env`):
 | `PORT` | Porta da API (padrão `3000`) |
 | `CORS_ORIGIN` | Origem do frontend permitida no CORS |
 | `LOG_LEVEL` | Nível do logger (`debug`, `info`, `warn`, `error`; padrão `info`) |
+| `SENTRY_DSN` | Opcional. DSN do [Sentry](https://sentry.io) para monitoramento de erros. Sem essa variável o Sentry fica desativado |
 
 ### Frontend
 
@@ -91,6 +92,13 @@ npm run dev
 ```
 
 O app sobe em `http://localhost:5173`.
+
+Variáveis de ambiente (`frontend/.env`):
+
+| Variável | Descrição |
+|---|---|
+| `VITE_API_URL` | URL base da API |
+| `VITE_SENTRY_DSN` | Opcional. DSN do Sentry para o frontend — sem ela, o SDK nem entra no bundle final |
 
 ### Com Docker
 
@@ -136,7 +144,7 @@ Frontend e backend sobem juntos num único projeto Vercel usando o modelo de **s
 Os `rewrites` no topo do `vercel.json` expõem os dois serviços publicamente: `/api/*` vai pro `backend`, o resto vai pro `frontend` — tudo na mesma origem, sem CORS.
 
 1. No Vercel, **Add New → Project** → importe o repo. Ele detecta os dois serviços (frontend/backend) automaticamente a partir do `vercel.json` (deixe o *Root Directory* como a raiz do repositório).
-2. Em **Environment Variables** do projeto, adicione: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN` (ex: `7d`).
+2. Em **Environment Variables** do projeto, adicione: `DATABASE_URL`, `JWT_SECRET`, `JWT_EXPIRES_IN` (ex: `7d`). Opcionalmente, `SENTRY_DSN` e `VITE_SENTRY_DSN` para monitoramento de erros.
 3. Deploy.
 
 Não precisa configurar `VITE_API_URL` nem `CORS_ORIGIN` em produção — como front e back respondem no mesmo domínio, o frontend já chama `/api` por padrão.

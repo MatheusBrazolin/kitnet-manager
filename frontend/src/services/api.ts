@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { captureException } from './sentry';
 
 const TOKEN_STORAGE_KEY = 'kitmanager.token';
 
@@ -13,6 +14,18 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    // Só reporta falha de rede (sem resposta) ou erro inesperado do servidor (5xx) —
+    // erro de validação/negócio (4xx) é fluxo normal da UI, não uma falha da aplicação.
+    if (!error.response || error.response.status >= 500) {
+      captureException(error);
+    }
+    return Promise.reject(error);
+  },
+);
 
 export function getStoredToken() {
   return localStorage.getItem(TOKEN_STORAGE_KEY);
