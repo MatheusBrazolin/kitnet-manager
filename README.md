@@ -1,5 +1,14 @@
 # KitManager
 
+[![CI](https://github.com/MatheusBrazolin/kitnet-manager/actions/workflows/ci.yml/badge.svg)](https://github.com/MatheusBrazolin/kitnet-manager/actions/workflows/ci.yml)
+[![Verify deploy config](https://github.com/MatheusBrazolin/kitnet-manager/actions/workflows/verify-deploy-config.yml/badge.svg)](https://github.com/MatheusBrazolin/kitnet-manager/actions/workflows/verify-deploy-config.yml)
+![Node](https://img.shields.io/badge/node-22-339933?logo=node.js&logoColor=white)
+![NestJS](https://img.shields.io/badge/NestJS-11-E0234E?logo=nestjs&logoColor=white)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Prisma](https://img.shields.io/badge/Prisma-ORM-2D3748?logo=prisma&logoColor=white)
+![Deploy](https://img.shields.io/badge/deploy-Vercel-black?logo=vercel&logoColor=white)
+
 SaaS de gestão de kitnets: cadastro de kitnets, moradores e controle de pagamentos, com dashboard geral e planos por usuário (FREE / PRO).
 
 ## Stack
