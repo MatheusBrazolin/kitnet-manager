@@ -51,7 +51,11 @@ export function Moradores() {
     }
   }, [moradoresPage, page]);
 
-  const { data: kitnets = [], error: kitnetsQueryError } = useQuery({
+  const {
+    data: kitnets = [],
+    error: kitnetsQueryError,
+    isLoading: isLoadingKitnets,
+  } = useQuery({
     queryKey: ['kitnets'],
     queryFn: () => api.get<Kitnet[]>('/kitnets').then((response) => response.data),
   });
@@ -124,6 +128,8 @@ export function Moradores() {
       setIsModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['moradores'] });
       queryClient.invalidateQueries({ queryKey: ['kitnets'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
+      queryClient.invalidateQueries({ queryKey: ['morador'] });
     } catch (err) {
       setError(getApiErrorMessage(err, `Não foi possível ${editingId !== null ? 'atualizar' : 'cadastrar'} o morador.`));
     } finally {
@@ -146,6 +152,7 @@ export function Moradores() {
       await api.delete(`/moradores/${id}`);
       queryClient.invalidateQueries({ queryKey: ['moradores'] });
       queryClient.invalidateQueries({ queryKey: ['kitnets'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o morador.'));
     }
@@ -165,7 +172,9 @@ export function Moradores() {
         }
       />
 
-      {kitnets.length === 0 && <p className="form-error">Cadastre um imóvel e uma unidade antes de adicionar moradores.</p>}
+      {!isLoadingKitnets && kitnets.length === 0 && (
+        <p className="form-error">Cadastre um imóvel e uma unidade antes de adicionar moradores.</p>
+      )}
       <ErrorBanner message={displayedError} />
 
       <Card>

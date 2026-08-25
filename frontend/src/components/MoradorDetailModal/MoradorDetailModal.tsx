@@ -1,20 +1,14 @@
-import { useEffect, useState } from 'react';
-import { api, getApiErrorMessage } from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../services/api';
+import { firstErrorMessage } from '../../utils/queryError';
 import type { MoradorDetail, PagamentoResumo } from '../../types';
 import { Modal } from '../Modal/Modal';
 import { StatusBadge } from '../StatusBadge';
 import { Table } from '../Table/Table';
 import { ErrorBanner } from '../ErrorBanner/ErrorBanner';
-import { formatMesReferencia, formatTempoLocacao, formatVencimentoLabel } from '../../utils/dates';
+import { formatDate, formatMesReferencia, formatTempoLocacao, formatVencimentoLabel } from '../../utils/dates';
 import { formatCurrency } from '../../utils/currency';
 import './morador-detail-modal.css';
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
 
 interface MoradorDetailModalProps {
   moradorId: number;
@@ -22,19 +16,18 @@ interface MoradorDetailModalProps {
 }
 
 export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalProps) {
-  const [morador, setMorador] = useState<MoradorDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const {
+    data: morador,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['morador', moradorId],
+    queryFn: () => api.get<MoradorDetail>(`/moradores/${moradorId}`).then((response) => response.data),
+  });
+  const error = firstErrorMessage({ error: queryError, fallback: 'Não foi possível carregar os detalhes do morador.' });
 
-  useEffect(() => {
-    setMorador(null);
-    setError(null);
-    api
-      .get<MoradorDetail>(`/moradores/${moradorId}`)
-      .then((response) => setMorador(response.data))
-      .catch((err) => setError(getApiErrorMessage(err, 'Não foi possível carregar os detalhes do morador.')));
-  }, [moradorId]);
-
-  const pendente = morador?.pagamentos.find((pagamento) => pagamento.status !== 'PAGO');
+  const pendente = morador?.pagamentos.find(
+    (pagamento) => pagamento.status !== 'PAGO' && pagamento.status !== 'ANULADO',
+  );
 
   return (
     <Modal title={morador?.nome ?? 'Morador'} onClose={onClose} className="modal-wide">
@@ -90,8 +83,21 @@ export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalPro
             rowKey={(row) => row.id}
             emptyMessage="Nenhum pagamento lançado ainda."
             columns={[
-              { header: 'Mês', render: (row) => formatMesReferencia(row.mesReferencia) },
-              { header: 'Vencimento', render: (row) => dateFormatter.format(new Date(row.vencimento)) },
+              {
+                header: 'Mês',
+                render: (row) => (
+                  <div className="payment-morador-cell">
+                    <span>{formatMesReferencia(row.mesReferencia)}</span>
+                    {row.tipo === 'COMPLEMENTAR' && (
+                      <span className="payment-tipo-tag">
+                        Complementar{row.origem ? ` · de ${row.origem}` : ''}
+                      </span>
+                    )}
+                    {row.observacao && <span className="payment-observacao" title={row.observacao}>ℹ︎ {row.observacao}</span>}
+                  </div>
+                ),
+              },
+              { header: 'Vencimento', render: (row) => formatDate(row.vencimento) },
               { header: 'Valor', render: (row) => formatCurrency(row.valor) },
               {
                 header: 'Status',
@@ -100,7 +106,7 @@ export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalPro
               {
                 header: 'Pago em',
                 render: (row: PagamentoResumo) =>
-                  row.dataPagamento ? dateFormatter.format(new Date(row.dataPagamento)) : '—',
+                  row.dataPagamento ? formatDate(row.dataPagamento) : '—',
               },
             ]}
           />

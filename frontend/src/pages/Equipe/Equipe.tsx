@@ -11,12 +11,8 @@ import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
+import { PAPEL_LABEL } from '../../utils/papel';
 import './equipe.css';
-
-const PAPEL_LABEL: Record<string, string> = {
-  GERENTE: 'Gerente',
-  VISUALIZADOR: 'Visualizador',
-};
 
 export function Equipe() {
   const queryClient = useQueryClient();

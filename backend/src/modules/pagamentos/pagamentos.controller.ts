@@ -4,8 +4,10 @@ import { ViewerReadOnlyGuard } from '../../common/guards/viewer-read-only.guard'
 import { CurrentUser, type AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { PagamentosService } from './pagamentos.service';
 import { CreatePagamentoDto } from './dto/create-pagamento.dto';
+import { CreatePagamentoComplementarDto } from './dto/create-pagamento-complementar.dto';
 import { UpdatePagamentoDto } from './dto/update-pagamento.dto';
 import { MarcarPagoDto } from './dto/marcar-pago.dto';
+import { AnularPagamentoDto } from './dto/anular-pagamento.dto';
 
 @UseGuards(JwtAuthGuard, ViewerReadOnlyGuard)
 @Controller('pagamentos')
@@ -32,6 +34,11 @@ export class PagamentosController {
     return this.pagamentosService.create(user.contaId, dto);
   }
 
+  @Post('complementar')
+  createComplementar(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreatePagamentoComplementarDto) {
+    return this.pagamentosService.createComplementar(user.contaId, dto);
+  }
+
   @Patch(':id')
   update(
     @CurrentUser() user: AuthenticatedUser,
@@ -53,6 +60,15 @@ export class PagamentosController {
   @Patch(':id/desfazer-pagamento')
   desfazerPagamento(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
     return this.pagamentosService.desfazerPagamento(user.contaId, id);
+  }
+
+  @Patch(':id/anular')
+  anular(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: AnularPagamentoDto,
+  ) {
+    return this.pagamentosService.anular(user.contaId, id, dto);
   }
 
   @Delete(':id')

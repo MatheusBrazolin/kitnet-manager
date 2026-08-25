@@ -24,3 +24,8 @@
   background: var(--color-danger);
   color: var(--color-danger-ink);
 }
+
+.status-badge-neutral {
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-muted);
+}

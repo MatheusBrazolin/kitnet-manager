@@ -11,16 +11,11 @@ import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
+import { CurrencyInput } from '../../components/CurrencyInput';
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../utils/currency';
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
+import { formatDate } from '../../utils/dates';
 
 const PAGE_SIZE = 20;
 
@@ -54,7 +49,11 @@ export function Gastos() {
     }
   }, [gastosPage, page]);
 
-  const { data: kitnets = [], error: kitnetsQueryError } = useQuery({
+  const {
+    data: kitnets = [],
+    error: kitnetsQueryError,
+    isLoading: isLoadingKitnets,
+  } = useQuery({
     queryKey: ['kitnets'],
     queryFn: () => api.get<Kitnet[]>('/kitnets').then((response) => response.data),
   });
@@ -111,6 +110,7 @@ export function Gastos() {
       }
       setIsModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['gastos'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
     } catch (err) {
       setError(getApiErrorMessage(err, `Não foi possível ${editingId !== null ? 'atualizar' : 'lançar'} o gasto.`));
     } finally {
@@ -132,6 +132,7 @@ export function Gastos() {
     try {
       await api.delete(`/gastos/${id}`);
       queryClient.invalidateQueries({ queryKey: ['gastos'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o gasto.'));
     }
@@ -151,7 +152,9 @@ export function Gastos() {
         }
       />
 
-      {kitnets.length === 0 && <p className="form-error">Cadastre um imóvel e uma unidade antes de lançar gastos.</p>}
+      {!isLoadingKitnets && kitnets.length === 0 && (
+        <p className="form-error">Cadastre um imóvel e uma unidade antes de lançar gastos.</p>
+      )}
       <ErrorBanner message={displayedError} />
 
       <Card>
@@ -171,7 +174,7 @@ export function Gastos() {
                   ? `${row.kitnet.imovel.nome}${row.kitnet.imovel.kitnets?.length > 1 ? ` · ${row.kitnet.numero}` : ''}`
                   : row.kitnet.numero,
             },
-            { header: 'Data', render: (row) => dateFormatter.format(new Date(row.data)) },
+            { header: 'Data', render: (row) => formatDate(row.data) },
             { header: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
             ...(isViewer
               ? []
@@ -230,15 +233,7 @@ export function Gastos() {
             </div>
             <div className="field">
               <label htmlFor="valor">Valor</label>
-              <input
-                id="valor"
-                type="number"
-                min={0}
-                step="0.01"
-                required
-                value={valor}
-                onChange={(event) => setValor(event.target.value)}
-              />
+              <CurrencyInput id="valor" required value={valor} onChange={setValor} />
             </div>
             <div className="field">
               <label htmlFor="data">Data</label>

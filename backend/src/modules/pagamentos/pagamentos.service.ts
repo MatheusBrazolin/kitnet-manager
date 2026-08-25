@@ -2,8 +2,10 @@ import { ConflictException, ForbiddenException, Injectable, NotFoundException } 
 import { Prisma, StatusPagamento } from '@prisma/client';
 import { PrismaService } from '../../database/prisma.service';
 import { CreatePagamentoDto } from './dto/create-pagamento.dto';
+import { CreatePagamentoComplementarDto } from './dto/create-pagamento-complementar.dto';
 import { UpdatePagamentoDto } from './dto/update-pagamento.dto';
 import { MarcarPagoDto } from './dto/marcar-pago.dto';
+import { AnularPagamentoDto } from './dto/anular-pagamento.dto';
 
 type MoradorParaGeracao = {
   id: number;
@@ -95,12 +97,48 @@ export class PagamentosService {
     });
   }
 
+  /**
+   * Mesma garantia de `ensurePagamentosParaMorador`, mas para todos os moradores da conta de
+   * uma vez — usado em todo GET /pagamentos e GET /dashboard, então batching aqui importa:
+   * em vez de 1 SELECT + 1 INSERT por morador (N+1), faz 1 SELECT com todos os meses já
+   * lançados de todos os moradores e 1 único createMany com o que falta.
+   */
   async ensurePagamentosParaConta(userId: number) {
     const moradores = await this.prisma.morador.findMany({
       where: { kitnet: { userId } },
       include: { kitnet: true },
     });
-    await Promise.all(moradores.map((morador) => this.ensurePagamentosParaMorador(morador)));
+    if (moradores.length === 0) {
+      return;
+    }
+
+    const mesAtual = truncarMes(new Date());
+    const porMorador = moradores.map((morador) => ({
+      morador,
+      meses: enumerarMeses(truncarMes(morador.dataEntrada), mesAtual),
+    }));
+
+    const existentes = await this.prisma.pagamento.findMany({
+      where: { moradorId: { in: moradores.map((morador) => morador.id) } },
+      select: { moradorId: true, mesReferencia: true },
+    });
+    const jaExistem = new Set(existentes.map((p) => `${p.moradorId}:${p.mesReferencia.getTime()}`));
+
+    const faltantes = porMorador.flatMap(({ morador, meses }) =>
+      meses
+        .filter((mesReferencia) => !jaExistem.has(`${morador.id}:${mesReferencia.getTime()}`))
+        .map((mesReferencia) => ({
+          moradorId: morador.id,
+          valor: morador.kitnet.valor,
+          mesReferencia,
+          vencimento: vencimentoDoMes(mesReferencia, morador.diaVencimento),
+          status: StatusPagamento.PENDENTE,
+        })),
+    );
+
+    if (faltantes.length > 0) {
+      await this.prisma.pagamento.createMany({ data: faltantes, skipDuplicates: true });
+    }
   }
 
   async findAll(userId: number) {
@@ -181,11 +219,44 @@ export class PagamentosService {
           mesReferencia: truncarMes(vencimento),
           status: StatusPagamento.PENDENTE,
           moradorId: dto.moradorId,
+          observacao: dto.observacao,
         },
       });
     } catch (err) {
       if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
         throw new ConflictException('Este morador já tem um pagamento lançado para esse mês.');
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Lançamento extra fora do aluguel do mês (ex.: valor recebido de um ex-morador, multa,
+   * taxa). Diferente da parcela de ALUGUEL, já nasce como PAGO — é um registro do que já
+   * foi recebido, não uma cobrança pendente. Coexiste com a parcela de ALUGUEL do mesmo mês
+   * (unique constraint é por [moradorId, mesReferencia, tipo]).
+   */
+  async createComplementar(userId: number, dto: CreatePagamentoComplementarDto) {
+    await this.assertMoradorOwnership(userId, dto.moradorId);
+    const dataPagamento = new Date(dto.dataPagamento);
+    try {
+      return await this.prisma.pagamento.create({
+        data: {
+          valor: dto.valor,
+          vencimento: dataPagamento,
+          mesReferencia: truncarMes(dataPagamento),
+          status: StatusPagamento.PAGO,
+          dataPagamento,
+          formaPagamento: dto.formaPagamento,
+          moradorId: dto.moradorId,
+          tipo: 'COMPLEMENTAR',
+          origem: dto.origem,
+          observacao: dto.observacao,
+        },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new ConflictException('Este morador já tem um pagamento complementar lançado para esse mês.');
       }
       throw err;
     }
@@ -228,6 +299,26 @@ export class PagamentosService {
     return this.prisma.pagamento.update({
       where: { id },
       data: { status: StatusPagamento.PENDENTE, dataPagamento: null, formaPagamento: null },
+    });
+  }
+
+  /**
+   * Anula uma parcela específica — usado quando ela não vai ser recebida (ex.: 1º mês
+   * repassado à imobiliária, morador saiu antes do fim do contrato). Diferente de marcar
+   * como paga: não entra como receita, e sai de "total em atraso"/"próximos vencimentos"
+   * (essas consultas filtram por PENDENTE/PAGO, então ANULADO já fica de fora). Reversível
+   * pelo mesmo endpoint de "desfazer" usado para PAGO.
+   */
+  async anular(userId: number, id: number, dto: AnularPagamentoDto) {
+    await this.findOwnedOrThrow(userId, id);
+    return this.prisma.pagamento.update({
+      where: { id },
+      data: {
+        status: StatusPagamento.ANULADO,
+        dataPagamento: null,
+        formaPagamento: null,
+        observacao: dto.observacao,
+      },
     });
   }
 

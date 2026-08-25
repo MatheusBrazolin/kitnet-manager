@@ -1,6 +1,6 @@
 import './status-badge.css';
 
-type Tone = 'success' | 'warning' | 'danger';
+type Tone = 'success' | 'warning' | 'danger' | 'neutral';
 
 const TONE_BY_LABEL: Record<string, Tone> = {
   ocupada: 'success',
@@ -8,6 +8,7 @@ const TONE_BY_LABEL: Record<string, Tone> = {
   pago: 'success',
   pendente: 'warning',
   atrasado: 'danger',
+  anulado: 'neutral',
 };
 
 export function StatusBadge({ label }: { label: string }) {

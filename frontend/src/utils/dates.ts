@@ -7,6 +7,20 @@ function startOfUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
+const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
+
+// Formatter único pra "dd/mm/aaaa" — usado por toda tela que exibe uma data de calendário
+// (vencimento, data de pagamento, data de gasto, vigência). Evita cada tela redefinir o
+// próprio Intl.DateTimeFormat e acabar divergindo no formato exibido.
+export function formatDate(date: string | Date): string {
+  return dateFormatter.format(new Date(date));
+}
+
 export function diasParaVencimento(vencimento: string | Date): number {
   const hoje = startOfUtcDay(new Date());
   const data = startOfUtcDay(new Date(vencimento));

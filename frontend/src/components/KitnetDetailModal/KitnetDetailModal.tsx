@@ -1,19 +1,14 @@
-import { useEffect, useState } from 'react';
-import { api, getApiErrorMessage } from '../../services/api';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '../../services/api';
+import { firstErrorMessage } from '../../utils/queryError';
 import type { KitnetDetail } from '../../types';
 import { Modal } from '../Modal/Modal';
 import { StatusBadge } from '../StatusBadge';
 import { Table } from '../Table/Table';
 import { ErrorBanner } from '../ErrorBanner/ErrorBanner';
 import { formatCurrency } from '../../utils/currency';
+import { formatDate } from '../../utils/dates';
 import './kitnet-detail-modal.css';
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
 
 interface KitnetDetailModalProps {
   kitnetId: number;
@@ -21,19 +16,24 @@ interface KitnetDetailModalProps {
 }
 
 export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps) {
-  const [kitnet, setKitnet] = useState<KitnetDetail | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setKitnet(null);
-    setError(null);
-    api
-      .get<KitnetDetail>(`/kitnets/${kitnetId}`)
-      .then((response) => setKitnet(response.data))
-      .catch((err) => setError(getApiErrorMessage(err, 'Não foi possível carregar os detalhes da kitnet.')));
-  }, [kitnetId]);
+  const {
+    data: kitnet,
+    error: queryError,
+  } = useQuery({
+    queryKey: ['kitnet', kitnetId],
+    queryFn: () => api.get<KitnetDetail>(`/kitnets/${kitnetId}`).then((response) => response.data),
+  });
+  const error = firstErrorMessage({ error: queryError, fallback: 'Não foi possível carregar os detalhes da kitnet.' });
 
   const morador = kitnet?.moradores[0];
+
+  // O histórico já vem do backend ordenado do mais recente pro mais antigo — a variação de
+  // cada linha é a diferença pro registro logo abaixo dela (o valor anterior).
+  const historicoComVariacao =
+    kitnet?.historicoValor.map((item, index) => ({
+      ...item,
+      variacao: index < kitnet.historicoValor.length - 1 ? item.valor - kitnet.historicoValor[index + 1].valor : null,
+    })) ?? [];
 
   return (
     <Modal
@@ -80,6 +80,30 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
             </div>
           </dl>
 
+          <h3 className="kitnet-detail-subtitle">Histórico de valor do aluguel</h3>
+          <Table
+            rows={historicoComVariacao}
+            rowKey={(row) => row.id}
+            emptyMessage="Sem histórico de valor ainda."
+            columns={[
+              { header: 'Vigente desde', render: (row) => formatDate(row.vigenteDesde) },
+              { header: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
+              {
+                header: 'Variação',
+                align: 'right',
+                render: (row) =>
+                  row.variacao === null ? (
+                    '—'
+                  ) : (
+                    <span className={row.variacao >= 0 ? 'kitnet-historico-alta' : 'kitnet-historico-baixa'}>
+                      {row.variacao >= 0 ? '+' : ''}
+                      {formatCurrency(row.variacao)}
+                    </span>
+                  ),
+              },
+            ]}
+          />
+
           <h3 className="kitnet-detail-subtitle">Histórico de gastos</h3>
           <Table
             rows={kitnet.gastos}
@@ -87,7 +111,7 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
             emptyMessage="Nenhum gasto lançado nesta kitnet ainda."
             columns={[
               { header: 'Descrição', render: (row) => row.descricao },
-              { header: 'Data', render: (row) => dateFormatter.format(new Date(row.data)) },
+              { header: 'Data', render: (row) => formatDate(row.data) },
               { header: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
             ]}
           />

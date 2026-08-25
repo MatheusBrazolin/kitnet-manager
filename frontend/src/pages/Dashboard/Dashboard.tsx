@@ -8,12 +8,10 @@ import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { Header } from '../../components/Header/Header';
 import { BarChart } from '../../components/charts/BarChart';
 import { DonutChart } from '../../components/charts/DonutChart';
-import { formatVencimentoLabel } from '../../utils/dates';
+import { formatDate, formatVencimentoLabel } from '../../utils/dates';
 import { formatCurrency, formatCompactCurrency } from '../../utils/currency';
 import { OnboardingEmptyState } from './OnboardingEmptyState';
 import './dashboard.css';
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: 'long', timeZone: 'UTC' });
 
 const KITNET_COLORS = ['var(--color-brand)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-danger)', 'var(--color-ink-muted)'];
 
@@ -126,7 +124,7 @@ export function Dashboard() {
                   header: 'Vencimento',
                   render: (row) => (
                     <div className="dashboard-vencimento">
-                      <span>{dateFormatter.format(new Date(row.vencimento))}</span>
+                      <span>{formatDate(row.vencimento)}</span>
                       <span className="dashboard-vencimento-hint">{formatVencimentoLabel(row.vencimento, false)}</span>
                     </div>
                   ),
