@@ -122,6 +122,119 @@ describe('PagamentosService', () => {
     });
   });
 
+  describe('createComplementar', () => {
+    it('throws NotFoundException when the morador does not exist', async () => {
+      prisma.morador.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.createComplementar(ownerId, {
+          valor: 200,
+          moradorId: 999,
+          origem: 'Ex-morador',
+          dataPagamento: '2026-07-20',
+        }),
+      ).rejects.toBeInstanceOf(NotFoundException);
+    });
+
+    it('throws ForbiddenException when the morador belongs to another user', async () => {
+      prisma.morador.findUnique.mockResolvedValue({
+        ...morador,
+        kitnet: { ...kitnet, userId: 2 },
+      });
+
+      await expect(
+        service.createComplementar(ownerId, {
+          valor: 200,
+          moradorId: morador.id,
+          origem: 'Ex-morador',
+          dataPagamento: '2026-07-20',
+        }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
+
+    it('creates the pagamento already as PAGO, with tipo COMPLEMENTAR and origem/observacao', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+      prisma.pagamento.create.mockResolvedValue({
+        ...pagamento,
+        tipo: 'COMPLEMENTAR',
+        status: 'PAGO',
+      });
+
+      await service.createComplementar(ownerId, {
+        valor: 200,
+        moradorId: morador.id,
+        origem: 'Ex-morador',
+        dataPagamento: '2026-07-20',
+        formaPagamento: 'Pix',
+        observacao: 'Acordo de rescisão',
+      });
+
+      expect(prisma.pagamento.create).toHaveBeenCalledWith({
+        data: {
+          valor: 200,
+          vencimento: new Date('2026-07-20'),
+          mesReferencia: new Date(Date.UTC(2026, 6, 1)),
+          status: 'PAGO',
+          dataPagamento: new Date('2026-07-20'),
+          formaPagamento: 'Pix',
+          moradorId: morador.id,
+          tipo: 'COMPLEMENTAR',
+          origem: 'Ex-morador',
+          observacao: 'Acordo de rescisão',
+        },
+      });
+    });
+
+    it('creates the pagamento without origem/formaPagamento when the form omits them', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+      prisma.pagamento.create.mockResolvedValue({
+        ...pagamento,
+        tipo: 'COMPLEMENTAR',
+        status: 'PAGO',
+      });
+
+      await service.createComplementar(ownerId, {
+        valor: 200,
+        moradorId: morador.id,
+        dataPagamento: '2026-07-20',
+      });
+
+      expect(prisma.pagamento.create).toHaveBeenCalledWith({
+        data: {
+          valor: 200,
+          vencimento: new Date('2026-07-20'),
+          mesReferencia: new Date(Date.UTC(2026, 6, 1)),
+          status: 'PAGO',
+          dataPagamento: new Date('2026-07-20'),
+          formaPagamento: undefined,
+          moradorId: morador.id,
+          tipo: 'COMPLEMENTAR',
+          origem: undefined,
+          observacao: undefined,
+        },
+      });
+    });
+
+    it('translates a duplicate (moradorId, mesReferencia, tipo) into ConflictException', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+      prisma.pagamento.create.mockRejectedValue(
+        new Prisma.PrismaClientKnownRequestError('unique constraint', {
+          code: 'P2002',
+          clientVersion: '6.19.3',
+        }),
+      );
+
+      await expect(
+        service.createComplementar(ownerId, {
+          valor: 200,
+          moradorId: morador.id,
+          origem: 'Ex-morador',
+          dataPagamento: '2026-07-20',
+        }),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
   describe('ensurePagamentosParaMorador', () => {
     beforeEach(() => {
       jest.useFakeTimers().setSystemTime(new Date('2026-07-15T12:00:00Z'));
@@ -269,6 +382,35 @@ describe('PagamentosService', () => {
     });
   });
 
+  describe('anular', () => {
+    it('sets status ANULADO, clears dataPagamento/formaPagamento and stores the observacao', async () => {
+      prisma.pagamento.findUnique.mockResolvedValue(pagamento);
+      prisma.pagamento.update.mockResolvedValue({ ...pagamento, status: 'ANULADO' });
+
+      await service.anular(ownerId, pagamento.id, { observacao: 'Repassado à imobiliária' });
+
+      expect(prisma.pagamento.update).toHaveBeenCalledWith({
+        where: { id: pagamento.id },
+        data: {
+          status: 'ANULADO',
+          dataPagamento: null,
+          formaPagamento: null,
+          observacao: 'Repassado à imobiliária',
+        },
+      });
+    });
+
+    it('throws ForbiddenException when the pagamento belongs to another user', async () => {
+      prisma.pagamento.findUnique.mockResolvedValue({
+        ...pagamento,
+        morador: { ...morador, kitnet: { ...kitnet, userId: 2 } },
+      });
+
+      await expect(service.anular(ownerId, pagamento.id, {})).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.pagamento.update).not.toHaveBeenCalled();
+    });
+  });
+
   describe('findOwnedOrThrow', () => {
     it('throws NotFoundException when the pagamento does not exist', async () => {
       prisma.pagamento.findUnique.mockResolvedValue(null);
@@ -330,6 +472,17 @@ describe('PagamentosService', () => {
       );
 
       expect(resultado.status).toBe('PAGO');
+    });
+
+    it('never rewrites an ANULADO pagamento, even past its vencimento', () => {
+      const agora = new Date('2026-08-01T00:00:00Z');
+
+      const resultado = service.comStatusEfetivo(
+        { ...pagamento, status: 'ANULADO', vencimento: new Date('2026-07-10') },
+        agora,
+      );
+
+      expect(resultado.status).toBe('ANULADO');
     });
   });
 

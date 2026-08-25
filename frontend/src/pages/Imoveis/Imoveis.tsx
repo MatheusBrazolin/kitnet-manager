@@ -11,9 +11,12 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { KitnetDetailModal } from '../../components/KitnetDetailModal/KitnetDetailModal';
+import { ExpandableGroupCard } from '../../components/ExpandableGroupCard/ExpandableGroupCard';
+import { CurrencyInput } from '../../components/CurrencyInput';
 import { PencilIcon } from '../../components/icons';
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { useAuth } from '../../hooks/useAuth';
+import { useToggleSet } from '../../hooks/useToggleSet';
 import { formatCurrency } from '../../utils/currency';
 import './imoveis.css';
 
@@ -55,7 +58,7 @@ export function Imoveis() {
 
   const [selectedKitnetId, setSelectedKitnetId] = useState<number | null>(null);
   const [listError, setListError] = useState<string | null>(null);
-  const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
+  const [expandidos, toggleExpandido] = useToggleSet<number>();
   const [menuImovelId, setMenuImovelId] = useState<number | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -71,18 +74,6 @@ export function Imoveis() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [menuImovelId]);
-
-  function toggleExpandido(imovelId: number) {
-    setExpandidos((atual) => {
-      const proximo = new Set(atual);
-      if (proximo.has(imovelId)) {
-        proximo.delete(imovelId);
-      } else {
-        proximo.add(imovelId);
-      }
-      return proximo;
-    });
-  }
 
   const displayedError =
     listError ?? firstErrorMessage({ error: queryError, fallback: 'Não foi possível carregar os imóveis.' });
@@ -115,6 +106,7 @@ export function Imoveis() {
       }
       setIsCreateOpen(false);
       queryClient.invalidateQueries({ queryKey: ['imoveis'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
     } catch (err) {
       setCreateError(getApiErrorMessage(err, `Não foi possível ${editingImovelId !== null ? 'atualizar' : 'criar'} o imóvel.`));
     } finally {
@@ -146,6 +138,7 @@ export function Imoveis() {
       setEditingKitnet(null);
       queryClient.invalidateQueries({ queryKey: ['imoveis'] });
       queryClient.invalidateQueries({ queryKey: ['kitnets'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
     } catch (err) {
       setEditKitnetError(getApiErrorMessage(err, 'Não foi possível atualizar a unidade.'));
     } finally {
@@ -167,6 +160,7 @@ export function Imoveis() {
     try {
       await api.delete(`/imoveis/${id}`);
       queryClient.invalidateQueries({ queryKey: ['imoveis'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o imóvel.'));
     }
@@ -187,6 +181,7 @@ export function Imoveis() {
       await api.delete(`/kitnets/${id}`);
       queryClient.invalidateQueries({ queryKey: ['imoveis'] });
       queryClient.invalidateQueries({ queryKey: ['kitnets'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover a unidade.'));
     }
@@ -242,6 +237,7 @@ export function Imoveis() {
       setLoteImovelId(null);
       queryClient.invalidateQueries({ queryKey: ['imoveis'] });
       queryClient.invalidateQueries({ queryKey: ['kitnets'] });
+      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
     } catch (err) {
       setLoteError(getApiErrorMessage(err, 'Não foi possível criar as unidades.'));
     } finally {
@@ -283,23 +279,14 @@ export function Imoveis() {
             const totalMoradores = imovel.kitnets.reduce((total, kitnet) => total + kitnet.moradores.length, 0);
 
             return (
-              <section className="imovel-card" key={imovel.id}>
-                <button
-                  type="button"
-                  className="imovel-card-summary-row"
-                  onClick={() => toggleExpandido(imovel.id)}
-                  aria-expanded={aberto}
-                >
-                  <div className="imovel-card-summary-main">
-                    <span className={`imovel-card-chevron${aberto ? ' imovel-card-chevron-open' : ''}`} aria-hidden="true">
-                      ▾
-                    </span>
-                    <div className="imovel-card-summary-title">
-                      <span className="imovel-card-nome">{imovel.nome}</span>
-                      {imovel.endereco && <span className="imovel-card-endereco">{imovel.endereco}</span>}
-                    </div>
-                  </div>
-                  <div className="imovel-card-summary-stats">
+              <ExpandableGroupCard
+                key={imovel.id}
+                isOpen={aberto}
+                onToggle={() => toggleExpandido(imovel.id)}
+                title={imovel.nome}
+                subtitle={imovel.endereco}
+                stats={
+                  <>
                     <span className="imovel-card-stat">
                       {imovel.kitnets.length} unidade{imovel.kitnets.length === 1 ? '' : 's'}
                     </span>
@@ -307,123 +294,116 @@ export function Imoveis() {
                       {totalMoradores} morador{totalMoradores === 1 ? '' : 'es'}
                     </span>
                     <span className="imovel-card-stat imovel-card-stat-valor">{formatCurrency(totalValor)}</span>
-                  </div>
-                </button>
-
-                {aberto && (
-                  <div className="imovel-card-body">
-                    {!isViewer && (
-                    <div
-                      className="imovel-card-edit"
-                      ref={menuImovelId === imovel.id ? menuRef : undefined}
+                  </>
+                }
+              >
+                {!isViewer && (
+                  <div className="imovel-card-edit" ref={menuImovelId === imovel.id ? menuRef : undefined}>
+                    <button
+                      type="button"
+                      className="imovel-card-edit-trigger"
+                      aria-label={`Editar ${imovel.nome}`}
+                      aria-haspopup="menu"
+                      aria-expanded={menuImovelId === imovel.id}
+                      onClick={() => setMenuImovelId((atual) => (atual === imovel.id ? null : imovel.id))}
                     >
-                      <button
-                        type="button"
-                        className="imovel-card-edit-trigger"
-                        aria-label={`Editar ${imovel.nome}`}
-                        aria-haspopup="menu"
-                        aria-expanded={menuImovelId === imovel.id}
-                        onClick={() => setMenuImovelId((atual) => (atual === imovel.id ? null : imovel.id))}
-                      >
-                        <PencilIcon />
-                      </button>
+                      <PencilIcon />
+                    </button>
 
-                      {menuImovelId === imovel.id && (
-                        <div className="imovel-card-edit-menu" role="menu">
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              setMenuImovelId(null);
-                              openEditImovelModal(imovel);
-                            }}
-                          >
-                            Editar imóvel
-                          </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            onClick={() => {
-                              setMenuImovelId(null);
-                              openLoteModal(imovel);
-                            }}
-                          >
-                            + Adicionar unidades
-                          </button>
-                          <button
-                            type="button"
-                            role="menuitem"
-                            className="imovel-card-edit-menu-danger"
-                            onClick={() => {
-                              setMenuImovelId(null);
-                              handleDeleteImovel(imovel.id);
-                            }}
-                          >
-                            Remover imóvel
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                    {menuImovelId === imovel.id && (
+                      <div className="imovel-card-edit-menu" role="menu">
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setMenuImovelId(null);
+                            openEditImovelModal(imovel);
+                          }}
+                        >
+                          Editar imóvel
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          onClick={() => {
+                            setMenuImovelId(null);
+                            openLoteModal(imovel);
+                          }}
+                        >
+                          + Adicionar unidades
+                        </button>
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="imovel-card-edit-menu-danger"
+                          onClick={() => {
+                            setMenuImovelId(null);
+                            handleDeleteImovel(imovel.id);
+                          }}
+                        >
+                          Remover imóvel
+                        </button>
+                      </div>
                     )}
-
-                    <Table
-                      rows={imovel.kitnets}
-                      rowKey={(row) => row.id}
-                      emptyMessage="Nenhuma unidade neste imóvel ainda. Use “+ Unidades” para cadastrar."
-                      onRowClick={(row) => setSelectedKitnetId(row.id)}
-                      columns={[
-                        { header: 'Unidade', render: (row) => row.numero },
-                        {
-                          header: 'Valor',
-                          render: (row) =>
-                            row.taxaImobiliaria ? (
-                              <span className="imovel-valor-com-imobiliaria">
-                                {formatCurrency(row.valor)}
-                                <small>líq. {formatCurrency(row.valor - row.taxaImobiliaria)}</small>
-                              </span>
-                            ) : (
-                              formatCurrency(row.valor)
-                            ),
-                        },
-                        { header: 'Status', render: (row) => <StatusBadge label={row.status} /> },
-                        { header: 'Moradores', render: (row) => row.moradores.length },
-                        ...(isViewer
-                          ? []
-                          : [
-                              {
-                                header: '',
-                                align: 'right' as const,
-                                render: (row: Kitnet) => (
-                                  <div className="table-row-actions">
-                                    <button
-                                      type="button"
-                                      className="btn btn-ghost"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        openEditKitnetModal(row);
-                                      }}
-                                    >
-                                      Editar
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn btn-danger"
-                                      onClick={(event) => {
-                                        event.stopPropagation();
-                                        handleDeleteKitnet(row.id);
-                                      }}
-                                    >
-                                      Remover
-                                    </button>
-                                  </div>
-                                ),
-                              },
-                            ]),
-                      ]}
-                    />
                   </div>
                 )}
-              </section>
+
+                <Table
+                  rows={imovel.kitnets}
+                  rowKey={(row) => row.id}
+                  emptyMessage="Nenhuma unidade neste imóvel ainda. Use “+ Unidades” para cadastrar."
+                  onRowClick={(row) => setSelectedKitnetId(row.id)}
+                  columns={[
+                    { header: 'Unidade', render: (row) => row.numero },
+                    {
+                      header: 'Valor',
+                      render: (row) =>
+                        row.taxaImobiliaria ? (
+                          <span className="imovel-valor-com-imobiliaria">
+                            {formatCurrency(row.valor)}
+                            <small>líq. {formatCurrency(row.valor - row.taxaImobiliaria)}</small>
+                          </span>
+                        ) : (
+                          formatCurrency(row.valor)
+                        ),
+                    },
+                    { header: 'Status', render: (row) => <StatusBadge label={row.status} /> },
+                    { header: 'Moradores', render: (row) => row.moradores.length },
+                    ...(isViewer
+                      ? []
+                      : [
+                          {
+                            header: '',
+                            align: 'right' as const,
+                            render: (row: Kitnet) => (
+                              <div className="table-row-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn-ghost"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openEditKitnetModal(row);
+                                  }}
+                                >
+                                  Editar
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-danger"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleDeleteKitnet(row.id);
+                                  }}
+                                >
+                                  Remover
+                                </button>
+                              </div>
+                            ),
+                          },
+                        ]),
+                  ]}
+                />
+              </ExpandableGroupCard>
             );
           })}
         </div>
@@ -498,15 +478,7 @@ export function Imoveis() {
                 <div className="imovel-lote-valor-padrao">
                   <div className="field">
                     <label htmlFor="loteValorPadrao">Valor padrão (opcional)</label>
-                    <input
-                      id="loteValorPadrao"
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      placeholder="Ex.: 650"
-                      value={loteValorPadrao}
-                      onChange={(event) => setLoteValorPadrao(event.target.value)}
-                    />
+                    <CurrencyInput id="loteValorPadrao" value={loteValorPadrao} onChange={setLoteValorPadrao} />
                   </div>
                   <button type="button" className="btn btn-ghost" onClick={aplicarValorPadrao}>
                     Aplicar a todas
@@ -522,15 +494,12 @@ export function Imoveis() {
                         value={linha.numero}
                         onChange={(event) => atualizarLinha(index, 'numero', event.target.value)}
                       />
-                      <input
-                        aria-label={`Valor da unidade ${index + 1}`}
-                        type="number"
-                        min={0}
-                        step="0.01"
+                      <CurrencyInput
+                        ariaLabel={`Valor da unidade ${index + 1}`}
                         required
                         placeholder="Valor"
                         value={linha.valor}
-                        onChange={(event) => atualizarLinha(index, 'valor', event.target.value)}
+                        onChange={(value) => atualizarLinha(index, 'valor', value)}
                       />
                     </div>
                   ))}
@@ -555,26 +524,15 @@ export function Imoveis() {
             </div>
             <div className="field">
               <label htmlFor="editValor">Valor do aluguel</label>
-              <input
-                id="editValor"
-                type="number"
-                min={0}
-                step="0.01"
-                required
-                value={editValor}
-                onChange={(event) => setEditValor(event.target.value)}
-              />
+              <CurrencyInput id="editValor" required value={editValor} onChange={setEditValor} />
             </div>
             <div className="field">
               <label htmlFor="editTaxaImobiliaria">Taxa da imobiliária (opcional)</label>
-              <input
+              <CurrencyInput
                 id="editTaxaImobiliaria"
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Ex.: 100 — deixe em branco se o aluguel é direto"
+                placeholder="Ex.: R$ 100 — deixe em branco se o aluguel é direto"
                 value={editTaxaImobiliaria}
-                onChange={(event) => setEditTaxaImobiliaria(event.target.value)}
+                onChange={setEditTaxaImobiliaria}
               />
               <p className="field-static-hint">
                 Preencha só se essa unidade é alugada por uma imobiliária que retém parte

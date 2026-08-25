@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { BuildingIcon, HomeIcon, LogoutIcon, UserPlusIcon, UsersIcon, WalletIcon, WrenchIcon } from '../icons';
+import { PAPEL_LABEL } from '../../utils/papel';
 import './sidebar.css';
 
 const NAV_ITEMS = [
@@ -10,12 +11,6 @@ const NAV_ITEMS = [
   { to: '/pagamentos', label: 'Pagamentos', icon: WalletIcon },
   { to: '/gastos', label: 'Gastos', icon: WrenchIcon },
 ];
-
-const PAPEL_LABEL: Record<string, string> = {
-  OWNER: 'Dono da conta',
-  GERENTE: 'Gerente',
-  VISUALIZADOR: 'Só leitura',
-};
 
 export function Sidebar() {
   const { user, logout } = useAuth();
@@ -49,7 +44,7 @@ export function Sidebar() {
         <div className="sidebar-user">
           <div className="sidebar-avatar">{user?.name.charAt(0).toUpperCase()}</div>
           <div className="sidebar-user-info">
-            <span className="sidebar-user-name">{user?.name}</span>
+            <span className="sidebar-user-name" title={user?.name}>{user?.name}</span>
             {user?.papel && <span className="sidebar-user-papel">{PAPEL_LABEL[user.papel]}</span>}
           </div>
         </div>

@@ -89,7 +89,7 @@ export function NotificationBell() {
               {alertas.map((alerta) => (
                 <li key={alerta.id} className="notification-bell-item">
                   <div className="notification-bell-item-info">
-                    <span className="notification-bell-item-title">
+                    <span className="notification-bell-item-title" title={`${alerta.morador} · ${alerta.imovel} ${alerta.kitnet}`}>
                       {alerta.morador} · {alerta.imovel} {alerta.kitnet}
                     </span>
                     <span

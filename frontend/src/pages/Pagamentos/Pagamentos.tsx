@@ -10,18 +10,13 @@ import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
-import { formatMesReferencia, formatVencimentoLabel } from '../../utils/dates';
+import { ExpandableGroupCard } from '../../components/ExpandableGroupCard/ExpandableGroupCard';
+import { CurrencyInput } from '../../components/CurrencyInput';
+import { formatDate, formatMesReferencia, formatVencimentoLabel } from '../../utils/dates';
 import { formatCurrency } from '../../utils/currency';
 import { useAuth } from '../../hooks/useAuth';
-import '../Imoveis/imoveis.css';
+import { useToggleSet } from '../../hooks/useToggleSet';
 import './pagamentos.css';
-
-const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
-  day: '2-digit',
-  month: '2-digit',
-  year: 'numeric',
-  timeZone: 'UTC',
-});
 
 function hojeIso() {
   return new Date().toISOString().slice(0, 10);
@@ -34,6 +29,66 @@ interface GrupoImovel {
   pagamentos: Pagamento[];
   totalPendente: number;
   countAtrasado: number;
+  totalRecebido: number;
+  countAnulado: number;
+}
+
+function agruparPorImovel(pagamentos: Pagamento[]): GrupoImovel[] {
+  const porImovel = new Map<number, GrupoImovel>();
+  for (const pagamento of pagamentos) {
+    const imovel = pagamento.morador.kitnet.imovel;
+    if (!imovel) {
+      continue;
+    }
+    if (!porImovel.has(imovel.id)) {
+      porImovel.set(imovel.id, {
+        imovelId: imovel.id,
+        nome: imovel.nome,
+        endereco: imovel.endereco,
+        pagamentos: [],
+        totalPendente: 0,
+        countAtrasado: 0,
+        totalRecebido: 0,
+        countAnulado: 0,
+      });
+    }
+    const grupo = porImovel.get(imovel.id)!;
+    grupo.pagamentos.push(pagamento);
+    if (pagamento.status !== 'PAGO' && pagamento.status !== 'ANULADO') {
+      grupo.totalPendente += pagamento.valor;
+    }
+    if (pagamento.status === 'ATRASADO') {
+      grupo.countAtrasado += 1;
+    }
+    if (pagamento.status === 'PAGO') {
+      grupo.totalRecebido += pagamento.valor;
+    }
+    if (pagamento.status === 'ANULADO') {
+      grupo.countAnulado += 1;
+    }
+  }
+
+  for (const grupo of porImovel.values()) {
+    grupo.pagamentos.sort((a, b) => {
+      if (a.mesReferencia !== b.mesReferencia) {
+        return b.mesReferencia.localeCompare(a.mesReferencia);
+      }
+      return a.morador.nome.localeCompare(b.morador.nome);
+    });
+  }
+
+  return Array.from(porImovel.values()).sort((a, b) => a.nome.localeCompare(b.nome));
+}
+
+function filtrarPorBusca(pagamentos: Pagamento[], buscaNormalizada: string): Pagamento[] {
+  if (!buscaNormalizada) {
+    return pagamentos;
+  }
+  return pagamentos.filter(
+    (p) =>
+      p.morador.nome.toLowerCase().includes(buscaNormalizada) ||
+      p.morador.kitnet.numero.toLowerCase().includes(buscaNormalizada),
+  );
 }
 
 export function Pagamentos() {
@@ -44,16 +99,24 @@ export function Pagamentos() {
     queryKey: ['pagamentos'],
     queryFn: () => api.get<Pagamento[]>('/pagamentos').then((response) => response.data),
   });
-  const { data: moradores = [], error: moradoresQueryError } = useQuery({
+  const {
+    data: moradores = [],
+    error: moradoresQueryError,
+    isLoading: isLoadingMoradores,
+  } = useQuery({
     queryKey: ['moradores'],
     queryFn: () => api.get<Morador[]>('/moradores').then((response) => response.data),
   });
 
-  const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
+  const [aba, setAba] = useState<'aberto' | 'historico'>('aberto');
+  const [mesFiltro, setMesFiltro] = useState('todos');
+  const [busca, setBusca] = useState('');
+  const [expandidos, toggleExpandido] = useToggleSet<number>();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [valor, setValor] = useState('');
   const [vencimento, setVencimento] = useState('');
   const [moradorId, setMoradorId] = useState('');
+  const [observacao, setObservacao] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -64,6 +127,29 @@ export function Pagamentos() {
   const [marcarPagoError, setMarcarPagoError] = useState<string | null>(null);
   const [isMarcandoPagoSubmitting, setIsMarcandoPagoSubmitting] = useState(false);
 
+  const [isComplementarModalOpen, setIsComplementarModalOpen] = useState(false);
+  const [complementarValor, setComplementarValor] = useState('');
+  const [complementarMoradorId, setComplementarMoradorId] = useState('');
+  const [complementarData, setComplementarData] = useState('');
+  const [complementarObservacao, setComplementarObservacao] = useState('');
+  const [complementarError, setComplementarError] = useState<string | null>(null);
+  const [isComplementarSubmitting, setIsComplementarSubmitting] = useState(false);
+
+  const [editando, setEditando] = useState<Pagamento | null>(null);
+  const [editValor, setEditValor] = useState('');
+  const [editVencimento, setEditVencimento] = useState('');
+  const [editObservacao, setEditObservacao] = useState('');
+  const [editError, setEditError] = useState<string | null>(null);
+  const [isEditSubmitting, setIsEditSubmitting] = useState(false);
+
+  const [anulando, setAnulando] = useState<Pagamento | null>(null);
+  const [anularObservacao, setAnularObservacao] = useState('');
+  const [anularError, setAnularError] = useState<string | null>(null);
+  const [isAnularSubmitting, setIsAnularSubmitting] = useState(false);
+
+  const moradorSelecionado = moradores.find((morador) => String(morador.id) === moradorId);
+  const valorReferencia = moradorSelecionado?.kitnet?.valor;
+
   const displayedError =
     listError ??
     firstErrorMessage(
@@ -71,61 +157,62 @@ export function Pagamentos() {
       { error: moradoresQueryError, fallback: 'Não foi possível carregar os moradores.' },
     );
 
-  const grupos = useMemo<GrupoImovel[]>(() => {
-    const porImovel = new Map<number, GrupoImovel>();
-    for (const pagamento of pagamentos) {
-      const imovel = pagamento.morador.kitnet.imovel;
-      if (!imovel) {
-        continue;
-      }
-      if (!porImovel.has(imovel.id)) {
-        porImovel.set(imovel.id, {
-          imovelId: imovel.id,
-          nome: imovel.nome,
-          endereco: imovel.endereco,
-          pagamentos: [],
-          totalPendente: 0,
-          countAtrasado: 0,
-        });
-      }
-      const grupo = porImovel.get(imovel.id)!;
-      grupo.pagamentos.push(pagamento);
-      if (pagamento.status !== 'PAGO') {
-        grupo.totalPendente += pagamento.valor;
-      }
-      if (pagamento.status === 'ATRASADO') {
-        grupo.countAtrasado += 1;
+  // "Em aberto" = precisa da sua atenção (cobrar ou confirmar). "Histórico" = já resolvido
+  // (recebido ou anulado) — fica fora da tela principal pra ela não virar uma lista infinita
+  // de meses já passados, mas nada é perdido: continua uma aba de distância, filtrável por mês.
+  const pagamentosAberto = useMemo(
+    () => pagamentos.filter((p) => p.status === 'PENDENTE' || p.status === 'ATRASADO'),
+    [pagamentos],
+  );
+  const pagamentosHistorico = useMemo(
+    () => pagamentos.filter((p) => p.status === 'PAGO' || p.status === 'ANULADO'),
+    [pagamentos],
+  );
+
+  const mesesDisponiveis = useMemo(() => {
+    const vistos = new Map<string, string>();
+    for (const p of pagamentosHistorico) {
+      const chave = p.mesReferencia.slice(0, 7);
+      if (!vistos.has(chave)) {
+        vistos.set(chave, formatMesReferencia(p.mesReferencia));
       }
     }
+    return Array.from(vistos.entries())
+      .sort((a, b) => b[0].localeCompare(a[0]))
+      .map(([chave, label]) => ({ chave, label }));
+  }, [pagamentosHistorico]);
 
-    for (const grupo of porImovel.values()) {
-      grupo.pagamentos.sort((a, b) => {
-        if (a.mesReferencia !== b.mesReferencia) {
-          return b.mesReferencia.localeCompare(a.mesReferencia);
-        }
-        return a.morador.nome.localeCompare(b.morador.nome);
-      });
+  const pagamentosHistoricoFiltrado = useMemo(() => {
+    if (mesFiltro === 'todos') {
+      return pagamentosHistorico;
     }
+    return pagamentosHistorico.filter((p) => p.mesReferencia.slice(0, 7) === mesFiltro);
+  }, [pagamentosHistorico, mesFiltro]);
 
-    return Array.from(porImovel.values()).sort((a, b) => a.nome.localeCompare(b.nome));
-  }, [pagamentos]);
+  // Busca por morador ou unidade, aplicada por cima do que já estiver filtrado por
+  // aba/mês — não dispara request nova, é só um filtro sobre o que já foi carregado.
+  const buscaNormalizada = busca.trim().toLowerCase();
+  const pagamentosAbertoFiltrado = useMemo(
+    () => filtrarPorBusca(pagamentosAberto, buscaNormalizada),
+    [pagamentosAberto, buscaNormalizada],
+  );
+  const pagamentosHistoricoFiltradoPorBusca = useMemo(
+    () => filtrarPorBusca(pagamentosHistoricoFiltrado, buscaNormalizada),
+    [pagamentosHistoricoFiltrado, buscaNormalizada],
+  );
 
-  function toggleExpandido(imovelId: number) {
-    setExpandidos((atual) => {
-      const proximo = new Set(atual);
-      if (proximo.has(imovelId)) {
-        proximo.delete(imovelId);
-      } else {
-        proximo.add(imovelId);
-      }
-      return proximo;
-    });
-  }
+  const gruposAberto = useMemo(() => agruparPorImovel(pagamentosAbertoFiltrado), [pagamentosAbertoFiltrado]);
+  const gruposHistorico = useMemo(
+    () => agruparPorImovel(pagamentosHistoricoFiltradoPorBusca),
+    [pagamentosHistoricoFiltradoPorBusca],
+  );
+  const grupos = aba === 'aberto' ? gruposAberto : gruposHistorico;
 
   function openModal() {
     setValor('');
     setVencimento('');
     setMoradorId(moradores[0] ? String(moradores[0].id) : '');
+    setObservacao('');
     setError(null);
     setIsModalOpen(true);
   }
@@ -135,13 +222,49 @@ export function Pagamentos() {
     setError(null);
     setIsSubmitting(true);
     try {
-      await api.post('/pagamentos', { valor: Number(valor), vencimento, moradorId: Number(moradorId) });
+      await api.post('/pagamentos', {
+        valor: Number(valor),
+        vencimento,
+        moradorId: Number(moradorId),
+        observacao: observacao.trim() || undefined,
+      });
       setIsModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['morador'] });
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível lançar o pagamento.'));
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  function openComplementarModal() {
+    setComplementarValor('');
+    setComplementarMoradorId(moradores[0] ? String(moradores[0].id) : '');
+    setComplementarData(hojeIso());
+    setComplementarObservacao('');
+    setComplementarError(null);
+    setIsComplementarModalOpen(true);
+  }
+
+  async function handleComplementarSubmit(event: FormEvent) {
+    event.preventDefault();
+    setComplementarError(null);
+    setIsComplementarSubmitting(true);
+    try {
+      await api.post('/pagamentos/complementar', {
+        valor: Number(complementarValor),
+        moradorId: Number(complementarMoradorId),
+        dataPagamento: complementarData,
+        observacao: complementarObservacao.trim() || undefined,
+      });
+      setIsComplementarModalOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['morador'] });
+    } catch (err) {
+      setComplementarError(getApiErrorMessage(err, 'Não foi possível lançar o pagamento complementar.'));
+    } finally {
+      setIsComplementarSubmitting(false);
     }
   }
 
@@ -166,6 +289,7 @@ export function Pagamentos() {
       });
       setMarcandoPago(null);
       queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['morador'] });
     } catch (err) {
       setMarcarPagoError(getApiErrorMessage(err, 'Não foi possível confirmar o pagamento.'));
     } finally {
@@ -178,8 +302,77 @@ export function Pagamentos() {
     try {
       await api.patch(`/pagamentos/${pagamento.id}/desfazer-pagamento`);
       queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['morador'] });
     } catch (err) {
-      setListError(getApiErrorMessage(err, 'Não foi possível desfazer o pagamento.'));
+      setListError(
+        getApiErrorMessage(
+          err,
+          pagamento.status === 'ANULADO' ? 'Não foi possível reverter o pagamento.' : 'Não foi possível desfazer o pagamento.',
+        ),
+      );
+    }
+  }
+
+  function openEditModal(pagamento: Pagamento) {
+    setEditando(pagamento);
+    setEditValor(String(pagamento.valor));
+    setEditVencimento(pagamento.vencimento.slice(0, 10));
+    setEditObservacao(pagamento.observacao ?? '');
+    setEditError(null);
+  }
+
+  async function handleEditSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!editando) {
+      return;
+    }
+    setEditError(null);
+    setIsEditSubmitting(true);
+    try {
+      await api.patch(`/pagamentos/${editando.id}`, {
+        valor: Number(editValor),
+        vencimento: editVencimento,
+        // Sempre manda a string (mesmo vazia) — diferente do formulário de criação, aqui
+        // pode já existir uma observação salva, e "undefined" faria o axios omitir a chave
+        // do corpo da requisição, deixando o valor antigo intacto em vez de limpar.
+        observacao: editObservacao.trim(),
+      });
+      setEditando(null);
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['morador'] });
+    } catch (err) {
+      setEditError(getApiErrorMessage(err, 'Não foi possível salvar as alterações.'));
+    } finally {
+      setIsEditSubmitting(false);
+    }
+  }
+
+  function openAnularModal(pagamento: Pagamento) {
+    setAnulando(pagamento);
+    setAnularObservacao('');
+    setAnularError(null);
+  }
+
+  async function handleAnularSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (!anulando) {
+      return;
+    }
+    setAnularError(null);
+    setIsAnularSubmitting(true);
+    try {
+      await api.patch(`/pagamentos/${anulando.id}/anular`, {
+        // Idem ao Editar: string vazia explícita, não "undefined" (que faria o axios omitir
+        // a chave e manter uma observação antiga de uma anulação anterior).
+        observacao: anularObservacao.trim(),
+      });
+      setAnulando(null);
+      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
+      queryClient.invalidateQueries({ queryKey: ['morador'] });
+    } catch (err) {
+      setAnularError(getApiErrorMessage(err, 'Não foi possível anular o pagamento.'));
+    } finally {
+      setIsAnularSubmitting(false);
     }
   }
 
@@ -190,15 +383,63 @@ export function Pagamentos() {
         subtitle="Controle de aluguéis pagos e pendentes, organizados por imóvel."
         action={
           !isViewer && (
-            <button type="button" className="btn btn-primary" onClick={openModal} disabled={moradores.length === 0}>
-              + Novo pagamento
-            </button>
+            <div className="pagamentos-header-actions">
+              <button type="button" className="btn btn-ghost" onClick={openComplementarModal} disabled={moradores.length === 0}>
+                + Complementar
+              </button>
+              <button type="button" className="btn btn-primary" onClick={openModal} disabled={moradores.length === 0}>
+                + Novo pagamento
+              </button>
+            </div>
           )
         }
       />
 
-      {moradores.length === 0 && <p className="form-error">Cadastre um morador antes de lançar pagamentos.</p>}
+      {!isLoadingMoradores && moradores.length === 0 && (
+        <p className="form-error">Cadastre um morador antes de lançar pagamentos.</p>
+      )}
       <ErrorBanner message={displayedError} />
+
+      <div className="pagamentos-tabs">
+        <button
+          type="button"
+          className={`pagamentos-tab${aba === 'aberto' ? ' pagamentos-tab-ativa' : ''}`}
+          onClick={() => setAba('aberto')}
+        >
+          Em aberto
+          {pagamentosAberto.length > 0 && <span className="pagamentos-tab-count">{pagamentosAberto.length}</span>}
+        </button>
+        <button
+          type="button"
+          className={`pagamentos-tab${aba === 'historico' ? ' pagamentos-tab-ativa' : ''}`}
+          onClick={() => setAba('historico')}
+        >
+          Histórico
+        </button>
+        {aba === 'historico' && mesesDisponiveis.length > 0 && (
+          <select
+            className="pagamentos-tab-filtro"
+            value={mesFiltro}
+            onChange={(event) => setMesFiltro(event.target.value)}
+            aria-label="Filtrar histórico por mês"
+          >
+            <option value="todos">Todos os meses</option>
+            {mesesDisponiveis.map((mes) => (
+              <option key={mes.chave} value={mes.chave}>
+                {mes.label}
+              </option>
+            ))}
+          </select>
+        )}
+        <input
+          type="search"
+          className="pagamentos-busca"
+          placeholder="Buscar por morador ou unidade..."
+          value={busca}
+          onChange={(event) => setBusca(event.target.value)}
+          aria-label="Buscar por morador ou unidade"
+        />
+      </div>
 
       {isLoading ? (
         <Card>
@@ -206,55 +447,86 @@ export function Pagamentos() {
         </Card>
       ) : grupos.length === 0 ? (
         <Card>
-          <p className="table-empty">Nenhum pagamento lançado ainda.</p>
+          <p className="table-empty">
+            {busca.trim()
+              ? 'Nenhum pagamento encontrado para essa busca.'
+              : aba === 'aberto'
+                ? 'Nenhum pagamento em aberto — tudo em dia.'
+                : 'Nenhum pagamento nesse histórico ainda.'}
+          </p>
         </Card>
       ) : (
         <div className="imoveis-list">
           {grupos.map((grupo) => {
             const aberto = expandidos.has(grupo.imovelId);
             return (
-              <section className="imovel-card" key={grupo.imovelId}>
-                <button
-                  type="button"
-                  className="imovel-card-summary-row"
-                  onClick={() => toggleExpandido(grupo.imovelId)}
-                  aria-expanded={aberto}
-                >
-                  <div className="imovel-card-summary-main">
-                    <span className={`imovel-card-chevron${aberto ? ' imovel-card-chevron-open' : ''}`} aria-hidden="true">
-                      ▾
-                    </span>
-                    <div className="imovel-card-summary-title">
-                      <span className="imovel-card-nome">{grupo.nome}</span>
-                      {grupo.endereco && <span className="imovel-card-endereco">{grupo.endereco}</span>}
-                    </div>
-                  </div>
-                  <div className="imovel-card-summary-stats">
+              <ExpandableGroupCard
+                key={grupo.imovelId}
+                isOpen={aberto}
+                onToggle={() => toggleExpandido(grupo.imovelId)}
+                title={grupo.nome}
+                subtitle={grupo.endereco}
+                stats={
+                  <>
                     <span className="imovel-card-stat">
                       {grupo.pagamentos.length} parcela{grupo.pagamentos.length === 1 ? '' : 's'}
                     </span>
-                    {grupo.countAtrasado > 0 && (
-                      <span className="imovel-card-stat payment-status-days-danger">
-                        {grupo.countAtrasado} atrasada{grupo.countAtrasado === 1 ? '' : 's'}
-                      </span>
+                    {aba === 'aberto' ? (
+                      <>
+                        {grupo.countAtrasado > 0 && (
+                          <span className="imovel-card-stat payment-status-days-danger">
+                            {grupo.countAtrasado} atrasada{grupo.countAtrasado === 1 ? '' : 's'}
+                          </span>
+                        )}
+                        <span className="imovel-card-stat imovel-card-stat-valor">
+                          {formatCurrency(grupo.totalPendente)} em aberto
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        {grupo.countAnulado > 0 && (
+                          <span className="imovel-card-stat">
+                            {grupo.countAnulado} anulada{grupo.countAnulado === 1 ? '' : 's'}
+                          </span>
+                        )}
+                        <span className="imovel-card-stat imovel-card-stat-valor">
+                          {formatCurrency(grupo.totalRecebido)} recebido
+                        </span>
+                      </>
                     )}
-                    <span className="imovel-card-stat imovel-card-stat-valor">
-                      {formatCurrency(grupo.totalPendente)} em aberto
-                    </span>
-                  </div>
-                </button>
-
-                {aberto && (
-                  <div className="imovel-card-body">
+                  </>
+                }
+              >
                     <Table
                       rows={grupo.pagamentos}
                       rowKey={(row) => row.id}
                       emptyMessage="Nenhum pagamento neste imóvel ainda."
                       columns={[
-                        { header: 'Morador', render: (row) => row.morador.nome },
+                        {
+                          header: 'Morador',
+                          render: (row) => (
+                            <div className="payment-morador-cell">
+                              <span>{row.morador.nome}</span>
+                              {row.tipo === 'COMPLEMENTAR' && (
+                                <span className="payment-tipo-tag">
+                                  Complementar{row.origem ? ` · de ${row.origem}` : ''}
+                                </span>
+                              )}
+                              {row.observacao && row.status !== 'ANULADO' && (
+                                <span className="payment-observacao" title={row.observacao}>ℹ︎ {row.observacao}</span>
+                              )}
+                            </div>
+                          ),
+                        },
                         { header: 'Unidade', render: (row) => row.morador.kitnet.numero },
                         { header: 'Mês', render: (row) => formatMesReferencia(row.mesReferencia) },
-                        { header: 'Vencimento', render: (row) => dateFormatter.format(new Date(row.vencimento)) },
+                        {
+                          header: 'Vencimento',
+                          render: (row) =>
+                            row.tipo === 'COMPLEMENTAR'
+                              ? `Recebido em ${formatDate(row.vencimento)}`
+                              : formatDate(row.vencimento),
+                        },
                         { header: 'Valor', render: (row) => formatCurrency(row.valor) },
                         {
                           header: 'Status',
@@ -263,8 +535,10 @@ export function Pagamentos() {
                               <StatusBadge label={row.status.toLowerCase()} />
                               {row.status === 'PAGO' && row.dataPagamento ? (
                                 <span className="payment-status-days">
-                                  Pago em {dateFormatter.format(new Date(row.dataPagamento))}
+                                  Pago em {formatDate(row.dataPagamento)}
                                 </span>
+                              ) : row.status === 'ANULADO' ? (
+                                row.observacao && <span className="payment-status-days">{row.observacao}</span>
                               ) : (
                                 <span
                                   className={`payment-status-days${row.status === 'ATRASADO' ? ' payment-status-days-danger' : ''}`}
@@ -281,27 +555,42 @@ export function Pagamentos() {
                               {
                                 header: '',
                                 align: 'right' as const,
-                                render: (row: Pagamento) =>
-                                  row.status === 'PAGO' ? (
-                                    <button type="button" className="btn btn-ghost" onClick={() => desfazerPagamento(row)}>
-                                      Desfazer
+                                render: (row: Pagamento) => (
+                                  <div className="table-row-actions">
+                                    <button type="button" className="btn btn-ghost" onClick={() => openEditModal(row)}>
+                                      Editar
                                     </button>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      className="btn btn-ghost"
-                                      onClick={() => openMarcarPagoModal(row)}
-                                    >
-                                      Marcar pago
-                                    </button>
-                                  ),
+                                    {row.status === 'PAGO' && (
+                                      <button type="button" className="btn btn-ghost" onClick={() => desfazerPagamento(row)}>
+                                        Desfazer
+                                      </button>
+                                    )}
+                                    {row.status === 'ANULADO' && (
+                                      <button type="button" className="btn btn-ghost" onClick={() => desfazerPagamento(row)}>
+                                        Reverter
+                                      </button>
+                                    )}
+                                    {(row.status === 'PENDENTE' || row.status === 'ATRASADO') && (
+                                      <>
+                                        <button
+                                          type="button"
+                                          className="btn btn-ghost"
+                                          onClick={() => openMarcarPagoModal(row)}
+                                        >
+                                          Marcar pago
+                                        </button>
+                                        <button type="button" className="btn btn-ghost" onClick={() => openAnularModal(row)}>
+                                          Anular
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                ),
                               },
                             ]),
                       ]}
                     />
-                  </div>
-                )}
-              </section>
+              </ExpandableGroupCard>
             );
           })}
         </div>
@@ -323,15 +612,13 @@ export function Pagamentos() {
             </div>
             <div className="field">
               <label htmlFor="valor">Valor</label>
-              <input
-                id="valor"
-                type="number"
-                min={0}
-                step="0.01"
-                required
-                value={valor}
-                onChange={(event) => setValor(event.target.value)}
-              />
+              <CurrencyInput id="valor" required value={valor} onChange={setValor} />
+              {valorReferencia !== undefined && (
+                <span className="payment-valor-referencia">
+                  Valor combinado na kitnet: {formatCurrency(valorReferencia)}
+                  {Number(valor) > 0 && Number(valor) !== valorReferencia ? ' · diferente do padrão' : ''}
+                </span>
+              )}
             </div>
             <div className="field">
               <label htmlFor="vencimento">Vencimento</label>
@@ -343,8 +630,68 @@ export function Pagamentos() {
                 onChange={(event) => setVencimento(event.target.value)}
               />
             </div>
+            <div className="field">
+              <label htmlFor="observacao">Motivo do ajuste (opcional)</label>
+              <input
+                id="observacao"
+                placeholder="Ex.: Proporcional a 19 dias, 1º mês repassado à imobiliária..."
+                value={observacao}
+                onChange={(event) => setObservacao(event.target.value)}
+              />
+            </div>
             <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
               {isSubmitting ? 'Salvando...' : 'Salvar'}
+            </button>
+          </form>
+        </Modal>
+      )}
+
+      {isComplementarModalOpen && (
+        <Modal title="Pagamento complementar" onClose={() => setIsComplementarModalOpen(false)}>
+          <form onSubmit={handleComplementarSubmit} className="field-group">
+            <ErrorBanner message={complementarError} />
+            <p className="field-static-hint">
+              Use para um valor recebido fora do aluguel do mês — ex.: valor combinado com um ex-morador, multa,
+              taxa extra.
+            </p>
+            <div className="field">
+              <label htmlFor="complementarMoradorId">Morador</label>
+              <select
+                id="complementarMoradorId"
+                value={complementarMoradorId}
+                onChange={(event) => setComplementarMoradorId(event.target.value)}
+              >
+                {moradores.map((morador) => (
+                  <option key={morador.id} value={morador.id}>
+                    {morador.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="field">
+              <label htmlFor="complementarValor">Valor</label>
+              <CurrencyInput id="complementarValor" required value={complementarValor} onChange={setComplementarValor} />
+            </div>
+            <div className="field">
+              <label htmlFor="complementarData">Data de recebimento</label>
+              <input
+                id="complementarData"
+                type="date"
+                required
+                value={complementarData}
+                onChange={(event) => setComplementarData(event.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="complementarObservacao">Observação (opcional)</label>
+              <input
+                id="complementarObservacao"
+                value={complementarObservacao}
+                onChange={(event) => setComplementarObservacao(event.target.value)}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={isComplementarSubmitting}>
+              {isComplementarSubmitting ? 'Salvando...' : 'Salvar'}
             </button>
           </form>
         </Modal>
@@ -378,6 +725,72 @@ export function Pagamentos() {
             </div>
             <button type="submit" className="btn btn-primary" disabled={isMarcandoPagoSubmitting}>
               {isMarcandoPagoSubmitting ? 'Salvando...' : 'Confirmar pagamento'}
+            </button>
+          </form>
+        </Modal>
+      )}
+
+      {editando && (
+        <Modal
+          title={`Editar · ${editando.morador.nome} · ${formatMesReferencia(editando.mesReferencia)}`}
+          onClose={() => setEditando(null)}
+        >
+          <form onSubmit={handleEditSubmit} className="field-group">
+            <ErrorBanner message={editError} />
+            <div className="field">
+              <label htmlFor="editValor">Valor</label>
+              <CurrencyInput id="editValor" required value={editValor} onChange={setEditValor} />
+            </div>
+            <div className="field">
+              <label htmlFor="editVencimento">
+                {editando.tipo === 'COMPLEMENTAR' ? 'Data de recebimento' : 'Vencimento'}
+              </label>
+              <input
+                id="editVencimento"
+                type="date"
+                required
+                value={editVencimento}
+                onChange={(event) => setEditVencimento(event.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label htmlFor="editObservacao">Observação (opcional)</label>
+              <input
+                id="editObservacao"
+                placeholder="Ex.: Proporcional a 19 dias, 1º mês repassado à imobiliária..."
+                value={editObservacao}
+                onChange={(event) => setEditObservacao(event.target.value)}
+              />
+            </div>
+            <button type="submit" className="btn btn-primary" disabled={isEditSubmitting}>
+              {isEditSubmitting ? 'Salvando...' : 'Salvar alterações'}
+            </button>
+          </form>
+        </Modal>
+      )}
+
+      {anulando && (
+        <Modal
+          title={`Anular · ${anulando.morador.nome} · ${formatMesReferencia(anulando.mesReferencia)}`}
+          onClose={() => setAnulando(null)}
+        >
+          <form onSubmit={handleAnularSubmit} className="field-group">
+            <ErrorBanner message={anularError} />
+            <p className="field-static-hint">
+              Use quando essa parcela não vai ser recebida — ex.: 1º mês repassado à imobiliária, morador saiu
+              antes do fim do contrato. Ela deixa de contar como pendência ou receita, mas continua no histórico.
+            </p>
+            <div className="field">
+              <label htmlFor="anularObservacao">Motivo (opcional)</label>
+              <input
+                id="anularObservacao"
+                placeholder="Ex.: Repassado à imobiliária"
+                value={anularObservacao}
+                onChange={(event) => setAnularObservacao(event.target.value)}
+              />
+            </div>
+            <button type="submit" className="btn btn-danger" disabled={isAnularSubmitting}>
+              {isAnularSubmitting ? 'Salvando...' : 'Anular pagamento'}
             </button>
           </form>
         </Modal>

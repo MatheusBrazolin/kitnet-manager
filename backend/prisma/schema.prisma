@@ -22,6 +22,19 @@ enum StatusPagamento {
   PENDENTE
   PAGO
   ATRASADO
+  // Parcela que não vamos receber (ou já não é mais cobrada) — ex.: 1º mês repassado à
+  // imobiliária, morador saiu antes do fim do contrato. Diferente de PAGO: não entra como
+  // receita nem em "total em atraso"/"próximos vencimentos" (essas consultas já filtram por
+  // status específico, então um pagamento ANULADO fica de fora de todas elas sem precisar
+  // de nenhum filtro extra).
+  ANULADO
+}
+
+enum TipoPagamento {
+  // Parcela do aluguel do mês — gerada automaticamente ou lançada manualmente.
+  ALUGUEL
+  // Lançamento extra fora do aluguel do mês (ex.: multa, taxa, valor recebido de terceiro).
+  COMPLEMENTAR
 }
 
 model User {
@@ -66,6 +79,8 @@ model Imovel {
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   kitnets Kitnet[]
+
+  @@index([userId])
 }
 
 model Kitnet {
@@ -88,8 +103,26 @@ model Kitnet {
 
   moradores Morador[]
   gastos    Gasto[]
+  historicoValor KitnetValorHistorico[]
 
   @@unique([imovelId, numero])
+  @@index([userId])
+}
+
+// Registro append-only de cada valor de aluguel que a unidade já teve — criado uma vez na
+// criação da kitnet, e de novo toda vez que `Kitnet.valor` muda. Sem isso, reajustar o
+// aluguel de um morador sobrescreve o valor antigo sem deixar rastro de quando/para quanto
+// mudou.
+model KitnetValorHistorico {
+  id           Int      @id @default(autoincrement())
+  valor        Float
+  vigenteDesde DateTime @default(now())
+  createdAt    DateTime @default(now())
+
+  kitnetId Int
+  kitnet   Kitnet @relation(fields: [kitnetId], references: [id], onDelete: Cascade)
+
+  @@index([kitnetId])
 }
 
 model Morador {
@@ -105,26 +138,43 @@ model Morador {
   kitnet   Kitnet @relation(fields: [kitnetId], references: [id], onDelete: Cascade)
 
   pagamentos Pagamento[]
+
+  @@index([kitnetId])
 }
 
 model Pagamento {
   id             Int             @id @default(autoincrement())
   valor          Float
-  // Mês de competência do aluguel (sempre truncado no dia 1, UTC) — um registro por mês.
+  // Mês de competência do aluguel (sempre truncado no dia 1, UTC) — um registro por mês
+  // e por tipo (ver @@unique abaixo).
   mesReferencia  DateTime
   vencimento     DateTime
   status         StatusPagamento @default(PENDENTE)
   // Data em que o valor foi efetivamente recebido; preenchida só quando status = PAGO.
   dataPagamento  DateTime?
   formaPagamento String?
+  // ALUGUEL (padrão, gerado automaticamente) ou COMPLEMENTAR (lançamento manual extra,
+  // que não substitui nem concorre com a parcela do aluguel do mês).
+  tipo           TipoPagamento   @default(ALUGUEL)
+  // De quem veio o valor, quando não é simplesmente "o morador" (ex.: ex-morador, fiador,
+  // terceiro). Usado principalmente em lançamentos COMPLEMENTAR.
+  origem         String?
+  // Anotação livre explicando um valor fora do padrão (ex.: "Proporcional a 19 dias",
+  // "1º mês repassado à imobiliária").
+  observacao     String?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 
   moradorId Int
   morador   Morador @relation(fields: [moradorId], references: [id], onDelete: Cascade)
 
-  @@unique([moradorId, mesReferencia])
-  @@index([moradorId])
+  // No máximo um pagamento de cada tipo por morador por mês de competência — garante 1
+  // parcela de ALUGUEL por mês, mas permite um lançamento COMPLEMENTAR coexistir com ela.
+  // (Sem índice solo em moradorId: o índice único acima já cobre buscas por moradorId
+  // sozinho, já que é a coluna líder de um índice composto.)
+  @@unique([moradorId, mesReferencia, tipo])
+  // Cobre a consulta mais comum do app: pagamentos pendentes/atrasados por vencimento.
+  @@index([status, vencimento])
 }
 
 model Gasto {
@@ -137,4 +187,6 @@ model Gasto {
 
   kitnetId Int
   kitnet   Kitnet @relation(fields: [kitnetId], references: [id], onDelete: Cascade)
+
+  @@index([kitnetId])
 }

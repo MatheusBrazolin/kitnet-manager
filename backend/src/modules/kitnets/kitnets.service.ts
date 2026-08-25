@@ -31,12 +31,18 @@ export class KitnetsService {
 
   async findDetail(userId: number, id: number) {
     const kitnet = await this.findOwnedOrThrow(userId, id);
-    const gastos = await this.prisma.gasto.findMany({
-      where: { kitnetId: id },
-      orderBy: { data: 'desc' },
-    });
+    const [gastos, historicoValor] = await Promise.all([
+      this.prisma.gasto.findMany({
+        where: { kitnetId: id },
+        orderBy: { data: 'desc' },
+      }),
+      this.prisma.kitnetValorHistorico.findMany({
+        where: { kitnetId: id },
+        orderBy: { vigenteDesde: 'desc' },
+      }),
+    ]);
     const totalGasto = gastos.reduce((total, gasto) => total + gasto.valor, 0);
-    return { ...kitnet, gastos, totalGasto };
+    return { ...kitnet, gastos, totalGasto, historicoValor };
   }
 
   private async assertImovelOwnership(userId: number, imovelId: number) {
@@ -51,14 +57,32 @@ export class KitnetsService {
 
   async create(userId: number, dto: CreateKitnetDto) {
     await this.assertImovelOwnership(userId, dto.imovelId);
-    return this.prisma.kitnet.create({ data: { ...dto, userId } });
+    const kitnet = await this.prisma.kitnet.create({ data: { ...dto, userId } });
+    // Primeiro registro do histórico de valor — vigente desde a criação da unidade.
+    await this.prisma.kitnetValorHistorico.create({
+      data: { kitnetId: kitnet.id, valor: kitnet.valor, vigenteDesde: kitnet.createdAt },
+    });
+    return kitnet;
   }
 
   async update(userId: number, id: number, dto: UpdateKitnetDto) {
-    await this.findOwnedOrThrow(userId, id);
+    const atual = await this.findOwnedOrThrow(userId, id);
     if (dto.imovelId !== undefined) {
       await this.assertImovelOwnership(userId, dto.imovelId);
     }
+
+    // Só registra um novo ponto no histórico quando o valor realmente muda — editar só o
+    // número da unidade ou a taxa da imobiliária não é um "reajuste".
+    if (dto.valor !== undefined && dto.valor !== atual.valor) {
+      const [, kitnetAtualizada] = await this.prisma.$transaction([
+        this.prisma.kitnetValorHistorico.create({
+          data: { kitnetId: id, valor: dto.valor },
+        }),
+        this.prisma.kitnet.update({ where: { id }, data: dto }),
+      ]);
+      return kitnetAtualizada;
+    }
+
     return this.prisma.kitnet.update({ where: { id }, data: dto });
   }
 

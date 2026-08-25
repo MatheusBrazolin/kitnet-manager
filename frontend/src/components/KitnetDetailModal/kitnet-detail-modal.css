@@ -36,7 +36,19 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  margin: 0 0 var(--space-3);
+  margin: var(--space-5) 0 var(--space-3);
+}
+
+.kitnet-detail-subtitle:first-of-type {
+  margin-top: 0;
+}
+
+.kitnet-historico-alta {
+  color: var(--color-success-ink);
+}
+
+.kitnet-historico-baixa {
+  color: var(--color-danger-ink);
 }
 
 @media (max-width: 540px) {

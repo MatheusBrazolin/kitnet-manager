@@ -37,6 +37,9 @@ export interface Morador {
   kitnetId: number;
   dataEntrada: string;
   diaVencimento: number;
+  // Presente quando o endpoint inclui a kitnet (ex.: GET /moradores) — ausente em respostas
+  // que não fazem esse include.
+  kitnet?: Kitnet;
 }
 
 export interface Kitnet {
@@ -59,7 +62,8 @@ export interface Imovel {
   kitnets: Kitnet[];
 }
 
-export type StatusPagamento = 'PENDENTE' | 'PAGO' | 'ATRASADO';
+export type StatusPagamento = 'PENDENTE' | 'PAGO' | 'ATRASADO' | 'ANULADO';
+export type TipoPagamento = 'ALUGUEL' | 'COMPLEMENTAR';
 
 export interface PagamentoAlerta {
   id: number;
@@ -79,6 +83,9 @@ export interface Pagamento {
   status: StatusPagamento;
   dataPagamento: string | null;
   formaPagamento: string | null;
+  tipo: TipoPagamento;
+  origem: string | null;
+  observacao: string | null;
   moradorId: number;
   morador: Morador & { kitnet: Kitnet };
 }
@@ -91,6 +98,9 @@ export interface PagamentoResumo {
   status: StatusPagamento;
   dataPagamento: string | null;
   formaPagamento: string | null;
+  tipo: TipoPagamento;
+  origem: string | null;
+  observacao: string | null;
 }
 
 export interface MoradorDetail extends Morador {
@@ -114,9 +124,16 @@ export interface GastoResumo {
   data: string;
 }
 
+export interface KitnetValorHistoricoResumo {
+  id: number;
+  valor: number;
+  vigenteDesde: string;
+}
+
 export interface KitnetDetail extends Kitnet {
   gastos: GastoResumo[];
   totalGasto: number;
+  historicoValor: KitnetValorHistoricoResumo[];
 }
 
 export interface DashboardSummary {

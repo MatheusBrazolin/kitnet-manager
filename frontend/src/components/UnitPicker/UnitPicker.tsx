@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Kitnet } from '../../types';
+import { useToggleSet } from '../../hooks/useToggleSet';
 import './unit-picker.css';
 
 interface UnitPickerProps {
@@ -33,7 +34,7 @@ function agruparPorImovel(kitnets: Kitnet[]): Grupo[] {
 
 export function UnitPicker({ id, kitnets, value, onChange, placeholder = 'Selecione' }: UnitPickerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [expandidos, setExpandidos] = useState<Set<number>>(new Set());
+  const [expandidos, toggleExpandido] = useToggleSet<number>();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const grupos = useMemo(() => agruparPorImovel(kitnets), [kitnets]);
@@ -48,18 +49,6 @@ export function UnitPicker({ id, kitnets, value, onChange, placeholder = 'Seleci
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  function toggleExpandido(imovelId: number) {
-    setExpandidos((atual) => {
-      const proximo = new Set(atual);
-      if (proximo.has(imovelId)) {
-        proximo.delete(imovelId);
-      } else {
-        proximo.add(imovelId);
-      }
-      return proximo;
-    });
-  }
 
   function selecionar(kitnetId: number) {
     onChange(kitnetId);
@@ -97,6 +86,8 @@ export function UnitPicker({ id, kitnets, value, onChange, placeholder = 'Seleci
               <button
                 key={grupo.imovelId}
                 type="button"
+                role="option"
+                aria-selected={grupo.unidades[0].id === value}
                 className={`unit-picker-item unit-picker-item-single${
                   grupo.unidades[0].id === value ? ' unit-picker-item-active' : ''
                 }`}
@@ -127,6 +118,8 @@ export function UnitPicker({ id, kitnets, value, onChange, placeholder = 'Seleci
                       <button
                         key={unidade.id}
                         type="button"
+                        role="option"
+                        aria-selected={unidade.id === value}
                         className={`unit-picker-item${unidade.id === value ? ' unit-picker-item-active' : ''}`}
                         onClick={() => selecionar(unidade.id)}
                       >

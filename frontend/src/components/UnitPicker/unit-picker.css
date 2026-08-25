@@ -26,7 +26,10 @@
 }
 
 .unit-picker-placeholder {
-  color: var(--color-ink-faint);
+  /* --color-ink-faint tem contraste ~3.6:1 sobre --color-surface — abaixo do mínimo AA
+     (4.5:1) pra texto normal. --color-ink-muted é usado no resto do app como cor de texto
+     secundário e tem contraste bem maior. */
+  color: var(--color-ink-muted);
 }
 
 .unit-picker-chevron {
