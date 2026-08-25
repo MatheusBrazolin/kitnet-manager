@@ -35,6 +35,14 @@
   background: var(--color-surface-sunken);
 }
 
+/* Sem isso, o foco (clique ou teclado) usa o outline azul padrão do navegador, que
+   ignora o border-radius do card e sobra pra fora dos cantos arredondados. Mesmo
+   padrão de foco preto usado no resto do app (ex.: .table-row-clickable). */
+.imovel-card-summary-row:focus-visible {
+  outline: var(--border-width) solid var(--color-ink);
+  outline-offset: -2px;
+}
+
 .imovel-card-summary-main {
   display: flex;
   align-items: center;
@@ -95,7 +103,7 @@
 }
 
 .imovel-card-body {
-  padding: 0 var(--space-5) var(--space-5);
+  padding: var(--space-4) var(--space-5) var(--space-5);
   border-top: var(--border-width) solid var(--color-border-soft);
   display: flex;
   flex-direction: column;
