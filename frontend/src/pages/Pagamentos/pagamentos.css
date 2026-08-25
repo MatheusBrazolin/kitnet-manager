@@ -84,3 +84,22 @@
   font-size: var(--text-sm);
   min-width: 220px;
 }
+
+@media (max-width: 640px) {
+  .pagamentos-header-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  /* Sem os 220px fixos + margin-left:auto, que sobra do layout desktop: aqui a busca
+     é só mais um item de largura cheia da fileira, junto com as abas. */
+  .pagamentos-busca {
+    margin-left: 0;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .pagamentos-tab-filtro {
+    flex: 1;
+  }
+}

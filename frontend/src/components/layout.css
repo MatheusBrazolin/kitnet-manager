@@ -62,7 +62,10 @@
     flex-direction: column;
   }
 
+  /* padding-bottom extra pra nenhum conteúdo ficar escondido atrás da .mobile-tabbar
+     fixa (ver sidebar.css) */
   .layout-content {
     padding: var(--space-5);
+    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   }
 }
