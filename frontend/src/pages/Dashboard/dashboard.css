@@ -48,6 +48,35 @@
   .dashboard-grid {
     grid-template-columns: 1fr;
   }
+
+  /* 6 stat cards empilhados largura-cheia = rolagem enorme antes de chegar nos
+     gráficos. No mobile eles viram um grid 2x3 compacto — mesmo StatCard, só
+     padding/fonte reduzidos e o hint (às vezes uma frase longa) truncado. */
+  .dashboard-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-3);
+  }
+
+  .dashboard-stats .stat-card {
+    flex: initial;
+    padding: var(--space-3);
+    gap: var(--space-1);
+  }
+
+  .dashboard-stats .stat-card-value {
+    font-size: var(--text-lg);
+  }
+
+  .dashboard-stats .stat-card-hint {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dashboard-skeleton-stat {
+    height: 76px;
+  }
 }
 
 .dashboard-onboarding {

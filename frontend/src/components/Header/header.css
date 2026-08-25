@@ -19,3 +19,16 @@
   margin-top: var(--space-1);
   font-weight: 500;
 }
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  /* Botão(ões) de ação (ex.: "+ Novo morador") vira alvo de toque largura-cheia em vez
+     de ficar espremido ao lado do título. */
+  .header .btn {
+    width: 100%;
+  }
+}

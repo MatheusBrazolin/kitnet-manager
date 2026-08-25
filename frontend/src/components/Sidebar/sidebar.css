@@ -167,7 +167,6 @@
     width: 100%;
     height: auto;
     flex-direction: row;
-    flex-wrap: wrap;
     align-items: center;
     border-right: none;
     border-bottom: var(--border-width-lg) solid var(--color-ink);
@@ -179,16 +178,9 @@
     flex: 1;
   }
 
+  /* A navegação sai daqui — vira a .mobile-tabbar fixa no rodapé, abaixo. */
   .sidebar-nav {
-    order: 3;
-    flex-direction: row;
-    flex-basis: 100%;
-    gap: var(--space-2);
-    overflow-x: auto;
-  }
-
-  .sidebar-link {
-    white-space: nowrap;
+    display: none;
   }
 
   .sidebar-footer {
@@ -200,5 +192,60 @@
 
   .sidebar-user-info {
     display: none;
+  }
+}
+
+.mobile-tabbar {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .mobile-tabbar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    justify-content: space-around;
+    gap: 2px;
+    background: var(--color-ink);
+    border-top: var(--border-width-lg) solid var(--color-brand);
+    padding: 0.4rem 0.2rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
+    z-index: 40;
+  }
+
+  .mobile-tab {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+    padding: 0.2rem 0.05rem;
+    color: var(--color-bg);
+    opacity: 0.6;
+    transition: opacity var(--duration-normal) var(--ease-out-expo);
+  }
+
+  .mobile-tab-icon {
+    width: 19px;
+    height: 19px;
+    flex-shrink: 0;
+  }
+
+  .mobile-tab-label {
+    font-size: 0.5rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .mobile-tab-active {
+    opacity: 1;
+    color: var(--color-brand);
   }
 }
