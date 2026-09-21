@@ -1,4 +1,11 @@
-import { IsDateString, IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 export class CreatePagamentoDto {
   @IsNumber()

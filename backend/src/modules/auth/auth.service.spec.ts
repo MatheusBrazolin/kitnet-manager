@@ -22,7 +22,11 @@ describe('AuthService', () => {
   beforeEach(() => {
     usersService = { findByEmail: jest.fn(), create: jest.fn() };
     jwtService = { sign: jest.fn().mockReturnValue('signed-token') };
-    contaService = { resolve: jest.fn().mockResolvedValue({ contaId: existingUser.id, papel: 'OWNER' }) };
+    contaService = {
+      resolve: jest
+        .fn()
+        .mockResolvedValue({ contaId: existingUser.id, papel: 'OWNER' }),
+    };
 
     authService = new AuthService(
       usersService as unknown as UsersService,
@@ -36,7 +40,11 @@ describe('AuthService', () => {
       usersService.findByEmail.mockResolvedValue(existingUser);
 
       await expect(
-        authService.register({ name: 'Maria', email: existingUser.email, password: 'senha123' }),
+        authService.register({
+          name: 'Maria',
+          email: existingUser.email,
+          password: 'senha123',
+        }),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
@@ -50,7 +58,9 @@ describe('AuthService', () => {
         password: 'senha123',
       });
 
-      const [createArgs] = usersService.create.mock.calls[0] as [{ password: string }];
+      const [createArgs] = usersService.create.mock.calls[0] as [
+        { password: string },
+      ];
       expect(await bcrypt.compare('senha123', createArgs.password)).toBe(true);
       expect(result).toEqual({
         token: 'signed-token',
@@ -80,15 +90,24 @@ describe('AuthService', () => {
       usersService.findByEmail.mockResolvedValue(existingUser);
 
       await expect(
-        authService.login({ email: existingUser.email, password: 'senha-errada' }),
+        authService.login({
+          email: existingUser.email,
+          password: 'senha-errada',
+        }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it('returns a token when credentials are valid', async () => {
       const hashedPassword = await bcrypt.hash('senha123', 10);
-      usersService.findByEmail.mockResolvedValue({ ...existingUser, password: hashedPassword });
+      usersService.findByEmail.mockResolvedValue({
+        ...existingUser,
+        password: hashedPassword,
+      });
 
-      const result = await authService.login({ email: existingUser.email, password: 'senha123' });
+      const result = await authService.login({
+        email: existingUser.email,
+        password: 'senha123',
+      });
 
       expect(result.token).toBe('signed-token');
       expect(result.user.email).toBe(existingUser.email);

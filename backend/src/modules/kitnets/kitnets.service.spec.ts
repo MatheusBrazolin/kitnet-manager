@@ -44,10 +44,23 @@ describe('KitnetsService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
-      kitnetValorHistorico: { findMany: jest.fn().mockResolvedValue([]), create: jest.fn() },
-      imovel: { findUnique: jest.fn().mockResolvedValue({ id: imovelId, userId: ownerId }) },
+      kitnetValorHistorico: {
+        findMany: jest.fn().mockResolvedValue([]),
+        create: jest.fn(),
+      },
+      imovel: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ id: imovelId, userId: ownerId }),
+      },
       gasto: { findMany: jest.fn().mockResolvedValue([]) },
-      $transaction: jest.fn((operations: Promise<unknown>[]) => Promise.all(operations)),
+      // $transaction do Prisma tem duas formas: um array de operações (usado em
+      // `update`) e um callback que recebe o client transacional (usado em `create`).
+      // O mock aceita as duas, entregando o próprio mock como client no callback.
+      $transaction: jest.fn(
+        (arg: Promise<unknown>[] | ((tx: unknown) => Promise<unknown>)) =>
+          typeof arg === 'function' ? arg(prisma) : Promise.all(arg),
+      ),
     };
 
     service = new KitnetsService(prisma as unknown as PrismaService);
@@ -57,19 +70,25 @@ describe('KitnetsService', () => {
     it('throws NotFoundException when the kitnet does not exist', async () => {
       prisma.kitnet.findUnique.mockResolvedValue(null);
 
-      await expect(service.findOwnedOrThrow(ownerId, 999)).rejects.toBeInstanceOf(NotFoundException);
+      await expect(
+        service.findOwnedOrThrow(ownerId, 999),
+      ).rejects.toBeInstanceOf(NotFoundException);
     });
 
     it('throws ForbiddenException when the kitnet belongs to another user', async () => {
       prisma.kitnet.findUnique.mockResolvedValue({ ...kitnet, userId: 2 });
 
-      await expect(service.findOwnedOrThrow(ownerId, kitnet.id)).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        service.findOwnedOrThrow(ownerId, kitnet.id),
+      ).rejects.toBeInstanceOf(ForbiddenException);
     });
 
     it('returns the kitnet when owned by the user', async () => {
       prisma.kitnet.findUnique.mockResolvedValue(kitnet);
 
-      await expect(service.findOwnedOrThrow(ownerId, kitnet.id)).resolves.toEqual(kitnet);
+      await expect(
+        service.findOwnedOrThrow(ownerId, kitnet.id),
+      ).resolves.toEqual(kitnet);
     });
   });
 
@@ -77,16 +96,20 @@ describe('KitnetsService', () => {
     it('throws ForbiddenException when the imóvel does not belong to the user', async () => {
       prisma.imovel.findUnique.mockResolvedValue({ id: imovelId, userId: 2 });
 
-      await expect(service.create(ownerId, { numero: '04', valor: 900, imovelId })).rejects.toBeInstanceOf(
-        ForbiddenException,
-      );
+      await expect(
+        service.create(ownerId, { numero: '04', valor: 900, imovelId }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
       expect(prisma.kitnet.create).not.toHaveBeenCalled();
     });
 
     it('creates the kitnet when the imóvel belongs to the user', async () => {
       prisma.kitnet.create.mockResolvedValue(kitnet);
 
-      const result = await service.create(ownerId, { numero: '01', valor: 900, imovelId });
+      const result = await service.create(ownerId, {
+        numero: '01',
+        valor: 900,
+        imovelId,
+      });
 
       expect(prisma.kitnet.create).toHaveBeenCalledWith({
         data: { numero: '01', valor: 900, imovelId, userId: ownerId },
@@ -100,7 +123,11 @@ describe('KitnetsService', () => {
       await service.create(ownerId, { numero: '01', valor: 900, imovelId });
 
       expect(prisma.kitnetValorHistorico.create).toHaveBeenCalledWith({
-        data: { kitnetId: kitnet.id, valor: kitnet.valor, vigenteDesde: kitnet.createdAt },
+        data: {
+          kitnetId: kitnet.id,
+          valor: kitnet.valor,
+          vigenteDesde: kitnet.createdAt,
+        },
       });
     });
   });
@@ -115,7 +142,10 @@ describe('KitnetsService', () => {
       expect(prisma.kitnetValorHistorico.create).toHaveBeenCalledWith({
         data: { kitnetId: kitnet.id, valor: 1000 },
       });
-      expect(prisma.kitnet.update).toHaveBeenCalledWith({ where: { id: kitnet.id }, data: { valor: 1000 } });
+      expect(prisma.kitnet.update).toHaveBeenCalledWith({
+        where: { id: kitnet.id },
+        data: { valor: 1000 },
+      });
       expect(result).toEqual({ ...kitnet, valor: 1000 });
     });
 
@@ -141,7 +171,9 @@ describe('KitnetsService', () => {
     it('throws ForbiddenException before writing when the kitnet is not owned', async () => {
       prisma.kitnet.findUnique.mockResolvedValue({ ...kitnet, userId: 2 });
 
-      await expect(service.update(ownerId, kitnet.id, { valor: 1000 })).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        service.update(ownerId, kitnet.id, { valor: 1000 }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
       expect(prisma.kitnet.update).not.toHaveBeenCalled();
       expect(prisma.kitnetValorHistorico.create).not.toHaveBeenCalled();
     });
@@ -172,7 +204,9 @@ describe('KitnetsService', () => {
     it('throws ForbiddenException instead of deleting when not owned', async () => {
       prisma.kitnet.findUnique.mockResolvedValue({ ...kitnet, userId: 2 });
 
-      await expect(service.remove(ownerId, kitnet.id)).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(service.remove(ownerId, kitnet.id)).rejects.toBeInstanceOf(
+        ForbiddenException,
+      );
       expect(prisma.kitnet.delete).not.toHaveBeenCalled();
     });
   });

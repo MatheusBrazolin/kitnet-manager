@@ -13,6 +13,7 @@ type PrismaMock = {
     count: jest.Mock;
   };
   kitnet: { findUnique: jest.Mock; update: jest.Mock };
+  $transaction: jest.Mock;
 };
 
 describe('MoradoresService', () => {
@@ -43,6 +44,12 @@ describe('MoradoresService', () => {
         count: jest.fn(),
       },
       kitnet: { findUnique: jest.fn(), update: jest.fn() },
+      // create/remove agora rodam dentro de $transaction — criar o morador e marcar a
+      // unidade como ocupada (ou o inverso) precisa ser atômico. O mock entrega o próprio
+      // client como `tx`, então as asserções sobre prisma.kitnet.update seguem valendo.
+      $transaction: jest.fn((callback: (tx: unknown) => Promise<unknown>) =>
+        callback(prisma),
+      ),
     };
     pagamentosService = { ensurePagamentosParaMorador: jest.fn() };
 
@@ -131,7 +138,7 @@ describe('MoradoresService', () => {
         id: morador.id,
         dataEntrada: morador.dataEntrada,
         diaVencimento: morador.diaVencimento,
-        kitnet: { valor: kitnet.valor },
+        kitnet: { valor: kitnet.valor, historicoValor: undefined },
       });
       expect(result).toEqual(morador);
     });

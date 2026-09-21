@@ -1,7 +1,20 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ViewerReadOnlyGuard } from '../../common/guards/viewer-read-only.guard';
-import { CurrentUser, type AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../../common/decorators/current-user.decorator';
 import { KitnetsService } from './kitnets.service';
 import { CreateKitnetDto } from './dto/create-kitnet.dto';
 import { UpdateKitnetDto } from './dto/update-kitnet.dto';
@@ -17,7 +30,10 @@ export class KitnetsController {
   }
 
   @Get(':id')
-  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+  findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.kitnetsService.findDetail(user.contaId, id);
   }
 
@@ -36,7 +52,10 @@ export class KitnetsController {
   }
 
   @Delete(':id')
-  remove(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.kitnetsService.remove(user.contaId, id);
   }
 }

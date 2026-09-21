@@ -1,7 +1,10 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ViewerReadOnlyGuard } from '../../common/guards/viewer-read-only.guard';
-import { CurrentUser, type AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../../common/decorators/current-user.decorator';
 import { DashboardService } from './dashboard.service';
 
 @UseGuards(JwtAuthGuard, ViewerReadOnlyGuard)

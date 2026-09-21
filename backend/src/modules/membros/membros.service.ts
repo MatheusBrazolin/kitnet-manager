@@ -1,4 +1,10 @@
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateMembroDto } from './dto/create-membro.dto';
 
@@ -15,15 +21,23 @@ export class MembrosService {
   }
 
   async create(donoId: number, dto: CreateMembroDto) {
-    const alvo = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const alvo = await this.prisma.user.findUnique({
+      where: { email: dto.email },
+    });
     if (!alvo) {
-      throw new BadRequestException('Não encontramos nenhuma conta com esse e-mail. A pessoa precisa criar uma conta antes de ser adicionada.');
+      throw new BadRequestException(
+        'Não encontramos nenhuma conta com esse e-mail. A pessoa precisa criar uma conta antes de ser adicionada.',
+      );
     }
     if (alvo.id === donoId) {
-      throw new BadRequestException('Você não pode se adicionar como membro da sua própria conta.');
+      throw new BadRequestException(
+        'Você não pode se adicionar como membro da sua própria conta.',
+      );
     }
 
-    const filiacaoExistente = await this.prisma.membro.findUnique({ where: { userId: alvo.id } });
+    const filiacaoExistente = await this.prisma.membro.findUnique({
+      where: { userId: alvo.id },
+    });
     if (filiacaoExistente) {
       throw new ConflictException(
         filiacaoExistente.donoId === donoId
@@ -32,7 +46,9 @@ export class MembrosService {
       );
     }
 
-    const possuiDadosProprios = await this.prisma.imovel.count({ where: { userId: alvo.id } });
+    const possuiDadosProprios = await this.prisma.imovel.count({
+      where: { userId: alvo.id },
+    });
     if (possuiDadosProprios > 0) {
       throw new BadRequestException(
         'Essa pessoa já tem imóveis próprios cadastrados. Para não misturar ou esconder os dados dela, não é possível adicioná-la como membro de outra conta.',

@@ -16,7 +16,10 @@ describe('AppModule (e2e)', () => {
   });
 
   it('rejects login with malformed payload', () => {
-    return request(app.getHttpServer()).post('/api/auth/login').send({ email: 'not-an-email' }).expect(400);
+    return request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email: 'not-an-email' })
+      .expect(400);
   });
 
   afterEach(async () => {

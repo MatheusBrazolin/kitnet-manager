@@ -1,7 +1,20 @@
-import { Body, Controller, Delete, Get, Param, ParseIntPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { ViewerReadOnlyGuard } from '../../common/guards/viewer-read-only.guard';
-import { CurrentUser, type AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../../common/decorators/current-user.decorator';
 import { PagamentosService } from './pagamentos.service';
 import { CreatePagamentoDto } from './dto/create-pagamento.dto';
 import { CreatePagamentoComplementarDto } from './dto/create-pagamento-complementar.dto';
@@ -25,17 +38,26 @@ export class PagamentosController {
   }
 
   @Get(':id')
-  findOne(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+  findOne(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.pagamentosService.findOwnedOrThrow(user.contaId, id);
   }
 
   @Post()
-  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreatePagamentoDto) {
+  create(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreatePagamentoDto,
+  ) {
     return this.pagamentosService.create(user.contaId, dto);
   }
 
   @Post('complementar')
-  createComplementar(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreatePagamentoComplementarDto) {
+  createComplementar(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreatePagamentoComplementarDto,
+  ) {
     return this.pagamentosService.createComplementar(user.contaId, dto);
   }
 
@@ -58,7 +80,10 @@ export class PagamentosController {
   }
 
   @Patch(':id/desfazer-pagamento')
-  desfazerPagamento(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+  desfazerPagamento(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.pagamentosService.desfazerPagamento(user.contaId, id);
   }
 
@@ -72,7 +97,10 @@ export class PagamentosController {
   }
 
   @Delete(':id')
-  remove(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     return this.pagamentosService.remove(user.contaId, id);
   }
 }
