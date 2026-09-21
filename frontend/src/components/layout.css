@@ -1,6 +1,9 @@
 .layout {
   display: flex;
+  /* dvh: no Chrome Android/Safari iOS, 100vh ignora a barra de endereço e o rodapé
+     do conteúdo (ex.: o link "Criar conta") cai atrás dela. */
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .layout-content {
@@ -30,7 +33,10 @@
 }
 
 .layout-loading {
+  /* dvh: no Chrome Android/Safari iOS, 100vh ignora a barra de endereço e o rodapé
+     do conteúdo (ex.: o link "Criar conta") cai atrás dela. */
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -66,6 +72,6 @@
      fixa (ver sidebar.css) */
   .layout-content {
     padding: var(--space-5);
-    padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(var(--tabbar-height) + var(--space-4) + env(safe-area-inset-bottom, 0px));
   }
 }

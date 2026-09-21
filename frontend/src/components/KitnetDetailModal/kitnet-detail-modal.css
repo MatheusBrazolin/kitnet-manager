@@ -4,7 +4,11 @@
 
 .kitnet-detail-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  /* auto-fit em vez de uma media query de viewport: o modal tem largura FIXA (420/560px)
+     independente do tamanho da tela, então "tela < 540px" não dizia nada sobre o espaço
+     real disponível — a 1440px o grid de 2 colunas já vivia num modal de 560px. Agora o
+     número de colunas segue a largura do próprio modal. */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: var(--space-4);
   margin: 0 0 var(--space-5);
 }
@@ -51,8 +55,3 @@
   color: var(--color-danger-ink);
 }
 
-@media (max-width: 540px) {
-  .kitnet-detail-grid {
-    grid-template-columns: 1fr;
-  }
-}

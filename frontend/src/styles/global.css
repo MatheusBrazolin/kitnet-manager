@@ -162,6 +162,15 @@ a {
   transform: translate(-1px, -1px);
 }
 
+/* O `outline: none` acima trocava o anel nativo por uma sombra sólida preta, que é
+   indistinguível da decoração neobrutalista de dezenas de outros elementos — na prática,
+   navegar por teclado ficava sem indicador. O anel laranja é inequívoco. */
+.field input:focus-visible,
+.field select:focus-visible {
+  outline: var(--border-width) solid var(--color-brand);
+  outline-offset: 2px;
+}
+
 .field-group {
   display: flex;
   flex-direction: column;
@@ -280,5 +289,43 @@ a {
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* O Safari iOS dá zoom automático ao focar qualquer campo com fonte menor que 16px, e
+   depois do zoom a página fica com scroll horizontal permanente. O app usa --text-base
+   (15px) nos campos, então um único pixel a menos causava o problema em todos os
+   formulários. */
+@media (max-width: 860px) {
+  .field input,
+  .field select,
+  .field textarea {
+    font-size: 16px;
+  }
+}
+
+/* Sem isto, o estado :hover "gruda" depois do toque no celular: cards ficam levantados e
+   linhas destacadas sem motivo até o próximo toque em outro lugar. */
+@media (hover: none) {
+  .btn:not(:disabled):hover {
+    transform: none;
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+/* Alvos de toque. Vários controles pequenos ficavam entre 20 e 36px no celular — abaixo
+   dos 44px recomendados. O padding não é aumentado junto porque o visual compacto é
+   intencional no design; só a área clicável cresce. */
+@media (max-width: 860px) {
+  .imovel-card-edit-trigger,
+  .password-toggle,
+  .notification-bell-item-action,
+  .notification-bell-trigger {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .imovel-card-edit-menu button {
+    min-height: 44px;
   }
 }

@@ -1,5 +1,14 @@
 .table-wrapper {
   overflow-x: auto;
+  /* Container query: a troca tabela↔cartões passa a depender do espaço que a tabela
+     realmente tem, não da largura da janela. Isso importa porque o mesmo componente é
+     usado solto numa página e aninhado dentro do card de um imóvel, que já consome
+     ~96px de padding — e porque o layout do app vira "celular" a 860px enquanto a
+     tabela só virava cartões a 640px, deixando uma faixa (≈641–760px, iPad em retrato e
+     split view) onde 7 colunas com white-space: nowrap geravam scroll horizontal dentro
+     de cada card. */
+  container-type: inline-size;
+  container-name: tabela;
 }
 
 .table-mobile-only {
@@ -34,8 +43,12 @@
   border-bottom: none;
 }
 
-.table tbody tr:hover {
-  background: var(--color-surface-sunken);
+/* Só em ponteiro fino: no toque o :hover fica aplicado depois do tap, deixando
+   o elemento "levantado" sem motivo até o próximo toque em outro lugar. */
+@media (hover: hover) and (pointer: fine) {
+  .table tbody tr:hover {
+    background: var(--color-surface-sunken);
+  }
 }
 
 .table-row-clickable {
@@ -60,7 +73,7 @@
    mesmo com scroll horizontal. Ver Table.tsx pra como as colunas são
    redistribuídas: 1ª coluna = título do cartão, colunas com header vazio
    (ações) = rodapé, o resto = pares rótulo/valor. */
-@media (max-width: 640px) {
+@container tabela (max-width: 640px) {
   .table-desktop-only {
     display: none;
   }
@@ -92,8 +105,12 @@
   cursor: pointer;
 }
 
-.table-card-clickable:hover {
-  background: var(--color-surface-sunken);
+/* Só em ponteiro fino: no toque o :hover fica aplicado depois do tap, deixando
+   o elemento "levantado" sem motivo até o próximo toque em outro lugar. */
+@media (hover: hover) and (pointer: fine) {
+  .table-card-clickable:hover {
+    background: var(--color-surface-sunken);
+  }
 }
 
 .table-card-clickable:focus-visible {
@@ -126,10 +143,16 @@
   letter-spacing: 0.05em;
   color: var(--color-ink-muted);
   font-weight: 700;
-  flex-shrink: 0;
+  /* Era flex-shrink: 0. Num card de 320px, "E-MAIL" fixo + um e-mail de 30+ caracteres
+     sem espaços estourava o cartão e gerava scroll horizontal na página. */
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .table-card-field dd {
+  /* E-mails e nomes longos sem espaço precisam poder quebrar, senão vazam do cartão. */
+  overflow-wrap: anywhere;
+  min-width: 0;
   margin: 0;
   min-width: 0;
   font-size: var(--text-sm);

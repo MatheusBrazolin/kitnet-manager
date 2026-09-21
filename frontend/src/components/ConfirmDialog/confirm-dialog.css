@@ -6,6 +6,20 @@
 
 .confirm-dialog-actions {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: var(--space-3);
+}
+
+/* A 320px, "CANCELAR" + "REMOVER ACESSO" somam mais que a largura útil do modal e os
+   botões (que têm white-space: nowrap) vazavam. Empilhados, a ação primária fica
+   embaixo — mais perto do polegar e na ordem de leitura certa num diálogo. */
+@media (max-width: 400px) {
+  .confirm-dialog-actions {
+    flex-direction: column-reverse;
+  }
+
+  .confirm-dialog-actions .btn {
+    width: 100%;
+  }
 }

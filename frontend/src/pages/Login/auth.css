@@ -1,5 +1,8 @@
 .auth-page {
+  /* dvh: no Chrome Android/Safari iOS, 100vh ignora a barra de endereço e o rodapé
+     do conteúdo (ex.: o link "Criar conta") cai atrás dela. */
   min-height: 100vh;
+  min-height: 100dvh;
   display: grid;
   grid-template-columns: 1fr 1fr;
   background: var(--color-bg);
