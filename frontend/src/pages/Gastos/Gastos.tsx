@@ -17,6 +17,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../utils/currency';
 import { formatDate } from '../../utils/dates';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
+import { formatUnidadeLabel } from '../../utils/unidade';
 
 const PAGE_SIZE = 20;
 
@@ -168,10 +169,7 @@ export function Gastos() {
             { header: 'Descrição', render: (row) => row.descricao },
             {
               header: 'Unidade',
-              render: (row) =>
-                row.kitnet.imovel
-                  ? `${row.kitnet.imovel.nome}${row.kitnet.imovel.kitnets?.length > 1 ? ` · ${row.kitnet.numero}` : ''}`
-                  : row.kitnet.numero,
+              render: (row) => formatUnidadeLabel(row.kitnet),
             },
             { header: 'Data', render: (row) => formatDate(row.data) },
             { header: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },

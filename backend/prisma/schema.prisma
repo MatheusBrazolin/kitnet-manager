@@ -18,6 +18,13 @@ enum PapelMembro {
   VISUALIZADOR
 }
 
+// Um convite só passa a valer quando a pessoa aceita. Enquanto está PENDENTE, a filiação
+// existe mas ContaService.resolve a ignora — o convidado segue operando na própria conta.
+enum StatusMembro {
+  PENDENTE
+  ACEITO
+}
+
 enum StatusPagamento {
   PENDENTE
   PAGO
@@ -50,16 +57,18 @@ model User {
   imoveis Imovel[]
 
   // Pessoas com acesso à minha conta (eu sou o "dono" dos dados).
-  membros Membro[] @relation("MembrosDaConta")
+  membros  Membro[] @relation("MembrosDaConta")
   // Minha própria filiação, caso eu seja membro da conta de outra pessoa.
-  filiacao Membro? @relation("FiliacaoDoUsuario")
+  filiacao Membro?  @relation("FiliacaoDoUsuario")
 }
 
 model Membro {
-  id        Int         @id @default(autoincrement())
-  papel     PapelMembro @default(GERENTE)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id        Int          @id @default(autoincrement())
+  papel     PapelMembro  @default(GERENTE)
+  status    StatusMembro @default(PENDENTE)
+  aceitoEm  DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   donoId Int
   dono   User @relation("MembrosDaConta", fields: [donoId], references: [id], onDelete: Cascade)
@@ -84,16 +93,16 @@ model Imovel {
 }
 
 model Kitnet {
-  id        Int      @id @default(autoincrement())
-  numero    String
-  valor     Float
+  id              Int      @id @default(autoincrement())
+  numero          String
+  valor           Float
   // Parte do valor do aluguel retida pela imobiliária, quando a unidade é alugada por
   // intermediação dela (ex.: aluguel de R$ 1.400, imobiliária fica com R$ 100). Nulo/0
   // quando o aluguel é direto, sem imobiliária.
   taxaImobiliaria Float?
-  status    String   @default("vaga")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status          String   @default("vaga")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -101,8 +110,8 @@ model Kitnet {
   imovelId Int
   imovel   Imovel @relation(fields: [imovelId], references: [id], onDelete: Cascade)
 
-  moradores Morador[]
-  gastos    Gasto[]
+  moradores      Morador[]
+  gastos         Gasto[]
   historicoValor KitnetValorHistorico[]
 
   @@unique([imovelId, numero])
@@ -126,13 +135,17 @@ model KitnetValorHistorico {
 }
 
 model Morador {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   nome          String
   telefone      String
-  dataEntrada   DateTime @default(now())
-  diaVencimento Int      @default(10)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  dataEntrada   DateTime  @default(now())
+  // Quando preenchida, a locação está encerrada: nenhuma parcela nova é gerada a partir
+  // do mês seguinte e a pessoa deixa de ocupar a unidade. É a alternativa a excluir o
+  // morador, que cascateia e apaga todo o histórico financeiro dele.
+  dataSaida     DateTime?
+  diaVencimento Int       @default(10)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   kitnetId Int
   kitnet   Kitnet @relation(fields: [kitnetId], references: [id], onDelete: Cascade)
@@ -140,6 +153,8 @@ model Morador {
   pagamentos Pagamento[]
 
   @@index([kitnetId])
+  // Listagens e a geração de parcelas filtram moradores ativos por unidade.
+  @@index([kitnetId, dataSaida])
 }
 
 model Pagamento {

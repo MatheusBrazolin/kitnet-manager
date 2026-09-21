@@ -36,6 +36,10 @@ export interface Morador {
   telefone: string;
   kitnetId: number;
   dataEntrada: string;
+  // Preenchida quando a locação foi encerrada — a pessoa deixa de ocupar a unidade e
+  // não recebe mais parcelas novas. É a alternativa a excluir o morador, que apagaria
+  // todo o histórico financeiro dele.
+  dataSaida?: string | null;
   diaVencimento: number;
   // Presente quando o endpoint inclui a kitnet (ex.: GET /moradores) — ausente em respostas
   // que não fazem esse include.
@@ -59,7 +63,13 @@ export interface Imovel {
   id: number;
   nome: string;
   endereco?: string | null;
-  kitnets: Kitnet[];
+  // Só vem quando o endpoint faz o include (GET /imoveis). As listagens de moradores,
+  // gastos e pagamentos incluem o imóvel sem as unidades — por isso é opcional, e
+  // tratá-lo como obrigatório escondia que `imovel.kitnets` é undefined nessas telas.
+  kitnets?: Kitnet[];
+  // Quantas unidades o imóvel tem, independente de `kitnets` ter vindo ou não. É o que
+  // permite decidir se vale mostrar o número da unidade ao lado do nome do imóvel.
+  _count?: { kitnets: number };
 }
 
 export type StatusPagamento = 'PENDENTE' | 'PAGO' | 'ATRASADO' | 'ANULADO';

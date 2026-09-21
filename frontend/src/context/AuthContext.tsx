@@ -29,6 +29,12 @@ export interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
+  /**
+   * Relê /auth/me. Necessário quando algo muda a conta que a sessão enxerga sem passar
+   * por login — hoje, aceitar ou recusar um convite de membro, que altera contaId e
+   * papel para o mesmo token.
+   */
+  recarregarSessao: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -111,6 +117,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  async function recarregarSessao() {
+    const response = await api.get<User>('/auth/me');
+    setUser(response.data);
+  }
+
   function logout() {
     clearStoredToken();
     setUser(null);
@@ -122,6 +133,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, recarregarSessao }}>{children}</AuthContext.Provider>
   );
 }

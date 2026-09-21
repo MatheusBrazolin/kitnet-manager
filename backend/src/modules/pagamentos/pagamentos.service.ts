@@ -11,15 +11,29 @@ import { CreatePagamentoComplementarDto } from './dto/create-pagamento-complemen
 import { UpdatePagamentoDto } from './dto/update-pagamento.dto';
 import { MarcarPagoDto } from './dto/marcar-pago.dto';
 import { AnularPagamentoDto } from './dto/anular-pagamento.dto';
+import { KITNET_COM_IMOVEL } from '../../common/prisma/includes';
 
 type ValorHistorico = { valor: number; vigenteDesde: Date };
 
 type MoradorParaGeracao = {
   id: number;
   dataEntrada: Date;
+  // Quando preenchida, a locação acabou: paramos de gerar parcelas depois do mês da
+  // saída. Sem isso, um morador que foi embora continuava ganhando uma parcela nova todo
+  // mês — para sempre — engordando o total em atraso e os alertas.
+  dataSaida?: Date | null;
   diaVencimento: number;
   kitnet: { valor: number; historicoValor?: ValorHistorico[] };
 };
+
+/** Último mês de competência que este morador deve ter: o da saída, ou o mês atual. */
+function ultimoMesDevido(morador: MoradorParaGeracao, mesAtual: Date): Date {
+  if (!morador.dataSaida) {
+    return mesAtual;
+  }
+  const mesSaida = truncarMes(morador.dataSaida);
+  return mesSaida.getTime() < mesAtual.getTime() ? mesSaida : mesAtual;
+}
 
 // `include` usado sempre que vamos gerar parcelas: sem o histórico, o backfill de meses
 // passados cobraria o valor de hoje (ver `valorVigenteEm`).
@@ -133,7 +147,7 @@ export class PagamentosService {
   async ensurePagamentosParaMorador(morador: MoradorParaGeracao) {
     const mesEntrada = truncarMes(morador.dataEntrada);
     const mesAtual = truncarMes(new Date());
-    const meses = enumerarMeses(mesEntrada, mesAtual);
+    const meses = enumerarMeses(mesEntrada, ultimoMesDevido(morador, mesAtual));
 
     const existentes = await this.prisma.pagamento.findMany({
       where: { moradorId: morador.id, mesReferencia: { in: meses } },
@@ -185,7 +199,10 @@ export class PagamentosService {
     const mesAtual = truncarMes(new Date());
     const porMorador = moradores.map((morador) => ({
       morador,
-      meses: enumerarMeses(truncarMes(morador.dataEntrada), mesAtual),
+      meses: enumerarMeses(
+        truncarMes(morador.dataEntrada),
+        ultimoMesDevido(morador, mesAtual),
+      ),
     }));
 
     const existentes = await this.prisma.pagamento.findMany({
@@ -235,7 +252,7 @@ export class PagamentosService {
     const pagamentos = await this.prisma.pagamento.findMany({
       where: { morador: { kitnet: { userId } } },
       include: {
-        morador: { include: { kitnet: { include: { imovel: true } } } },
+        morador: { include: { kitnet: KITNET_COM_IMOVEL } },
       },
       orderBy: [{ mesReferencia: 'desc' }, { vencimento: 'asc' }],
     });
@@ -259,7 +276,7 @@ export class PagamentosService {
         morador: { kitnet: { userId } },
       },
       include: {
-        morador: { include: { kitnet: { include: { imovel: true } } } },
+        morador: { include: { kitnet: KITNET_COM_IMOVEL } },
       },
       orderBy: { vencimento: 'asc' },
     });

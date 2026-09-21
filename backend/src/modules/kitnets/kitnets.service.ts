@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../../database/prisma.service';
 import { CreateKitnetDto } from './dto/create-kitnet.dto';
 import { UpdateKitnetDto } from './dto/update-kitnet.dto';
+import { IMOVEL_COM_TOTAL_UNIDADES } from '../../common/prisma/includes';
 
 @Injectable()
 export class KitnetsService {
@@ -14,7 +15,7 @@ export class KitnetsService {
   findAll(userId: number) {
     return this.prisma.kitnet.findMany({
       where: { userId },
-      include: { moradores: true, imovel: true },
+      include: { moradores: true, imovel: IMOVEL_COM_TOTAL_UNIDADES },
       orderBy: { numero: 'asc' },
     });
   }
@@ -22,7 +23,7 @@ export class KitnetsService {
   async findOwnedOrThrow(userId: number, id: number) {
     const kitnet = await this.prisma.kitnet.findUnique({
       where: { id },
-      include: { moradores: true, imovel: true },
+      include: { moradores: true, imovel: IMOVEL_COM_TOTAL_UNIDADES },
     });
     if (!kitnet) {
       throw new NotFoundException('Kitnet não encontrada');

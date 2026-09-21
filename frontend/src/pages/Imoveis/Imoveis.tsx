@@ -193,7 +193,7 @@ export function Imoveis() {
 
   function gerarLinhas(imovel: Imovel) {
     const quantidade = Math.max(1, Math.min(50, Number(loteQuantidade) || 1));
-    const existentes = imovel.kitnets.length;
+    const existentes = imovel.kitnets?.length ?? 0;
     setLoteLinhas(
       Array.from({ length: quantidade }, (_, index) => ({
         numero: `${lotePrefixo}${String(existentes + index + 1).padStart(2, '0')}`,
@@ -268,8 +268,11 @@ export function Imoveis() {
         <div className="imoveis-list">
           {imoveis.map((imovel) => {
             const aberto = expandidos.has(imovel.id);
-            const totalValor = imovel.kitnets.reduce((total, kitnet) => total + kitnet.valor, 0);
-            const totalMoradores = imovel.kitnets.reduce((total, kitnet) => total + kitnet.moradores.length, 0);
+            // GET /imoveis faz o include das unidades; o `?? []` é só para satisfazer o
+            // tipo, que agora reflete que outras respostas não trazem esse campo.
+            const unidades = imovel.kitnets ?? [];
+            const totalValor = unidades.reduce((total, kitnet) => total + kitnet.valor, 0);
+            const totalMoradores = unidades.reduce((total, kitnet) => total + kitnet.moradores.length, 0);
 
             return (
               <ExpandableGroupCard
@@ -281,7 +284,7 @@ export function Imoveis() {
                 stats={
                   <>
                     <span className="imovel-card-stat">
-                      {imovel.kitnets.length} unidade{imovel.kitnets.length === 1 ? '' : 's'}
+                      {unidades.length} unidade{unidades.length === 1 ? '' : 's'}
                     </span>
                     <span className="imovel-card-stat">
                       {totalMoradores} morador{totalMoradores === 1 ? '' : 'es'}
@@ -342,7 +345,7 @@ export function Imoveis() {
                 )}
 
                 <Table
-                  rows={imovel.kitnets}
+                  rows={unidades}
                   rowKey={(row) => row.id}
                   emptyMessage="Nenhuma unidade neste imóvel ainda. Use “+ Unidades” para cadastrar."
                   onRowClick={(row) => setSelectedKitnetId(row.id)}
