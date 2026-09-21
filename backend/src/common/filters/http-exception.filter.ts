@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type { Request, Response } from 'express';
 import { captureException } from '../observability/sentry';
 
@@ -69,6 +70,16 @@ export class HttpExceptionFilter implements ExceptionFilter {
       return { statusCode, body: { statusCode, message, error } };
     }
 
+    // Erros conhecidos do Prisma são falha de uso, não bug: virar 500 aqui escondia a
+    // causa do usuário ("Erro interno do servidor") e ainda enchia o Sentry de ruído.
+    // Só os módulos que tratavam P2002 à mão escapavam disso — agora vale para todos.
+    if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+      const mapeado = this.mapPrismaError(exception);
+      if (mapeado) {
+        return mapeado;
+      }
+    }
+
     const statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
     return {
       statusCode,
@@ -78,5 +89,46 @@ export class HttpExceptionFilter implements ExceptionFilter {
         error: 'InternalServerError',
       },
     };
+  }
+
+  private mapPrismaError(exception: Prisma.PrismaClientKnownRequestError): {
+    statusCode: number;
+    body: ErrorResponseBody;
+  } | null {
+    switch (exception.code) {
+      // Violação de unique — ex.: cadastrar duas unidades com o mesmo número no mesmo
+      // imóvel, ou dois registros simultâneos com o mesmo e-mail.
+      case 'P2002':
+        return {
+          statusCode: HttpStatus.CONFLICT,
+          body: {
+            statusCode: HttpStatus.CONFLICT,
+            message: 'Já existe um registro com esses dados.',
+            error: 'Conflict',
+          },
+        };
+      // Registro exigido pela operação não existe (update/delete de id inexistente).
+      case 'P2025':
+        return {
+          statusCode: HttpStatus.NOT_FOUND,
+          body: {
+            statusCode: HttpStatus.NOT_FOUND,
+            message: 'Registro não encontrado.',
+            error: 'Not Found',
+          },
+        };
+      // Violação de foreign key — ex.: apontar para um imóvel que não existe.
+      case 'P2003':
+        return {
+          statusCode: HttpStatus.BAD_REQUEST,
+          body: {
+            statusCode: HttpStatus.BAD_REQUEST,
+            message: 'Referência inválida: o registro relacionado não existe.',
+            error: 'Bad Request',
+          },
+        };
+      default:
+        return null;
+    }
   }
 }

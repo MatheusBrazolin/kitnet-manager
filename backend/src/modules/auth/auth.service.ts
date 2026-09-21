@@ -1,4 +1,8 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { UsersService } from '../users/users.service';
@@ -46,7 +50,12 @@ export class AuthService {
     return this.buildAuthResponse(user);
   }
 
-  private async buildAuthResponse(user: { id: number; name: string; email: string; plano: string }) {
+  private async buildAuthResponse(user: {
+    id: number;
+    name: string;
+    email: string;
+    plano: string;
+  }) {
     const token = this.jwtService.sign({ sub: user.id, email: user.email });
     const conta = await this.contaService.resolve(user.id);
 

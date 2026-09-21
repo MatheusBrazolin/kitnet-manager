@@ -1,4 +1,11 @@
-import { IsDateString, IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsInt,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+} from 'class-validator';
 
 // Lançamento extra fora do aluguel do mês — já registrado como recebido (não passa por
 // PENDENTE/marcar-pago como a parcela de aluguel).

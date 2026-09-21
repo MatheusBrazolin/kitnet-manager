@@ -175,6 +175,9 @@ model Pagamento {
   @@unique([moradorId, mesReferencia, tipo])
   // Cobre a consulta mais comum do app: pagamentos pendentes/atrasados por vencimento.
   @@index([status, vencimento])
+  // A query de receita do dashboard filtra por status PAGO + faixa de `dataPagamento` e
+  // nunca toca em `vencimento`, então o índice acima não a atende.
+  @@index([status, dataPagamento])
 }
 
 model Gasto {
@@ -189,4 +192,7 @@ model Gasto {
   kitnet   Kitnet @relation(fields: [kitnetId], references: [id], onDelete: Cascade)
 
   @@index([kitnetId])
+  // O dashboard sempre filtra gastos por faixa de `data` (mês corrente e janela de 6
+  // meses); sozinho, o índice de kitnetId não cobre esse recorte.
+  @@index([kitnetId, data])
 }

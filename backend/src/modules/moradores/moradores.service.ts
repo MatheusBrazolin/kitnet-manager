@@ -67,6 +67,11 @@ export class MoradoresService {
   private async assertKitnetOwnership(userId: number, kitnetId: number) {
     const kitnet = await this.prisma.kitnet.findUnique({
       where: { id: kitnetId },
+      // O histórico de valor vem junto porque quem cria um morador precisa gerar as
+      // parcelas retroativas com o valor vigente em cada mês, não com o valor de hoje.
+      include: {
+        historicoValor: { select: { valor: true, vigenteDesde: true } },
+      },
     });
     if (!kitnet) {
       throw new NotFoundException('Kitnet não encontrada');
@@ -83,20 +88,30 @@ export class MoradoresService {
     const dataEntrada = dto.dataEntrada
       ? new Date(dto.dataEntrada)
       : new Date();
-    const diaVencimento = dto.diaVencimento ?? dataEntrada.getDate();
+    // getUTCDate, não getDate: `dataEntrada` vem de new Date('2026-03-01') = meia-noite
+    // UTC, e o resto do módulo de pagamentos trabalha em UTC por decisão explícita. Em
+    // America/Sao_Paulo (UTC-3), getDate() devolveria 28/fev para uma entrada em 01/03 —
+    // o morador passaria a vencer todo dia 28, três dias antes do combinado.
+    const diaVencimento = dto.diaVencimento ?? dataEntrada.getUTCDate();
 
-    const morador = await this.prisma.morador.create({
-      data: {
-        nome: dto.nome,
-        telefone: dto.telefone,
-        kitnetId: dto.kitnetId,
-        dataEntrada,
-        diaVencimento,
-      },
-    });
-    await this.prisma.kitnet.update({
-      where: { id: dto.kitnetId },
-      data: { status: 'ocupada' },
+    // Transação: criar o morador e marcar a unidade como ocupada é uma coisa só. Se o
+    // update falhasse no meio, sobraria um morador dentro de uma kitnet ainda marcada
+    // como "vaga" — e é esse campo que o dashboard usa pra contar unidades ocupadas.
+    const morador = await this.prisma.$transaction(async (tx) => {
+      const criado = await tx.morador.create({
+        data: {
+          nome: dto.nome,
+          telefone: dto.telefone,
+          kitnetId: dto.kitnetId,
+          dataEntrada,
+          diaVencimento,
+        },
+      });
+      await tx.kitnet.update({
+        where: { id: dto.kitnetId },
+        data: { status: 'ocupada' },
+      });
+      return criado;
     });
 
     // Gera já a(s) parcela(s) retroativa(s) até o mês atual, sem esperar o próximo GET
@@ -106,7 +121,7 @@ export class MoradoresService {
       id: morador.id,
       dataEntrada: morador.dataEntrada,
       diaVencimento: morador.diaVencimento,
-      kitnet: { valor: kitnet.valor },
+      kitnet: { valor: kitnet.valor, historicoValor: kitnet.historicoValor },
     });
 
     return morador;
@@ -125,16 +140,21 @@ export class MoradoresService {
 
   async remove(userId: number, id: number) {
     const morador = await this.findOwnedOrThrow(userId, id);
-    await this.prisma.morador.delete({ where: { id } });
 
-    const remaining = await this.prisma.morador.count({
-      where: { kitnetId: morador.kitnetId },
-    });
-    if (remaining === 0) {
-      await this.prisma.kitnet.update({
-        where: { id: morador.kitnetId },
-        data: { status: 'vaga' },
+    // Mesma razão do create: excluir e liberar a unidade é uma operação só. Antes, uma
+    // falha entre os dois passos deixava a kitnet "ocupada" para sempre, sem ninguém
+    // dentro, e só dava pra corrigir no banco.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.morador.delete({ where: { id } });
+      const remaining = await tx.morador.count({
+        where: { kitnetId: morador.kitnetId },
       });
-    }
+      if (remaining === 0) {
+        await tx.kitnet.update({
+          where: { id: morador.kitnetId },
+          data: { status: 'vaga' },
+        });
+      }
+    });
   }
 }

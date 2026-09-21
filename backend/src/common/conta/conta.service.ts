@@ -29,6 +29,10 @@ export class ContaService {
       return { contaId: userId, papel: 'OWNER' };
     }
 
-    return { contaId: membro.donoId, papel: membro.papel, donoNome: membro.dono.name };
+    return {
+      contaId: membro.donoId,
+      papel: membro.papel,
+      donoNome: membro.dono.name,
+    };
   }
 }

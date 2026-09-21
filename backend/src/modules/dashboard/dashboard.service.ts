@@ -49,6 +49,14 @@ export class DashboardService {
     );
 
     const now = new Date();
+    // Meia-noite UTC de hoje. `vencimento` é gravado como data de calendário em UTC
+    // (PagamentosService.vencimentoDoMes), então comparar com o instante atual fazia a
+    // parcela que vence HOJE já contar como atrasada a partir das 00h — enquanto a
+    // campainha, que usa o fim do dia, dizia "vence hoje". As duas telas discordavam no
+    // dia do vencimento.
+    const hojeInicioDoDia = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+    );
     const year = now.getUTCFullYear();
     const month = now.getUTCMonth();
     const periodStart = new Date(Date.UTC(year, month, 1));
@@ -82,7 +90,7 @@ export class DashboardService {
       this.prisma.pagamento.aggregate({
         where: {
           status: 'PENDENTE',
-          vencimento: { lt: now },
+          vencimento: { lt: hojeInicioDoDia },
           morador: { kitnet: { userId } },
         },
         _sum: { valor: true },

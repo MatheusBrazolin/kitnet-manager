@@ -236,6 +236,20 @@ describe('PagamentosService', () => {
   });
 
   describe('ensurePagamentosParaMorador', () => {
+    type ParcelaCriada = {
+      valor: number;
+      mesReferencia: Date;
+      vencimento: Date;
+    };
+
+    /** Parcelas passadas ao createMany na única chamada esperada. */
+    function parcelasCriadas(): ParcelaCriada[] {
+      const [primeiraChamada] = prisma.pagamento.createMany.mock.calls as [
+        [{ data: ParcelaCriada[] }],
+      ];
+      return primeiraChamada[0].data;
+    }
+
     beforeEach(() => {
       jest.useFakeTimers().setSystemTime(new Date('2026-07-15T12:00:00Z'));
     });
@@ -318,6 +332,64 @@ describe('PagamentosService', () => {
         skipDuplicates: true,
       });
     });
+
+    // Regressão: o backfill usava `kitnet.valor` (o valor de HOJE) para todos os meses
+    // faltantes, ignorando KitnetValorHistorico — que existe exatamente pra isso e não
+    // era lido por nenhum service. Um reajuste reescrevia retroativamente o valor de
+    // todas as parcelas ainda não geradas.
+    it('usa o valor vigente em cada mês, não o valor atual da kitnet', async () => {
+      prisma.pagamento.findMany.mockResolvedValue([]);
+
+      await service.ensurePagamentosParaMorador({
+        id: morador.id,
+        dataEntrada: new Date('2026-05-01'),
+        diaVencimento: 10,
+        kitnet: {
+          valor: 1200,
+          historicoValor: [
+            { valor: 1000, vigenteDesde: new Date(Date.UTC(2026, 0, 1)) },
+            { valor: 1200, vigenteDesde: new Date(Date.UTC(2026, 6, 1)) },
+          ],
+        },
+      });
+
+      expect(parcelasCriadas().map((parcela) => parcela.valor)).toEqual([
+        1000, 1000, 1200,
+      ]);
+    });
+
+    it('usa o valor mais antigo conhecido quando o mês é anterior ao primeiro registro', async () => {
+      prisma.pagamento.findMany.mockResolvedValue([]);
+
+      await service.ensurePagamentosParaMorador({
+        id: morador.id,
+        dataEntrada: new Date('2026-06-01'),
+        diaVencimento: 10,
+        kitnet: {
+          valor: 1500,
+          historicoValor: [
+            { valor: 1000, vigenteDesde: new Date(Date.UTC(2026, 11, 1)) },
+          ],
+        },
+      });
+
+      expect(parcelasCriadas().every((parcela) => parcela.valor === 1000)).toBe(
+        true,
+      );
+    });
+
+    it('cai para o valor atual quando a kitnet não tem histórico (unidades antigas do cadastro em lote)', async () => {
+      prisma.pagamento.findMany.mockResolvedValue([]);
+
+      await service.ensurePagamentosParaMorador({
+        id: morador.id,
+        dataEntrada: new Date('2026-07-01'),
+        diaVencimento: 10,
+        kitnet: { valor: 900 },
+      });
+
+      expect(parcelasCriadas()[0].valor).toBe(900);
+    });
   });
 
   describe('marcarPago', () => {
@@ -385,9 +457,14 @@ describe('PagamentosService', () => {
   describe('anular', () => {
     it('sets status ANULADO, clears dataPagamento/formaPagamento and stores the observacao', async () => {
       prisma.pagamento.findUnique.mockResolvedValue(pagamento);
-      prisma.pagamento.update.mockResolvedValue({ ...pagamento, status: 'ANULADO' });
+      prisma.pagamento.update.mockResolvedValue({
+        ...pagamento,
+        status: 'ANULADO',
+      });
 
-      await service.anular(ownerId, pagamento.id, { observacao: 'Repassado à imobiliária' });
+      await service.anular(ownerId, pagamento.id, {
+        observacao: 'Repassado à imobiliária',
+      });
 
       expect(prisma.pagamento.update).toHaveBeenCalledWith({
         where: { id: pagamento.id },
@@ -406,7 +483,9 @@ describe('PagamentosService', () => {
         morador: { ...morador, kitnet: { ...kitnet, userId: 2 } },
       });
 
-      await expect(service.anular(ownerId, pagamento.id, {})).rejects.toBeInstanceOf(ForbiddenException);
+      await expect(
+        service.anular(ownerId, pagamento.id, {}),
+      ).rejects.toBeInstanceOf(ForbiddenException);
       expect(prisma.pagamento.update).not.toHaveBeenCalled();
     });
   });

@@ -1,4 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { HttpExceptionFilter } from './http-exception.filter';
 import * as sentry from '../observability/sentry';
 
@@ -51,5 +52,50 @@ describe('HttpExceptionFilter', () => {
       error: 'InternalServerError',
     });
     expect(captureExceptionSpy).toHaveBeenCalledWith(boom);
+  });
+
+  // Antes, qualquer erro do Prisma caía no 500 genérico: cadastrar duas unidades com o
+  // mesmo número respondia "Erro interno do servidor" e ainda ia parar no Sentry como se
+  // fosse um bug. Só o módulo de pagamentos tratava P2002 à mão.
+  describe('erros conhecidos do Prisma', () => {
+    function prismaError(code: string) {
+      return new Prisma.PrismaClientKnownRequestError('falhou', {
+        code,
+        clientVersion: '6.19.3',
+      });
+    }
+
+    it('mapeia P2002 (unique) para 409 sem reportar ao Sentry', () => {
+      filter.catch(prismaError('P2002'), host as never);
+
+      expect(response.status).toHaveBeenCalledWith(409);
+      expect(response.json).toHaveBeenCalledWith({
+        statusCode: 409,
+        message: 'Já existe um registro com esses dados.',
+        error: 'Conflict',
+      });
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
+    it('mapeia P2025 (registro ausente) para 404', () => {
+      filter.catch(prismaError('P2025'), host as never);
+
+      expect(response.status).toHaveBeenCalledWith(404);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
+    it('mapeia P2003 (foreign key) para 400', () => {
+      filter.catch(prismaError('P2003'), host as never);
+
+      expect(response.status).toHaveBeenCalledWith(400);
+      expect(captureExceptionSpy).not.toHaveBeenCalled();
+    });
+
+    it('mantém 500 + Sentry para um código do Prisma que não sabemos traduzir', () => {
+      filter.catch(prismaError('P1001'), host as never);
+
+      expect(response.status).toHaveBeenCalledWith(500);
+      expect(captureExceptionSpy).toHaveBeenCalled();
+    });
   });
 });

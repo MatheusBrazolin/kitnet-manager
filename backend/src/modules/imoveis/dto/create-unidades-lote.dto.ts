@@ -1,5 +1,13 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, ArrayMinSize, IsNumber, IsString, Min, MinLength, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsNumber,
+  IsString,
+  Min,
+  MinLength,
+  ValidateNested,
+} from 'class-validator';
 
 export class UnidadeLoteItemDto {
   @IsString()

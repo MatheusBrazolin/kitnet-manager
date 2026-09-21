@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { CreateKitnetDto } from './dto/create-kitnet.dto';
 import { UpdateKitnetDto } from './dto/update-kitnet.dto';
@@ -46,7 +50,9 @@ export class KitnetsService {
   }
 
   private async assertImovelOwnership(userId: number, imovelId: number) {
-    const imovel = await this.prisma.imovel.findUnique({ where: { id: imovelId } });
+    const imovel = await this.prisma.imovel.findUnique({
+      where: { id: imovelId },
+    });
     if (!imovel) {
       throw new NotFoundException('Imóvel não encontrado');
     }
@@ -57,12 +63,20 @@ export class KitnetsService {
 
   async create(userId: number, dto: CreateKitnetDto) {
     await this.assertImovelOwnership(userId, dto.imovelId);
-    const kitnet = await this.prisma.kitnet.create({ data: { ...dto, userId } });
-    // Primeiro registro do histórico de valor — vigente desde a criação da unidade.
-    await this.prisma.kitnetValorHistorico.create({
-      data: { kitnetId: kitnet.id, valor: kitnet.valor, vigenteDesde: kitnet.createdAt },
+    // Em transação: uma kitnet sem o primeiro ponto de histórico quebra a invariante do
+    // modelo e faz as parcelas retroativas serem geradas com o valor de hoje.
+    return this.prisma.$transaction(async (tx) => {
+      const kitnet = await tx.kitnet.create({ data: { ...dto, userId } });
+      // Primeiro registro do histórico de valor — vigente desde a criação da unidade.
+      await tx.kitnetValorHistorico.create({
+        data: {
+          kitnetId: kitnet.id,
+          valor: kitnet.valor,
+          vigenteDesde: kitnet.createdAt,
+        },
+      });
+      return kitnet;
     });
-    return kitnet;
   }
 
   async update(userId: number, id: number, dto: UpdateKitnetDto) {

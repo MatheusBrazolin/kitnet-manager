@@ -1,6 +1,19 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  ForbiddenException,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
-import { CurrentUser, type AuthenticatedUser } from '../../common/decorators/current-user.decorator';
+import {
+  CurrentUser,
+  type AuthenticatedUser,
+} from '../../common/decorators/current-user.decorator';
 import { MembrosService } from './membros.service';
 import { CreateMembroDto } from './dto/create-membro.dto';
 
@@ -12,7 +25,9 @@ export class MembrosController {
   @Get()
   findAll(@CurrentUser() user: AuthenticatedUser) {
     if (user.papel === 'VISUALIZADOR') {
-      throw new ForbiddenException('Você não tem acesso à gestão de membros desta conta.');
+      throw new ForbiddenException(
+        'Você não tem acesso à gestão de membros desta conta.',
+      );
     }
     return this.membrosService.findAll(user.contaId);
   }
@@ -24,14 +39,19 @@ export class MembrosController {
   }
 
   @Delete(':id')
-  remove(@CurrentUser() user: AuthenticatedUser, @Param('id', ParseIntPipe) id: number) {
+  remove(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
     this.assertIsOwner(user);
     return this.membrosService.remove(user.contaId, id);
   }
 
   private assertIsOwner(user: AuthenticatedUser) {
     if (user.papel !== 'OWNER') {
-      throw new ForbiddenException('Só o dono da conta pode gerenciar membros.');
+      throw new ForbiddenException(
+        'Só o dono da conta pode gerenciar membros.',
+      );
     }
   }
 }
