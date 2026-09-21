@@ -20,6 +20,7 @@ import { PaginationQueryDto } from '../../common/dto/pagination-query.dto';
 import { MoradoresService } from './moradores.service';
 import { CreateMoradorDto } from './dto/create-morador.dto';
 import { UpdateMoradorDto } from './dto/update-morador.dto';
+import { RegistrarSaidaDto } from './dto/registrar-saida.dto';
 
 @UseGuards(JwtAuthGuard, ViewerReadOnlyGuard)
 @Controller('moradores')
@@ -32,6 +33,23 @@ export class MoradoresController {
     @Query() pagination: PaginationQueryDto,
   ) {
     return this.moradoresService.findAll(user.contaId, pagination);
+  }
+
+  /**
+   * Encerra a locação preservando o histórico — a alternativa ao DELETE, que cascateia
+   * em Pagamento e apaga os lançamentos financeiros do morador.
+   */
+  @Patch(':id/registrar-saida')
+  registrarSaida(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: RegistrarSaidaDto,
+  ) {
+    return this.moradoresService.registrarSaida(
+      user.contaId,
+      id,
+      dto.dataSaida,
+    );
   }
 
   @Get(':id')

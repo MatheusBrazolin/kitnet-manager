@@ -20,6 +20,68 @@ export class MembrosService {
     });
   }
 
+  /** O convite pendente que este usuário recebeu, se houver — mostrado pra ele aceitar ou recusar. */
+  findConvitePendente(userId: number) {
+    return this.prisma.membro.findFirst({
+      where: { userId, status: 'PENDENTE' },
+      include: { dono: { select: { id: true, name: true, email: true } } },
+    });
+  }
+
+  /**
+   * Aceite do convidado. Só a partir daqui o ContaService passa a resolver a conta do
+   * dono para esse usuário.
+   */
+  async aceitarConvite(userId: number) {
+    const convite = await this.prisma.membro.findFirst({
+      where: { userId, status: 'PENDENTE' },
+    });
+    if (!convite) {
+      throw new NotFoundException('Você não tem nenhum convite pendente.');
+    }
+
+    // Recusar depois de já ter cadastrado imóveis próprios misturaria as duas contas —
+    // a mesma checagem feita no convite, revalidada no aceite porque pode ter mudado
+    // entre um e outro.
+    const possuiDadosProprios = await this.prisma.imovel.count({
+      where: { userId },
+    });
+    if (possuiDadosProprios > 0) {
+      throw new ConflictException(
+        'Você já tem imóveis próprios cadastrados. Para não misturar os dados, não é possível entrar em outra conta.',
+      );
+    }
+
+    return this.prisma.membro.update({
+      where: { id: convite.id },
+      data: { status: 'ACEITO', aceitoEm: new Date() },
+      include: { dono: { select: { id: true, name: true, email: true } } },
+    });
+  }
+
+  /** Recusa do convidado — apaga a filiação pendente. */
+  async recusarConvite(userId: number) {
+    const convite = await this.prisma.membro.findFirst({
+      where: { userId, status: 'PENDENTE' },
+    });
+    if (!convite) {
+      throw new NotFoundException('Você não tem nenhum convite pendente.');
+    }
+    await this.prisma.membro.delete({ where: { id: convite.id } });
+  }
+
+  /**
+   * Saída por iniciativa do próprio membro. Antes só o dono podia desfazer a filiação,
+   * então quem fosse adicionado ficava preso à conta de outra pessoa sem nenhuma saída.
+   */
+  async sairDaConta(userId: number) {
+    const filiacao = await this.prisma.membro.findUnique({ where: { userId } });
+    if (!filiacao) {
+      throw new NotFoundException('Você não é membro de nenhuma outra conta.');
+    }
+    await this.prisma.membro.delete({ where: { id: filiacao.id } });
+  }
+
   async create(donoId: number, dto: CreateMembroDto) {
     const alvo = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -55,8 +117,9 @@ export class MembrosService {
       );
     }
 
+    // Nasce PENDENTE: a filiação só passa a valer quando a pessoa aceita.
     return this.prisma.membro.create({
-      data: { donoId, userId: alvo.id, papel: dto.papel },
+      data: { donoId, userId: alvo.id, papel: dto.papel, status: 'PENDENTE' },
       include: { user: { select: { id: true, name: true, email: true } } },
     });
   }

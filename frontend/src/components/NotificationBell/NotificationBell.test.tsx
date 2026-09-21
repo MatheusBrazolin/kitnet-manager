@@ -33,7 +33,7 @@ function renderBell() {
     <MemoryRouter>
       <QueryClientProvider client={queryClient}>
         <AuthContext.Provider
-          value={{ user: OWNER, isLoading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn() }}
+          value={{ user: OWNER, isLoading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn(), recarregarSessao: vi.fn() }}
         >
           <NotificationBell />
         </AuthContext.Provider>
@@ -91,6 +91,7 @@ describe('NotificationBell', () => {
               login: vi.fn(),
               register: vi.fn(),
               logout: vi.fn(),
+              recarregarSessao: vi.fn(),
             }}
           >
             <NotificationBell />

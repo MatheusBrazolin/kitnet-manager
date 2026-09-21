@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -12,6 +13,7 @@ import {
 } from '../../common/dto/pagination-query.dto';
 import { CreateMoradorDto } from './dto/create-morador.dto';
 import { UpdateMoradorDto } from './dto/update-morador.dto';
+import { KITNET_COM_IMOVEL } from '../../common/prisma/includes';
 
 @Injectable()
 export class MoradoresService {
@@ -22,7 +24,7 @@ export class MoradoresService {
 
   async findAll(userId: number, pagination: PaginationQueryDto = {}) {
     const where = { kitnet: { userId } };
-    const include = { kitnet: { include: { imovel: true } } };
+    const include = { kitnet: KITNET_COM_IMOVEL };
     const orderBy = { nome: 'asc' as const };
 
     if (!isPaginationRequested(pagination)) {
@@ -47,7 +49,7 @@ export class MoradoresService {
   async findOwnedOrThrow(userId: number, id: number) {
     const morador = await this.prisma.morador.findUnique({
       where: { id },
-      include: { kitnet: { include: { imovel: true } } },
+      include: { kitnet: KITNET_COM_IMOVEL },
     });
     if (!morador) {
       throw new NotFoundException('Morador não encontrado');
@@ -138,8 +140,63 @@ export class MoradoresService {
     });
   }
 
+  /**
+   * Encerra a locação sem apagar nada: a partir do mês seguinte à saída nenhuma parcela
+   * nova é gerada, e a unidade volta a ficar vaga se não sobrar mais ninguém.
+   *
+   * Existe porque até aqui a única forma de "tirar" um morador era excluí-lo — o que
+   * cascateia em Pagamento e apaga todo o histórico financeiro dele, mudando
+   * retroativamente a receita de meses já fechados. E quem não era excluído continuava
+   * ganhando uma parcela nova todo mês, para sempre, mesmo tendo ido embora.
+   */
+  async registrarSaida(userId: number, id: number, dataSaidaIso?: string) {
+    const morador = await this.findOwnedOrThrow(userId, id);
+    if (morador.dataSaida) {
+      throw new ConflictException('A saída deste morador já foi registrada.');
+    }
+
+    const dataSaida = dataSaidaIso ? new Date(dataSaidaIso) : new Date();
+    if (dataSaida < morador.dataEntrada) {
+      throw new ConflictException(
+        'A data de saída não pode ser anterior à data de entrada.',
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const atualizado = await tx.morador.update({
+        where: { id },
+        data: { dataSaida },
+      });
+
+      const aindaAtivos = await tx.morador.count({
+        where: { kitnetId: morador.kitnetId, dataSaida: null },
+      });
+      if (aindaAtivos === 0) {
+        await tx.kitnet.update({
+          where: { id: morador.kitnetId },
+          data: { status: 'vaga' },
+        });
+      }
+
+      return atualizado;
+    });
+  }
+
   async remove(userId: number, id: number) {
     const morador = await this.findOwnedOrThrow(userId, id);
+
+    // Excluir cascateia em Pagamento (schema: onDelete: Cascade) e apaga o histórico
+    // financeiro junto. Quando já existe dinheiro registrado, isso muda retroativamente
+    // a receita de meses fechados — então bloqueamos e apontamos o caminho certo, no
+    // mesmo espírito do que ImoveisService já faz com imóveis que ainda têm unidades.
+    const pagamentosConfirmados = await this.prisma.pagamento.count({
+      where: { moradorId: id, status: 'PAGO' },
+    });
+    if (pagamentosConfirmados > 0) {
+      throw new ConflictException(
+        'Este morador já tem pagamentos confirmados no histórico. Registre a saída dele em vez de excluir, para não apagar o histórico financeiro.',
+      );
+    }
 
     // Mesma razão do create: excluir e liberar a unidade é uma operação só. Antes, uma
     // falha entre os dois passos deixava a kitnet "ocupada" para sempre, sem ninguém

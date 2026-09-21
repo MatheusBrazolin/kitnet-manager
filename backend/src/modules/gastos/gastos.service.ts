@@ -11,6 +11,7 @@ import {
 } from '../../common/dto/pagination-query.dto';
 import { CreateGastoDto } from './dto/create-gasto.dto';
 import { UpdateGastoDto } from './dto/update-gasto.dto';
+import { KITNET_COM_IMOVEL } from '../../common/prisma/includes';
 
 @Injectable()
 export class GastosService {
@@ -18,7 +19,7 @@ export class GastosService {
 
   async findAll(userId: number, pagination: PaginationQueryDto = {}) {
     const where = { kitnet: { userId } };
-    const include = { kitnet: { include: { imovel: true } } };
+    const include = { kitnet: KITNET_COM_IMOVEL };
     const orderBy = { data: 'desc' as const };
 
     if (!isPaginationRequested(pagination)) {

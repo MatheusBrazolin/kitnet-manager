@@ -1,0 +1,38 @@
+/* Convite pendente pra entrar na conta de outra pessoa. Fica no topo do conteúdo, com a
+   mesma linguagem do banner de membro em layout.css, mas com destaque de marca porque
+   exige uma ação — não é só informativo. */
+.convite-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-ink);
+  border-left: var(--border-width-lg) solid var(--color-brand);
+  box-shadow: var(--shadow-sm);
+}
+
+.convite-banner-texto {
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+
+.convite-banner-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+@media (max-width: 640px) {
+  .convite-banner-acoes {
+    width: 100%;
+  }
+
+  .convite-banner-acoes .btn {
+    flex: 1;
+  }
+}

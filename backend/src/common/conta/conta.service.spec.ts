@@ -27,6 +27,7 @@ describe('ContaService', () => {
       prisma.membro.findUnique.mockResolvedValue({
         donoId: 5,
         papel: 'GERENTE',
+        status: 'ACEITO',
         dono: { name: 'Dona Conta' },
       });
 
@@ -39,10 +40,27 @@ describe('ContaService', () => {
       });
     });
 
+    // Regressão de segurança: antes, bastava o dono adicionar um e-mail para o
+    // convidado ser jogado na conta dele no login seguinte — e tudo que o convidado
+    // cadastrasse passava a ser gravado na conta do outro.
+    it('ignores a PENDENTE invitation and keeps the user on their own account', async () => {
+      prisma.membro.findUnique.mockResolvedValue({
+        donoId: 5,
+        papel: 'GERENTE',
+        status: 'PENDENTE',
+        dono: { name: 'Dona Conta' },
+      });
+
+      const result = await service.resolve(9);
+
+      expect(result).toEqual({ contaId: 9, papel: 'OWNER' });
+    });
+
     it('propagates the VISUALIZADOR papel from the membership', async () => {
       prisma.membro.findUnique.mockResolvedValue({
         donoId: 5,
         papel: 'VISUALIZADOR',
+        status: 'ACEITO',
         dono: { name: 'Dona Conta' },
       });
 

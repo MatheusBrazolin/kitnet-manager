@@ -1,4 +1,8 @@
-import { ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { MoradoresService } from './moradores.service';
 import { PrismaService } from '../../database/prisma.service';
 import { PagamentosService } from '../pagamentos/pagamentos.service';
@@ -13,6 +17,7 @@ type PrismaMock = {
     count: jest.Mock;
   };
   kitnet: { findUnique: jest.Mock; update: jest.Mock };
+  pagamento: { count: jest.Mock };
   $transaction: jest.Mock;
 };
 
@@ -44,6 +49,8 @@ describe('MoradoresService', () => {
         count: jest.fn(),
       },
       kitnet: { findUnique: jest.fn(), update: jest.fn() },
+      // `remove` agora recusa excluir um morador com pagamentos confirmados.
+      pagamento: { count: jest.fn().mockResolvedValue(0) },
       // create/remove agora rodam dentro de $transaction — criar o morador e marcar a
       // unidade como ocupada (ou o inverso) precisa ser atômico. O mock entrega o próprio
       // client como `tx`, então as asserções sobre prisma.kitnet.update seguem valendo.
@@ -144,7 +151,72 @@ describe('MoradoresService', () => {
     });
   });
 
+  // registrarSaida é a alternativa ao DELETE destrutivo: encerra a locação sem apagar
+  // nenhum lançamento financeiro.
+  describe('registrarSaida', () => {
+    it('grava a data de saída e devolve a unidade para vaga quando ninguém mais fica', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+      prisma.morador.count.mockResolvedValue(0);
+      prisma.morador.update.mockResolvedValue({
+        ...morador,
+        dataSaida: new Date('2026-09-30'),
+      });
+
+      await service.registrarSaida(ownerId, morador.id, '2026-09-30');
+
+      expect(prisma.morador.update).toHaveBeenCalledWith({
+        where: { id: morador.id },
+        data: { dataSaida: new Date('2026-09-30') },
+      });
+      expect(prisma.kitnet.update).toHaveBeenCalledWith({
+        where: { id: morador.kitnetId },
+        data: { status: 'vaga' },
+      });
+    });
+
+    it('mantém a unidade ocupada quando ainda há outro morador ativo', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+      prisma.morador.count.mockResolvedValue(1);
+      prisma.morador.update.mockResolvedValue(morador);
+
+      await service.registrarSaida(ownerId, morador.id);
+
+      expect(prisma.kitnet.update).not.toHaveBeenCalled();
+    });
+
+    it('recusa registrar a saída duas vezes', async () => {
+      prisma.morador.findUnique.mockResolvedValue({
+        ...morador,
+        dataSaida: new Date('2026-08-01'),
+      });
+
+      await expect(
+        service.registrarSaida(ownerId, morador.id),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it('recusa uma data de saída anterior à entrada', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+
+      await expect(
+        service.registrarSaida(ownerId, morador.id, '2026-01-01'),
+      ).rejects.toBeInstanceOf(ConflictException);
+    });
+  });
+
   describe('remove', () => {
+    // Excluir cascateia em Pagamento e apaga o histórico financeiro junto, mudando
+    // retroativamente a receita de meses já fechados.
+    it('recusa excluir um morador que já tem pagamentos confirmados', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+      prisma.pagamento.count.mockResolvedValue(3);
+
+      await expect(service.remove(ownerId, morador.id)).rejects.toBeInstanceOf(
+        ConflictException,
+      );
+      expect(prisma.morador.delete).not.toHaveBeenCalled();
+    });
+
     it('sets the kitnet back to vaga when it has no remaining moradores', async () => {
       prisma.morador.findUnique.mockResolvedValue(morador);
       prisma.morador.count.mockResolvedValue(0);

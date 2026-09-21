@@ -9,6 +9,7 @@ import { ErrorBanner } from '../ErrorBanner/ErrorBanner';
 import { formatDate, formatMesReferencia, formatTempoLocacao, formatVencimentoLabel } from '../../utils/dates';
 import { formatCurrency } from '../../utils/currency';
 import './morador-detail-modal.css';
+import { formatUnidadeLabel } from '../../utils/unidade';
 
 interface MoradorDetailModalProps {
   moradorId: number;
@@ -44,10 +45,7 @@ export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalPro
             <div>
               <dt>Imóvel</dt>
               <dd>
-                {morador.kitnet.imovel?.nome ?? '—'}
-                {morador.kitnet.imovel?.kitnets && morador.kitnet.imovel.kitnets.length > 1
-                  ? ` · ${morador.kitnet.numero}`
-                  : ''}
+                {formatUnidadeLabel(morador.kitnet)}
               </dd>
             </div>
             <div>

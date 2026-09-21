@@ -9,6 +9,7 @@ const TONE_BY_LABEL: Record<string, Tone> = {
   pendente: 'warning',
   atrasado: 'danger',
   anulado: 'neutral',
+  saiu: 'neutral',
 };
 
 export function StatusBadge({ label }: { label: string }) {

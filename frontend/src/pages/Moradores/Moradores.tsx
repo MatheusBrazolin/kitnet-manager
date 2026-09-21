@@ -15,6 +15,9 @@ import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { useAuth } from '../../hooks/useAuth';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
+import { formatUnidadeLabel } from '../../utils/unidade';
+import { StatusBadge } from '../../components/StatusBadge';
+import './moradores.css';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
 
@@ -135,10 +138,35 @@ export function Moradores() {
     }
   }
 
+  /**
+   * Encerra a locação preservando o histórico. É o caminho certo para quem foi embora:
+   * excluir apagaria junto todos os pagamentos da pessoa, mudando retroativamente a
+   * receita de meses já fechados — e quem fica cadastrado sem saída continua recebendo
+   * uma parcela nova todo mês.
+   */
+  async function handleRegistrarSaida(morador: MoradorRow) {
+    const ok = await confirm({
+      title: 'Registrar saída',
+      message: `Encerrar a locação de ${morador.nome}? O histórico de pagamentos é mantido e a unidade fica disponível.`,
+      confirmLabel: 'Registrar saída',
+    });
+    if (!ok) {
+      return;
+    }
+    setListError(null);
+    try {
+      await api.patch(`/moradores/${morador.id}/registrar-saida`, {});
+      invalidarDadosDoNegocio(queryClient);
+    } catch (err) {
+      setListError(getApiErrorMessage(err, 'Não foi possível registrar a saída.'));
+    }
+  }
+
   async function handleDelete(id: number) {
     const ok = await confirm({
       title: 'Remover morador',
-      message: 'Remover este morador? Essa ação não pode ser desfeita.',
+      message:
+        'Remover este morador? Os pagamentos dele são apagados junto. Se a pessoa apenas foi embora, use “Registrar saída” para manter o histórico.',
       confirmLabel: 'Remover',
       danger: true,
     });
@@ -183,14 +211,21 @@ export function Moradores() {
           emptyMessage="Nenhum morador cadastrado ainda."
           onRowClick={(row) => setSelectedMoradorId(row.id)}
           columns={[
-            { header: 'Nome', render: (row) => row.nome },
+            {
+              header: 'Nome',
+              render: (row) =>
+                row.dataSaida ? (
+                  <span className="morador-saiu">
+                    {row.nome} <StatusBadge label="Saiu" />
+                  </span>
+                ) : (
+                  row.nome
+                ),
+            },
             { header: 'Telefone', render: (row) => row.telefone },
             {
               header: 'Unidade',
-              render: (row) =>
-                row.kitnet.imovel
-                  ? `${row.kitnet.imovel.nome}${row.kitnet.imovel.kitnets?.length > 1 ? ` · ${row.kitnet.numero}` : ''}`
-                  : row.kitnet.numero,
+              render: (row) => formatUnidadeLabel(row.kitnet),
             },
             ...(isViewer
               ? []
@@ -210,6 +245,18 @@ export function Moradores() {
                         >
                           Editar
                         </button>
+                        {!row.dataSaida && (
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleRegistrarSaida(row);
+                            }}
+                          >
+                            Registrar saída
+                          </button>
+                        )}
                         <button
                           type="button"
                           className="btn btn-danger"
