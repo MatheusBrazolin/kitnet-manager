@@ -15,15 +15,11 @@ import { CurrencyInput } from '../../components/CurrencyInput';
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../utils/currency';
-import { formatDate } from '../../utils/dates';
+import { formatDate, hojeIsoLocal } from '../../utils/dates';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
 import { formatUnidadeLabel } from '../../utils/unidade';
 
 const PAGE_SIZE = 20;
-
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function Gastos() {
   const queryClient = useQueryClient();
@@ -63,7 +59,7 @@ export function Gastos() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [descricao, setDescricao] = useState('');
   const [valor, setValor] = useState('');
-  const [data, setData] = useState(todayIsoDate());
+  const [data, setData] = useState(hojeIsoLocal());
   const [kitnetId, setKitnetId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
@@ -80,7 +76,7 @@ export function Gastos() {
     setEditingId(null);
     setDescricao('');
     setValor('');
-    setData(todayIsoDate());
+    setData(hojeIsoLocal());
     setKitnetId(kitnets[0]?.id ?? null);
     setError(null);
     setIsModalOpen(true);

@@ -30,7 +30,11 @@ export class DashboardService {
   async getSummary(userId: number) {
     const [, kitnets] = await Promise.all([
       this.pagamentosService.ensurePagamentosParaConta(userId),
-      this.prisma.kitnet.findMany({ where: { userId } }),
+      // Só os três campos usados nas contagens e somas abaixo.
+      this.prisma.kitnet.findMany({
+        where: { userId },
+        select: { status: true, valor: true, taxaImobiliaria: true },
+      }),
     ]);
 
     const totalKitnets = kitnets.length;
@@ -97,16 +101,28 @@ export class DashboardService {
       }),
       this.prisma.pagamento.findMany({
         where: { status: 'PENDENTE', morador: { kitnet: { userId } } },
-        include: { morador: true },
+        select: {
+          id: true,
+          valor: true,
+          vencimento: true,
+          morador: { select: { nome: true } },
+        },
         orderBy: { vencimento: 'asc' },
         take: PROXIMOS_VENCIMENTOS_LIMIT,
       }),
+      // Agrupado por imóvel em JS, então basta o valor e a identificação do imóvel.
       this.prisma.gasto.findMany({
         where: {
           data: { gte: periodStart, lt: periodEnd },
           kitnet: { userId },
         },
-        include: { kitnet: { include: { imovel: true } } },
+        select: {
+          valor: true,
+          data: true,
+          kitnet: {
+            select: { imovelId: true, imovel: { select: { nome: true } } },
+          },
+        },
       }),
       this.getHistorico(userId, year, month),
     ]);
@@ -155,15 +171,20 @@ export class DashboardService {
       // Agrupado por dataPagamento (regime de caixa: quando o dinheiro entrou), não por
       // vencimento — senão um pagamento recebido fora do mês do vencimento distorce o mês
       // em que a receita aparece no histórico.
+      // `select` explícito: só a data e o valor entram na soma. Sem ele, o Prisma
+      // trazia a linha inteira (observação, forma de pagamento, timestamps) de cada
+      // pagamento e gasto dos últimos 6 meses só para dois reduce.
       this.prisma.pagamento.findMany({
         where: {
           status: 'PAGO',
           dataPagamento: { gte: inicioJanela },
           morador: { kitnet: { userId } },
         },
+        select: { valor: true, dataPagamento: true },
       }),
       this.prisma.gasto.findMany({
         where: { data: { gte: inicioJanela }, kitnet: { userId } },
+        select: { valor: true, data: true },
       }),
     ]);
 

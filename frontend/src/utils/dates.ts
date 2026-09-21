@@ -7,6 +7,35 @@ function startOfUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
+/**
+ * "Hoje" como data de calendário, a partir do relógio LOCAL de quem está usando o app.
+ *
+ * `new Date()` é um instante, não um dia — e `startOfUtcDay(new Date())` converte esse
+ * instante para o dia em UTC. Em São Paulo (UTC-3), das 21h em diante isso já é o dia
+ * seguinte: "Vence hoje" aparecia um dia antes, o tempo de locação contava um dia a mais
+ * e os formulários vinham pré-preenchidos com a data errada.
+ *
+ * O resto do módulo continua em UTC porque as datas VINDAS DA API são de calendário em
+ * UTC; o que estava errado era derivar o dia de hoje delas.
+ */
+export function hojeUtc(): Date {
+  const agora = new Date();
+  return new Date(Date.UTC(agora.getFullYear(), agora.getMonth(), agora.getDate()));
+}
+
+/**
+ * Data de hoje no formato aceito por `<input type="date">` (aaaa-mm-dd), no fuso local.
+ *
+ * Estava duplicada como `todayIsoDate()` em Moradores e Gastos e como `hojeIso()` em
+ * Pagamentos — as três usando `new Date().toISOString().slice(0, 10)`, que devolve a data
+ * em UTC. Depois das 21h em São Paulo, abrir "Marcar pago" ou "Novo gasto" já trazia o
+ * dia seguinte no campo, e era fácil salvar sem reparar.
+ */
+export function hojeIsoLocal(): string {
+  // en-CA formata como aaaa-mm-dd, que é exatamente o formato do input date.
+  return new Date().toLocaleDateString('en-CA');
+}
+
 const dateFormatter = new Intl.DateTimeFormat('pt-BR', {
   day: '2-digit',
   month: '2-digit',
@@ -22,7 +51,7 @@ export function formatDate(date: string | Date): string {
 }
 
 export function diasParaVencimento(vencimento: string | Date): number {
-  const hoje = startOfUtcDay(new Date());
+  const hoje = hojeUtc();
   const data = startOfUtcDay(new Date(vencimento));
   return Math.round((data.getTime() - hoje.getTime()) / MS_PER_DAY);
 }
@@ -67,7 +96,7 @@ export function formatMesReferencia(mesReferencia: string | Date): string {
 
 export function formatTempoLocacao(dataEntrada: string | Date): string {
   const inicio = startOfUtcDay(new Date(dataEntrada));
-  const hoje = startOfUtcDay(new Date());
+  const hoje = hojeUtc();
 
   let anos = hoje.getUTCFullYear() - inicio.getUTCFullYear();
   let meses = hoje.getUTCMonth() - inicio.getUTCMonth();

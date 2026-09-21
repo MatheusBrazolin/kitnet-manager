@@ -18,14 +18,11 @@ import { invalidarDadosDoNegocio } from '../../services/invalidate';
 import { formatUnidadeLabel } from '../../utils/unidade';
 import { StatusBadge } from '../../components/StatusBadge';
 import './moradores.css';
+import { hojeIsoLocal } from '../../utils/dates';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
 
 const PAGE_SIZE = 20;
-
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function Moradores() {
   const queryClient = useQueryClient();
@@ -68,7 +65,7 @@ export function Moradores() {
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [kitnetId, setKitnetId] = useState<number | null>(null);
-  const [dataEntrada, setDataEntrada] = useState(todayIsoDate());
+  const [dataEntrada, setDataEntrada] = useState(hojeIsoLocal());
   const [diaVencimento, setDiaVencimento] = useState('10');
   const [selectedMoradorId, setSelectedMoradorId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +84,7 @@ export function Moradores() {
     setNome('');
     setTelefone('');
     setKitnetId(kitnets[0]?.id ?? null);
-    setDataEntrada(todayIsoDate());
+    setDataEntrada(hojeIsoLocal());
     setDiaVencimento('10');
     setError(null);
     setIsModalOpen(true);
