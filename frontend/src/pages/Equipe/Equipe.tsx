@@ -12,10 +12,16 @@ import { Header } from '../../components/Header/Header';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { PAPEL_LABEL } from '../../utils/papel';
+import { useAuth } from '../../hooks/useAuth';
 import './equipe.css';
 
 export function Equipe() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
+  // O backend só deixa o OWNER convidar e remover membros (membros.controller.ts).
+  // Um GERENTE consegue listar a equipe, então mostrar os botões pra ele só produz
+  // um erro depois que o formulário já foi preenchido.
+  const isOwner = user?.papel === 'OWNER';
   const confirm = useConfirm();
   const {
     data: membros = [],
@@ -83,9 +89,11 @@ export function Equipe() {
         title="Equipe"
         subtitle="Dê acesso aos seus imóveis para sócios, gerentes ou contadores."
         action={
-          <button type="button" className="btn btn-primary" onClick={openModal}>
-            + Convidar
-          </button>
+          isOwner ? (
+            <button type="button" className="btn btn-primary" onClick={openModal}>
+              + Convidar
+            </button>
+          ) : undefined
         }
       />
 
@@ -103,15 +111,19 @@ export function Equipe() {
               { header: 'Nome', render: (row) => row.user.name },
               { header: 'E-mail', render: (row) => row.user.email },
               { header: 'Acesso', render: (row) => <StatusBadge label={PAPEL_LABEL[row.papel]} /> },
-              {
-                header: '',
-                align: 'right',
-                render: (row) => (
-                  <button type="button" className="btn btn-danger" onClick={() => handleRemove(row)}>
-                    Remover
-                  </button>
-                ),
-              },
+              ...(isOwner
+                ? [
+                    {
+                      header: '',
+                      align: 'right' as const,
+                      render: (row: Membro) => (
+                        <button type="button" className="btn btn-danger" onClick={() => handleRemove(row)}>
+                          Remover
+                        </button>
+                      ),
+                    },
+                  ]
+                : []),
             ]}
           />
         )}
