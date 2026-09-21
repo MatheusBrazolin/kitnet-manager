@@ -11,7 +11,7 @@
   top: 0;
   height: 100vh;
   overflow-y: auto;
-  z-index: 30;
+  z-index: var(--z-sidebar);
 }
 
 .sidebar-brand {
@@ -211,15 +211,18 @@
     background: var(--color-ink);
     border-top: var(--border-width-lg) solid var(--color-brand);
     padding: 0.4rem 0.2rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
-    z-index: 40;
+    z-index: var(--z-tabbar);
   }
 
   .mobile-tab {
     flex: 1;
     min-width: 0;
+    /* 44px é o alvo de toque mínimo recomendado; a barra tinha ~39px de altura útil. */
+    min-height: 44px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 0.2rem;
     padding: 0.2rem 0.05rem;
     color: var(--color-bg);
@@ -234,7 +237,9 @@
   }
 
   .mobile-tab-label {
-    font-size: 0.5rem;
+    /* 8px (0.5rem) estava muito abaixo do mínimo legível, e isto não é um rótulo
+       decorativo — é a navegação principal do app. */
+    font-size: 0.625rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0;
@@ -247,5 +252,25 @@
   .mobile-tab-active {
     opacity: 1;
     color: var(--color-brand);
+  }
+
+  .mobile-tab:focus-visible {
+    outline: var(--border-width) solid var(--color-brand);
+    outline-offset: -2px;
+  }
+}
+
+/* Abaixo de 360px, seis abas deixam ~53px para cada uma e qualquer rótulo é cortado no
+   meio de uma palavra. Só o ícone é mais honesto que "PAGAMENT…"; o texto continua no
+   DOM, apenas oculto visualmente, então leitores de tela seguem anunciando o nome. */
+@media (max-width: 359px) {
+  .mobile-tab-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 }

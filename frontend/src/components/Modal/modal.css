@@ -1,11 +1,15 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(21, 18, 14, 0.6);
+  background: var(--color-scrim);
   display: grid;
   place-items: center;
   padding: var(--space-4);
-  z-index: 100;
+  /* O overlay precisa rolar: com o modal centralizado e mais alto que a viewport
+     visível, o excedente vazava igualmente para cima e para baixo e o cabeçalho (com o
+     botão ×) ficava inalcançável. */
+  overflow-y: auto;
+  z-index: var(--z-modal);
   animation: modal-fade var(--duration-normal) var(--ease-out-expo);
 }
 
@@ -15,8 +19,12 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   width: 420px;
-  max-width: calc(100vw - 2 * var(--space-4));
-  max-height: calc(100vh - 2 * var(--space-4));
+  /* 100% do overlay, não 100vw: no desktop com barra de rolagem clássica, 100vw inclui a
+     largura da barra e o modal ficava alguns pixels mais largo que o próprio overlay. */
+  max-width: 100%;
+  /* dvh, não vh: no mobile, 100vh é a viewport SEM a barra de endereço, enquanto o
+     overlay (position: fixed) usa a viewport visível, menor. */
+  max-height: calc(100dvh - 2 * var(--space-4));
   display: flex;
   flex-direction: column;
   animation: modal-rise var(--duration-normal) var(--ease-out-expo);
@@ -24,7 +32,7 @@
 
 .modal-wide {
   width: 560px;
-  max-width: calc(100vw - 2 * var(--space-4));
+  max-width: 100%;
 }
 
 .modal-header {
@@ -39,6 +47,10 @@
   font-size: var(--text-lg);
   font-weight: 700;
   text-transform: uppercase;
+  /* Títulos dinâmicos longos ("Adicionar unidades · <nome do imóvel>") esmagavam o
+     botão × para ~12px sem estas duas regras. */
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .modal-close {
@@ -47,6 +59,7 @@
   border-radius: var(--radius-sm);
   width: 28px;
   height: 28px;
+  flex-shrink: 0;
   display: grid;
   place-items: center;
   font-size: var(--text-lg);
@@ -85,5 +98,19 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+.modal-close:focus-visible {
+  outline: var(--border-width) solid var(--color-brand);
+  outline-offset: 2px;
+}
+
+@media (max-width: 860px) {
+  /* Fechar é o alvo mais crítico do modal no celular e tinha 28px. O padding negativo
+     mantém o visual compacto enquanto a área de toque chega aos 44px recomendados. */
+  .modal-close {
+    width: 44px;
+    height: 44px;
   }
 }

@@ -31,8 +31,12 @@
   flex-wrap: wrap;
 }
 
-.imovel-card-summary-row:hover {
-  background: var(--color-surface-sunken);
+/* Só em ponteiro fino: no toque o :hover fica aplicado depois do tap, deixando
+   o elemento "levantado" sem motivo até o próximo toque em outro lugar. */
+@media (hover: hover) and (pointer: fine) {
+  .imovel-card-summary-row:hover {
+    background: var(--color-surface-sunken);
+  }
 }
 
 /* Sem isso, o foco (clique ou teclado) usa o outline azul padrão do navegador, que

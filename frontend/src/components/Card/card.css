@@ -40,9 +40,13 @@
   transition: transform var(--duration-normal) var(--ease-out-expo), box-shadow var(--duration-normal) var(--ease-out-expo);
 }
 
-.stat-card:hover {
-  transform: translate(-3px, -3px);
-  box-shadow: var(--shadow-lg);
+/* Só em ponteiro fino: no toque o :hover fica aplicado depois do tap, deixando
+   o elemento "levantado" sem motivo até o próximo toque em outro lugar. */
+@media (hover: hover) and (pointer: fine) {
+  .stat-card:hover {
+    transform: translate(-3px, -3px);
+    box-shadow: var(--shadow-lg);
+  }
 }
 
 .dashboard-stats .stat-card:nth-child(2) {
