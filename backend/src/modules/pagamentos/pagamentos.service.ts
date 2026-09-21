@@ -205,8 +205,22 @@ export class PagamentosService {
       ),
     }));
 
+    // Restringe aos meses que realmente interessam. Sem o filtro de mesReferencia, esta
+    // query trazia TODOS os pagamentos de TODOS os moradores da conta, desde sempre — e
+    // ela roda em todo GET /pagamentos e /dashboard, então o custo crescia com o
+    // histórico inteiro a cada abertura de tela.
+    const mesesDeInteresse = Array.from(
+      new Map(
+        porMorador.flatMap(({ meses }) =>
+          meses.map((mes) => [mes.getTime(), mes] as const),
+        ),
+      ).values(),
+    );
     const existentes = await this.prisma.pagamento.findMany({
-      where: { moradorId: { in: moradores.map((morador) => morador.id) } },
+      where: {
+        moradorId: { in: moradores.map((morador) => morador.id) },
+        mesReferencia: { in: mesesDeInteresse },
+      },
       select: { moradorId: true, mesReferencia: true },
     });
     const jaExistem = new Set(
@@ -259,9 +273,14 @@ export class PagamentosService {
     return pagamentos.map((pagamento) => this.comStatusEfetivo(pagamento, now));
   }
 
+  /**
+   * Alertas da campainha. NÃO gera parcelas: a campainha faz polling a cada 60s, então
+   * isso transformava uma leitura em ~480 escritas por dia por aba aberta — e um membro
+   * VISUALIZADOR, que só tem acesso de leitura, acabava escrevendo no banco só por
+   * deixar a tela aberta. A geração continua acontecendo em GET /pagamentos e
+   * GET /dashboard, que é de onde as parcelas novas realmente precisam aparecer.
+   */
   async getAlertas(userId: number) {
-    await this.ensurePagamentosParaConta(userId);
-
     // "Vencendo hoje ou já vencido e ainda não confirmado como pago" — calendário em UTC,
     // igual ao resto do módulo, pra não variar com o timezone do processo.
     const now = new Date();

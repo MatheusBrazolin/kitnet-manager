@@ -122,8 +122,19 @@ Sobe Postgres local, backend (`:3000`) e frontend (`:5173`).
 ```bash
 cd backend
 npm test          # testes unitários dos services
-npm run test:e2e  # testes e2e (guards, validação)
+npm run test:e2e  # testes e2e (guards, validação) — precisa de Postgres
+npm run lint      # verifica (não corrige; use lint:fix pra corrigir)
+npm run typecheck
 ```
+
+```bash
+cd frontend
+npm test          # vitest (utils, componentes, contexto de auth)
+npm run lint
+npm run typecheck
+```
+
+O CI roda lint, typecheck, testes e build dos dois lados em todo PR.
 
 ## Autenticação da API
 

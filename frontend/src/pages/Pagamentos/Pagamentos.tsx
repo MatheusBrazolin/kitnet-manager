@@ -12,16 +12,12 @@ import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { ExpandableGroupCard } from '../../components/ExpandableGroupCard/ExpandableGroupCard';
 import { CurrencyInput } from '../../components/CurrencyInput';
-import { formatDate, formatMesReferencia, formatVencimentoLabel } from '../../utils/dates';
+import { formatDate, formatMesReferencia, formatVencimentoLabel, hojeIsoLocal } from '../../utils/dates';
 import { formatCurrency } from '../../utils/currency';
 import { useAuth } from '../../hooks/useAuth';
 import { useToggleSet } from '../../hooks/useToggleSet';
 import './pagamentos.css';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
-
-function hojeIso() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 interface GrupoImovel {
   imovelId: number;
@@ -244,7 +240,7 @@ export function Pagamentos() {
   function openComplementarModal() {
     setComplementarValor('');
     setComplementarMoradorId(moradores[0] ? String(moradores[0].id) : '');
-    setComplementarData(hojeIso());
+    setComplementarData(hojeIsoLocal());
     setComplementarObservacao('');
     setComplementarError(null);
     setIsComplementarModalOpen(true);
@@ -272,7 +268,7 @@ export function Pagamentos() {
 
   function openMarcarPagoModal(pagamento: Pagamento) {
     setMarcandoPago(pagamento);
-    setDataPagamento(hojeIso());
+    setDataPagamento(hojeIsoLocal());
     setFormaPagamento('');
     setMarcarPagoError(null);
   }

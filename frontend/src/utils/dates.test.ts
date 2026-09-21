@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { diasParaVencimento, formatMesReferencia, formatTempoLocacao, formatVencimentoLabel } from './dates';
+import {
+  diasParaVencimento,
+  formatMesReferencia,
+  formatTempoLocacao,
+  formatVencimentoLabel,
+  hojeIsoLocal,
+} from './dates';
 
 describe('dates', () => {
   beforeEach(() => {
@@ -80,6 +86,35 @@ describe('dates', () => {
 
     it('returns years and months combined', () => {
       expect(formatTempoLocacao('2024-05-10')).toBe('2 anos e 2 meses');
+    });
+  });
+
+  // Regressão de fuso: "hoje" era derivado com new Date().toISOString(), que devolve a
+  // data em UTC. Em São Paulo (UTC-3), das 21h em diante isso já é o dia seguinte — os
+  // formulários vinham pré-preenchidos com a data errada, "Vence hoje" aparecia um dia
+  // antes e o tempo de locação contava um dia a mais.
+  //
+  // O ambiente de teste roda com TZ=America/Sao_Paulo (ver vite.config.ts), então
+  // 2026-07-11T01:00:00Z é 10/07 às 22h no relógio local de quem usa o app.
+  describe('virada do dia no fuso local', () => {
+    it('hojeIsoLocal devolve o dia LOCAL, não o dia em UTC', () => {
+      vi.setSystemTime(new Date('2026-07-11T01:00:00Z'));
+      expect(hojeIsoLocal()).toBe('2026-07-10');
+    });
+
+    it('diasParaVencimento ainda diz "hoje" às 22h do dia do vencimento', () => {
+      vi.setSystemTime(new Date('2026-07-11T01:00:00Z'));
+      expect(diasParaVencimento('2026-07-10')).toBe(0);
+    });
+
+    it('formatVencimentoLabel não antecipa "Vence hoje" para o dia seguinte', () => {
+      vi.setSystemTime(new Date('2026-07-11T01:00:00Z'));
+      expect(formatVencimentoLabel('2026-07-11', false)).toBe('Vence em 1 dia');
+    });
+
+    it('formatTempoLocacao não conta um dia a mais depois das 21h', () => {
+      vi.setSystemTime(new Date('2026-07-11T01:00:00Z'));
+      expect(formatTempoLocacao('2026-07-10')).toBe('Chegou hoje');
     });
   });
 });
