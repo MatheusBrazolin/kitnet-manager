@@ -16,6 +16,7 @@ import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../utils/currency';
 import { formatDate } from '../../utils/dates';
+import { invalidarDadosDoNegocio } from '../../services/invalidate';
 
 const PAGE_SIZE = 20;
 
@@ -109,8 +110,7 @@ export function Gastos() {
         await api.post('/gastos', { descricao, valor: Number(valor), data, kitnetId });
       }
       setIsModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['gastos'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setError(getApiErrorMessage(err, `Não foi possível ${editingId !== null ? 'atualizar' : 'lançar'} o gasto.`));
     } finally {
@@ -131,8 +131,7 @@ export function Gastos() {
     setListError(null);
     try {
       await api.delete(`/gastos/${id}`);
-      queryClient.invalidateQueries({ queryKey: ['gastos'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o gasto.'));
     }

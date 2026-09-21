@@ -17,6 +17,7 @@ import { formatCurrency } from '../../utils/currency';
 import { useAuth } from '../../hooks/useAuth';
 import { useToggleSet } from '../../hooks/useToggleSet';
 import './pagamentos.css';
+import { invalidarDadosDoNegocio } from '../../services/invalidate';
 
 function hojeIso() {
   return new Date().toISOString().slice(0, 10);
@@ -119,6 +120,9 @@ export function Pagamentos() {
   const [observacao, setObservacao] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
+  // Id do pagamento em processamento — desabilita só aquele botão, evitando dois
+  // PATCH /desfazer-pagamento em voo num duplo clique.
+  const [desfazendoId, setDesfazendoId] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [marcandoPago, setMarcandoPago] = useState<Pagamento | null>(null);
@@ -229,8 +233,7 @@ export function Pagamentos() {
         observacao: observacao.trim() || undefined,
       });
       setIsModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['morador'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível lançar o pagamento.'));
     } finally {
@@ -259,8 +262,7 @@ export function Pagamentos() {
         observacao: complementarObservacao.trim() || undefined,
       });
       setIsComplementarModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['morador'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setComplementarError(getApiErrorMessage(err, 'Não foi possível lançar o pagamento complementar.'));
     } finally {
@@ -288,8 +290,7 @@ export function Pagamentos() {
         formaPagamento: formaPagamento || undefined,
       });
       setMarcandoPago(null);
-      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['morador'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setMarcarPagoError(getApiErrorMessage(err, 'Não foi possível confirmar o pagamento.'));
     } finally {
@@ -299,10 +300,10 @@ export function Pagamentos() {
 
   async function desfazerPagamento(pagamento: Pagamento) {
     setListError(null);
+    setDesfazendoId(pagamento.id);
     try {
       await api.patch(`/pagamentos/${pagamento.id}/desfazer-pagamento`);
-      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['morador'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setListError(
         getApiErrorMessage(
@@ -310,6 +311,8 @@ export function Pagamentos() {
           pagamento.status === 'ANULADO' ? 'Não foi possível reverter o pagamento.' : 'Não foi possível desfazer o pagamento.',
         ),
       );
+    } finally {
+      setDesfazendoId(null);
     }
   }
 
@@ -338,8 +341,7 @@ export function Pagamentos() {
         observacao: editObservacao.trim(),
       });
       setEditando(null);
-      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['morador'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setEditError(getApiErrorMessage(err, 'Não foi possível salvar as alterações.'));
     } finally {
@@ -367,8 +369,7 @@ export function Pagamentos() {
         observacao: anularObservacao.trim(),
       });
       setAnulando(null);
-      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['morador'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setAnularError(getApiErrorMessage(err, 'Não foi possível anular o pagamento.'));
     } finally {
@@ -561,13 +562,23 @@ export function Pagamentos() {
                                       Editar
                                     </button>
                                     {row.status === 'PAGO' && (
-                                      <button type="button" className="btn btn-ghost" onClick={() => desfazerPagamento(row)}>
-                                        Desfazer
+                                      <button
+                                        type="button"
+                                        className="btn btn-ghost"
+                                        onClick={() => desfazerPagamento(row)}
+                                        disabled={desfazendoId === row.id}
+                                      >
+                                        {desfazendoId === row.id ? 'Desfazendo...' : 'Desfazer'}
                                       </button>
                                     )}
                                     {row.status === 'ANULADO' && (
-                                      <button type="button" className="btn btn-ghost" onClick={() => desfazerPagamento(row)}>
-                                        Reverter
+                                      <button
+                                        type="button"
+                                        className="btn btn-ghost"
+                                        onClick={() => desfazerPagamento(row)}
+                                        disabled={desfazendoId === row.id}
+                                      >
+                                        {desfazendoId === row.id ? 'Revertendo...' : 'Reverter'}
                                       </button>
                                     )}
                                     {(row.status === 'PENDENTE' || row.status === 'ATRASADO') && (

@@ -19,6 +19,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToggleSet } from '../../hooks/useToggleSet';
 import { formatCurrency } from '../../utils/currency';
 import './imoveis.css';
+import { invalidarDadosDoNegocio } from '../../services/invalidate';
 
 export function Imoveis() {
   const queryClient = useQueryClient();
@@ -105,8 +106,7 @@ export function Imoveis() {
         await api.post('/imoveis', { nome, endereco: endereco || undefined });
       }
       setIsCreateOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['imoveis'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setCreateError(getApiErrorMessage(err, `Não foi possível ${editingImovelId !== null ? 'atualizar' : 'criar'} o imóvel.`));
     } finally {
@@ -136,9 +136,7 @@ export function Imoveis() {
         taxaImobiliaria: editTaxaImobiliaria ? Number(editTaxaImobiliaria) : null,
       });
       setEditingKitnet(null);
-      queryClient.invalidateQueries({ queryKey: ['imoveis'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnets'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setEditKitnetError(getApiErrorMessage(err, 'Não foi possível atualizar a unidade.'));
     } finally {
@@ -159,8 +157,7 @@ export function Imoveis() {
     setListError(null);
     try {
       await api.delete(`/imoveis/${id}`);
-      queryClient.invalidateQueries({ queryKey: ['imoveis'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o imóvel.'));
     }
@@ -179,9 +176,7 @@ export function Imoveis() {
     setListError(null);
     try {
       await api.delete(`/kitnets/${id}`);
-      queryClient.invalidateQueries({ queryKey: ['imoveis'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnets'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover a unidade.'));
     }
@@ -235,9 +230,7 @@ export function Imoveis() {
     try {
       await api.post(`/imoveis/${loteImovelId}/unidades-lote`, { unidades });
       setLoteImovelId(null);
-      queryClient.invalidateQueries({ queryKey: ['imoveis'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnets'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setLoteError(getApiErrorMessage(err, 'Não foi possível criar as unidades.'));
     } finally {

@@ -9,6 +9,7 @@ import { ErrorBanner } from '../ErrorBanner/ErrorBanner';
 import { BellIcon } from '../icons';
 import { useAuth } from '../../hooks/useAuth';
 import './notification-bell.css';
+import { invalidarDadosDoNegocio } from '../../services/invalidate';
 
 const REFRESH_MS = 60_000;
 
@@ -26,6 +27,9 @@ export function NotificationBell() {
   const isViewer = user?.papel === 'VISUALIZADOR';
   const [isOpen, setIsOpen] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Id do alerta sendo confirmado — desabilita só aquele botão, evitando o duplo
+  // clique que dispararia dois PATCH em conexão lenta.
+  const [confirmandoId, setConfirmandoId] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const { data: alertas = [] } = useQuery({
@@ -46,12 +50,18 @@ export function NotificationBell() {
 
   async function marcarPago(id: number) {
     setActionError(null);
+    setConfirmandoId(id);
     try {
-      await api.patch(`/pagamentos/${id}`, { pago: true });
-      queryClient.invalidateQueries({ queryKey: ['pagamentos'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
+      // Rota dedicada: o PATCH genérico /pagamentos/:id só aceita valor, vencimento e
+      // observacao (UpdatePagamentoDto), e o ValidationPipe roda com forbidNonWhitelisted
+      // — qualquer outro campo derruba a request com 400. `dataPagamento` é opcional e o
+      // backend assume hoje quando não vem.
+      await api.patch(`/pagamentos/${id}/marcar-pago`, {});
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setActionError(getApiErrorMessage(err, 'Não foi possível confirmar o pagamento.'));
+    } finally {
+      setConfirmandoId(null);
     }
   }
 
@@ -103,8 +113,9 @@ export function NotificationBell() {
                       type="button"
                       className="btn btn-primary notification-bell-item-action"
                       onClick={() => marcarPago(alerta.id)}
+                      disabled={confirmandoId === alerta.id}
                     >
-                      Confirmar
+                      {confirmandoId === alerta.id ? 'Confirmando...' : 'Confirmar'}
                     </button>
                   )}
                 </li>

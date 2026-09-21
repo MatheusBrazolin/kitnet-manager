@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { api, clearStoredToken, getApiErrorMessage, getStoredToken, storeToken } from '../services/api';
 import { prefetchCoreData } from '../services/prefetch';
+import { limparCacheDeDados } from '../services/invalidate';
 import type { User } from '../types';
 
 function delay(ms: number) {
@@ -67,6 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           if (isSessaoInvalida(error)) {
             clearStoredToken();
+            limparCacheDeDados(queryClient);
             return;
           }
           if (tentativa === 0) {
@@ -112,6 +114,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function logout() {
     clearStoredToken();
     setUser(null);
+    // O QueryClient é criado uma vez em main.tsx e sobrevive ao logout. Sem limpar,
+    // o próximo login (num computador compartilhado, por exemplo) enxerga imóveis,
+    // moradores e valores da conta anterior enquanto o staleTime não expira — o
+    // prefetch do login nem chega a refazer as requests que ainda estão frescas.
+    limparCacheDeDados(queryClient);
   }
 
   return (

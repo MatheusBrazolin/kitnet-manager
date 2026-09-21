@@ -14,6 +14,7 @@ import { MoradorDetailModal } from '../../components/MoradorDetailModal/MoradorD
 import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { useAuth } from '../../hooks/useAuth';
+import { invalidarDadosDoNegocio } from '../../services/invalidate';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
 
@@ -126,10 +127,7 @@ export function Moradores() {
         });
       }
       setIsModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['moradores'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnets'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
-      queryClient.invalidateQueries({ queryKey: ['morador'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setError(getApiErrorMessage(err, `Não foi possível ${editingId !== null ? 'atualizar' : 'cadastrar'} o morador.`));
     } finally {
@@ -150,9 +148,7 @@ export function Moradores() {
     setListError(null);
     try {
       await api.delete(`/moradores/${id}`);
-      queryClient.invalidateQueries({ queryKey: ['moradores'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnets'] });
-      queryClient.invalidateQueries({ queryKey: ['kitnet'] });
+      invalidarDadosDoNegocio(queryClient);
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o morador.'));
     }
