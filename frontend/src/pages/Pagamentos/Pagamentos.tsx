@@ -426,21 +426,29 @@ export function Pagamentos() {
       <ErrorBanner message={displayedError} />
 
       <div className="pagamentos-tabs">
-        <button
-          type="button"
-          className={`pagamentos-tab${aba === 'aberto' ? ' pagamentos-tab-ativa' : ''}`}
-          onClick={() => setAba('aberto')}
-        >
-          Em aberto
-          {pagamentosAberto.length > 0 && <span className="pagamentos-tab-count">{pagamentosAberto.length}</span>}
-        </button>
-        <button
-          type="button"
-          className={`pagamentos-tab${aba === 'historico' ? ' pagamentos-tab-ativa' : ''}`}
-          onClick={() => setAba('historico')}
-        >
-          Histórico
-        </button>
+        <div className="pagamentos-tabs-grupo" role="tablist" aria-label="Filtrar pagamentos">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === 'aberto'}
+            className={`pagamentos-tab${aba === 'aberto' ? ' pagamentos-tab-ativa' : ''}`}
+            onClick={() => setAba('aberto')}
+          >
+            Em aberto
+            {pagamentosAberto.length > 0 && (
+              <span className="pagamentos-tab-count numero">{pagamentosAberto.length}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === 'historico'}
+            className={`pagamentos-tab${aba === 'historico' ? ' pagamentos-tab-ativa' : ''}`}
+            onClick={() => setAba('historico')}
+          >
+            Histórico
+          </button>
+        </div>
         {aba === 'historico' && mesesDisponiveis.length > 0 && (
           <select
             className="pagamentos-tab-filtro"

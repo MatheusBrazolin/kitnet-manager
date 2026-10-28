@@ -10,7 +10,7 @@
   gap: var(--space-2);
   padding: 0.65rem 0.8rem;
   border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--color-ink);
+  border: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
   font-family: inherit;
   font-size: var(--text-base);
@@ -34,7 +34,7 @@
 
 .unit-picker-chevron {
   font-size: var(--text-xs);
-  transition: transform var(--duration-normal) var(--ease-out-expo);
+  transition: transform var(--duration-normal) var(--ease-out);
   flex-shrink: 0;
 }
 
@@ -50,7 +50,7 @@
   max-height: 320px;
   overflow-y: auto;
   background: var(--color-surface);
-  border: var(--border-width) solid var(--color-ink);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   padding: var(--space-2);
@@ -77,10 +77,8 @@
   border: none;
   background: transparent;
   font-family: inherit;
-  font-weight: 700;
+  font-weight: 500;
   font-size: var(--text-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
   cursor: pointer;
   color: var(--color-ink);
 }
@@ -124,9 +122,7 @@
 }
 
 .unit-picker-item-single {
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  font-weight: 500;
   font-size: var(--text-sm);
 }
 
@@ -137,5 +133,5 @@
 
 .unit-picker-check {
   color: var(--color-brand);
-  font-weight: 700;
+  font-weight: 500;
 }

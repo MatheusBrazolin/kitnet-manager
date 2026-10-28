@@ -24,7 +24,7 @@
   display: grid;
   place-items: center;
   border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--color-ink);
+  border: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
   cursor: pointer;
   transition: box-shadow var(--duration-fast), transform var(--duration-fast);
@@ -46,7 +46,7 @@
   right: 0;
   min-width: 200px;
   background: var(--color-surface);
-  border: var(--border-width) solid var(--color-ink);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-lg);
   padding: var(--space-2);
@@ -106,7 +106,7 @@
   flex-wrap: wrap;
   padding: var(--space-3);
   background: var(--color-surface-sunken);
-  border: var(--border-width) solid var(--color-border-soft);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-sm);
 }
 
@@ -134,7 +134,7 @@
   min-width: 0;
   padding: 0.55rem 0.7rem;
   border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--color-ink);
+  border: var(--border-width) solid var(--color-border);
   background: var(--color-surface);
   outline: none;
   transition: box-shadow var(--duration-fast), transform var(--duration-fast);

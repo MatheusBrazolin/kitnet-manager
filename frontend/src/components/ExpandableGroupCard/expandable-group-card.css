@@ -6,10 +6,10 @@
 
 .imovel-card {
   background: var(--color-surface);
-  border: var(--border-width) solid var(--color-ink);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-md);
-  animation: fade-slide-up var(--duration-slow) var(--ease-out-expo) both;
+  animation: enter-up var(--duration-slow) var(--ease-out) both;
 }
 
 .imovel-card-summary-row {
@@ -43,7 +43,7 @@
    ignora o border-radius do card e sobra pra fora dos cantos arredondados. Mesmo
    padrão de foco preto usado no resto do app (ex.: .table-row-clickable). */
 .imovel-card-summary-row:focus-visible {
-  outline: var(--border-width) solid var(--color-ink);
+  outline: var(--border-width) solid var(--color-border);
   outline-offset: -2px;
 }
 
@@ -57,7 +57,7 @@
 .imovel-card-chevron {
   flex-shrink: 0;
   font-size: var(--text-lg);
-  transition: transform var(--duration-normal) var(--ease-out-expo);
+  transition: transform var(--duration-normal) var(--ease-out);
 }
 
 .imovel-card-chevron-open {
@@ -73,8 +73,7 @@
 .imovel-card-nome {
   font-family: var(--font-display);
   font-size: var(--text-lg);
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 500;
   letter-spacing: 0.01em;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -97,7 +96,7 @@
 
 .imovel-card-stat {
   font-size: var(--text-sm);
-  font-weight: 700;
+  font-weight: 500;
   color: var(--color-ink-muted);
   white-space: nowrap;
 }
@@ -108,11 +107,11 @@
 
 .imovel-card-body {
   padding: var(--space-4) var(--space-5) var(--space-5);
-  border-top: var(--border-width) solid var(--color-border-soft);
+  border-top: var(--border-width) solid var(--color-border);
   display: flex;
   flex-direction: column;
   gap: var(--space-4);
-  animation: fade-slide-up var(--duration-normal) var(--ease-out-expo) both;
+  animation: enter-up var(--duration-normal) var(--ease-out) both;
 }
 
 @media (max-width: 640px) {

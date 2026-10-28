@@ -14,9 +14,11 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   font-size: var(--text-base);
+  line-height: 1.5;
   color: var(--color-ink);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 h1,
@@ -30,12 +32,17 @@ h1,
 h2,
 h3 {
   font-family: var(--font-display);
-  font-weight: 700;
+  font-weight: 600;
+  /* Títulos grandes em peso 600 com tracking levemente negativo: é o que separa
+     um título desenhado de um texto apenas "em negrito". */
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 button,
 input,
-select {
+select,
+textarea {
   font-family: inherit;
   font-size: inherit;
   color: inherit;
@@ -51,134 +58,181 @@ a {
 }
 
 ::selection {
-  background: var(--color-brand);
-  color: var(--color-surface);
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
 }
 
+/**
+ * Valores monetários e qualquer número que apareça em coluna.
+ *
+ * `tabular-nums` trava a largura dos dígitos: sem isso, R$ 1.111,00 é visivelmente mais
+ * estreito que R$ 8.888,00 e a coluna inteira se mexe a cada atualização — o tipo de
+ * detalhe que, somado, faz um app parecer improvisado.
+ */
+.numero {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ---- Botões ------------------------------------------------------------
+   Sem caixa alta, sem sombra deslocada. A hierarquia vem de preenchimento:
+   primário é sólido, secundário tem contorno, discreto é só texto. Um botão
+   primário por bloco — se tudo é primário, nada é. */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  padding: 0.65rem 1.1rem;
+  padding: 0.6rem 1rem;
   border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--color-ink);
-  font-weight: 700;
-  font-size: var(--text-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--duration-normal) var(--ease-out-expo), box-shadow var(--duration-normal) var(--ease-out-expo);
+  border: var(--border-width) solid transparent;
+  font-weight: 500;
+  font-size: var(--text-base);
+  line-height: 1.2;
   white-space: nowrap;
-}
-
-.btn:not(:disabled):hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-lg);
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-instant) var(--ease-out);
 }
 
 .btn:not(:disabled):active {
-  transform: translate(3px, 3px);
-  box-shadow: none;
+  /* Afundar 1px é suficiente para o toque "responder"; o salto de 3px anterior
+     fazia a interface parecer um brinquedo. */
+  transform: translateY(1px);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
 }
 
 .btn-primary {
   background: var(--color-brand);
-  color: var(--color-surface);
+  color: var(--color-brand-ink);
+  box-shadow: var(--shadow-sm);
 }
 
-.btn-primary:hover {
+.btn-primary:not(:disabled):hover {
   background: var(--color-brand-strong);
+  box-shadow: var(--shadow-md);
 }
 
 .btn-ghost {
   background: var(--color-surface);
   color: var(--color-ink);
+  border-color: var(--color-border-strong);
 }
 
-.btn-ghost:hover {
-  background: var(--color-surface-sunken);
+.btn-ghost:not(:disabled):hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-ink-faint);
 }
 
+/* Terciário: ações de linha de tabela, onde contorno em cada botão viraria grade. */
+.btn-quiet {
+  background: transparent;
+  color: var(--color-ink-muted);
+  padding: 0.45rem 0.7rem;
+}
+
+.btn-quiet:not(:disabled):hover {
+  background: var(--color-surface-hover);
+  color: var(--color-ink);
+}
+
+/* Destrutivo: discreto por padrão, vermelho só no hover. Antes, "Remover" tinha o
+   mesmo peso visual de "Editar" e convidava ao clique errado. */
 .btn-danger {
+  background: transparent;
+  color: var(--color-danger);
+  border-color: transparent;
+  padding: 0.45rem 0.7rem;
+}
+
+.btn-danger:not(:disabled):hover {
   background: var(--color-danger-soft);
   color: var(--color-danger-ink);
 }
 
-.btn-danger:hover {
-  background: var(--color-danger);
-  color: var(--color-surface);
+.btn-sm {
+  padding: 0.35rem 0.65rem;
+  font-size: var(--text-sm);
 }
 
 .btn:disabled {
-  opacity: 0.5;
+  opacity: 0.45;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: var(--shadow-sm);
 }
 
+.btn-block {
+  width: 100%;
+}
+
+/* ---- Formulários ------------------------------------------------------- */
 .field {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
+}
+
+.field label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  /* Sentence case: CAIXA ALTA em rótulo é mais lento de ler e foi um dos
+     principais tiques do visual anterior. */
+  letter-spacing: 0;
+}
+
+.field input,
+.field select,
+.field textarea {
+  padding: 0.65rem 0.8rem;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  outline: none;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.field input::placeholder,
+.field textarea::placeholder {
+  color: var(--color-ink-faint);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-focus);
 }
 
 .field-static-hint {
   color: var(--color-ink-muted);
   font-size: var(--text-sm);
-  padding: 0.65rem 0.8rem;
-  background: var(--color-surface-sunken);
-  border-radius: var(--radius-sm);
+  margin: 0;
+}
+
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
 }
 
 .table-row-actions {
   display: flex;
   justify-content: flex-end;
   flex-wrap: wrap;
-  gap: var(--space-2);
+  gap: var(--space-1);
 }
 
-.field label {
-  font-size: var(--text-xs);
-  font-weight: 700;
-  color: var(--color-ink);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.field input,
-.field select {
-  padding: 0.65rem 0.8rem;
-  border-radius: var(--radius-sm);
-  border: var(--border-width) solid var(--color-ink);
-  background: var(--color-surface);
-  outline: none;
-  transition: box-shadow var(--duration-fast), transform var(--duration-fast);
-}
-
-.field input:focus,
-.field select:focus {
-  box-shadow: var(--shadow-sm);
-  transform: translate(-1px, -1px);
-}
-
-/* O `outline: none` acima trocava o anel nativo por uma sombra sólida preta, que é
-   indistinguível da decoração neobrutalista de dezenas de outros elementos — na prática,
-   navegar por teclado ficava sem indicador. O anel laranja é inequívoco. */
-.field input:focus-visible,
-.field select:focus-visible {
-  outline: var(--border-width) solid var(--color-brand);
-  outline-offset: 2px;
-}
-
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-/* Compartilhado entre a tabela de Pagamentos e o histórico no MoradorDetailModal, pra
-   diferenciar lançamentos COMPLEMENTAR do aluguel e mostrar a observação de um ajuste. */
+/* ---- Pagamentos: célula de morador -------------------------------------- */
 .payment-morador-cell {
   display: flex;
   flex-direction: column;
@@ -188,13 +242,11 @@ a {
 .payment-tipo-tag {
   align-self: flex-start;
   font-size: var(--text-xs);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
+  font-weight: 500;
   color: var(--color-ink-muted);
   background: var(--color-surface-sunken);
-  border-radius: var(--radius-sm);
-  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-pill);
+  padding: 0.1rem 0.5rem;
 }
 
 .payment-observacao {
@@ -202,21 +254,27 @@ a {
   color: var(--color-ink-muted);
 }
 
+/* ---- Erro -------------------------------------------------------------- */
 .form-error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
   background: var(--color-danger-soft);
   color: var(--color-danger-ink);
-  border: var(--border-width) solid var(--color-ink);
+  border: var(--border-width) solid #b3261e29;
   padding: var(--space-3) var(--space-4);
   border-radius: var(--radius-sm);
   font-size: var(--text-sm);
-  font-weight: 600;
-  animation: shake-in var(--duration-slow) var(--ease-out-expo) both;
+  animation: enter-up var(--duration-normal) var(--ease-out) both;
 }
 
-@keyframes fade-slide-up {
+/* ---- Movimento ---------------------------------------------------------
+   Só `transform` e `opacity`: são as duas propriedades que o navegador anima
+   sem recalcular layout, e é o que mantém 60fps num celular modesto. */
+@keyframes enter-up {
   from {
     opacity: 0;
-    transform: translateY(14px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -224,17 +282,18 @@ a {
   }
 }
 
-@keyframes shake-in {
+@keyframes enter-fade {
   from {
     opacity: 0;
-    transform: translateY(-6px);
-  }
-  60% {
-    transform: translateY(1px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -248,17 +307,14 @@ a {
   }
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
 .animate-in {
-  animation: fade-slide-up var(--duration-slow) var(--ease-out-expo) both;
-  animation-delay: calc(var(--stagger, 0) * 60ms);
+  animation: enter-up var(--duration-normal) var(--ease-out) both;
+  /* Entrada escalonada: 24ms entre itens. Acima de ~40ms a lista parece
+     carregar devagar em vez de aparecer junta. */
+  animation-delay: calc(var(--stagger, 0) * 24ms);
 }
 
+/* ---- Esqueleto de carregamento ----------------------------------------- */
 .skeleton {
   position: relative;
   overflow: hidden;
@@ -271,8 +327,12 @@ a {
   position: absolute;
   inset: 0;
   transform: translateX(-100%);
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-  animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, #ffffff73, transparent);
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+:root[data-theme='dark'] .skeleton::after {
+  background: linear-gradient(90deg, transparent, #ffffff0f, transparent);
 }
 
 @keyframes skeleton-shimmer {
@@ -281,21 +341,26 @@ a {
   }
 }
 
+/* Substituir, não remover: quem pede menos movimento ainda precisa perceber que
+   algo entrou na tela — só sem deslocamento. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
-    animation-duration: 0.001ms !important;
+    animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
+    transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .animate-in,
+  .form-error {
+    animation: enter-fade 0.01ms both !important;
   }
 }
 
-/* O Safari iOS dá zoom automático ao focar qualquer campo com fonte menor que 16px, e
-   depois do zoom a página fica com scroll horizontal permanente. O app usa --text-base
-   (15px) nos campos, então um único pixel a menos causava o problema em todos os
-   formulários. */
+/* O Safari iOS dá zoom automático ao focar campo com fonte menor que 16px, e depois do
+   zoom a página fica com scroll horizontal permanente. */
 @media (max-width: 860px) {
   .field input,
   .field select,
@@ -304,18 +369,19 @@ a {
   }
 }
 
-/* Sem isto, o estado :hover "gruda" depois do toque no celular: cards ficam levantados e
-   linhas destacadas sem motivo até o próximo toque em outro lugar. */
+/* Sem isto o :hover "gruda" depois do toque no celular. */
 @media (hover: none) {
   .btn:not(:disabled):hover {
-    transform: none;
-    box-shadow: var(--shadow-sm);
+    background: inherit;
+  }
+
+  .btn-primary:not(:disabled):hover {
+    background: var(--color-brand);
   }
 }
 
-/* Alvos de toque. Vários controles pequenos ficavam entre 20 e 36px no celular — abaixo
-   dos 44px recomendados. O padding não é aumentado junto porque o visual compacto é
-   intencional no design; só a área clicável cresce. */
+/* Alvos de toque de no mínimo 44px no celular, sem inflar o visual: só a área
+   clicável cresce. */
 @media (max-width: 860px) {
   .imovel-card-edit-trigger,
   .password-toggle,

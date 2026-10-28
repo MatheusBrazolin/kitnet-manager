@@ -1,11 +1,11 @@
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
 import type { DashboardSummary } from '../../types';
-import { Card, StatCard } from '../../components/Card/Card';
+import { Card, HeroStat, StatCard } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
-import { Header } from '../../components/Header/Header';
 import { BarChart } from '../../components/charts/BarChart';
 import { DonutChart } from '../../components/charts/DonutChart';
 import { formatDate, formatVencimentoLabel } from '../../utils/dates';
@@ -13,134 +13,186 @@ import { formatCurrency, formatCompactCurrency } from '../../utils/currency';
 import { OnboardingEmptyState } from './OnboardingEmptyState';
 import './dashboard.css';
 
-const KITNET_COLORS = ['var(--color-brand)', 'var(--color-success)', 'var(--color-warning)', 'var(--color-danger)', 'var(--color-ink-muted)'];
+const CORES_GASTOS = [
+  'var(--color-brand)',
+  'var(--color-positive)',
+  'var(--color-warning)',
+  'var(--color-negative)',
+  'var(--color-ink-muted)',
+];
+
+const MESES = [
+  'janeiro',
+  'fevereiro',
+  'março',
+  'abril',
+  'maio',
+  'junho',
+  'julho',
+  'agosto',
+  'setembro',
+  'outubro',
+  'novembro',
+  'dezembro',
+];
 
 export function Dashboard() {
   const { user } = useAuth();
-  const {
-    data: summary,
-    error: queryError,
-  } = useQuery({
+  const { data: summary, error: queryError } = useQuery({
     queryKey: ['dashboard'],
     queryFn: () => api.get<DashboardSummary>('/dashboard').then((response) => response.data),
   });
 
-  const error = queryError ? getApiErrorMessage(queryError, 'Não foi possível carregar o dashboard.') : null;
+  const error = queryError
+    ? getApiErrorMessage(queryError, 'Não foi possível carregar o painel.')
+    : null;
   const isEmpty = summary?.totalKitnets === 0;
+  const mesAtual = MESES[new Date().getMonth()];
+  const primeiroNome = user?.name.split(' ')[0] ?? '';
 
   return (
     <div className="dashboard">
-      <Header
-        title={`Olá, ${user?.name.split(' ')[0]}`}
-        subtitle={isEmpty ? 'Falta pouco para o seu painel ganhar vida.' : 'Aqui está o resumo dos seus imóveis hoje.'}
-      />
-
       <ErrorBanner message={error} />
 
       {!summary && !error && (
-        <div className="dashboard-stats">
-          <div className="skeleton dashboard-skeleton-stat" />
-          <div className="skeleton dashboard-skeleton-stat" />
-          <div className="skeleton dashboard-skeleton-stat" />
-          <div className="skeleton dashboard-skeleton-stat" />
-          <div className="skeleton dashboard-skeleton-stat" />
-          <div className="skeleton dashboard-skeleton-stat" />
-          <div className="skeleton dashboard-skeleton-stat" />
-          <div className="skeleton dashboard-skeleton-stat" />
+        <div className="dashboard-carregando">
+          <div className="skeleton dashboard-skeleton-hero" />
+          <div className="dashboard-stats">
+            <div className="skeleton dashboard-skeleton-stat" />
+            <div className="skeleton dashboard-skeleton-stat" />
+            <div className="skeleton dashboard-skeleton-stat" />
+            <div className="skeleton dashboard-skeleton-stat" />
+          </div>
         </div>
       )}
 
-      {summary && isEmpty && <OnboardingEmptyState />}
+      {summary && isEmpty && (
+        <>
+          <h1 className="dashboard-saudacao">Olá, {primeiroNome}</h1>
+          <OnboardingEmptyState />
+        </>
+      )}
 
       {summary && !isEmpty && (
         <>
+          {/*
+            Uma pergunta, uma resposta. Antes havia oito cards idênticos e o número que
+            importa — quanto entrou — competia em igualdade com "unidades cadastradas",
+            que muda uma vez por ano.
+          */}
+          <HeroStat
+            label={`Olá, ${primeiroNome}. Você recebeu em ${mesAtual}`}
+            value={formatCurrency(summary.receitaLiquidaMensal)}
+            hint={
+              summary.taxasMensal > 0 ? (
+                <>
+                  já descontados{' '}
+                  <strong className="numero">{formatCurrency(summary.taxasMensal)}</strong> de
+                  taxa das imobiliárias
+                </>
+              ) : undefined
+            }
+            progress={
+              summary.totalPendente > 0
+                ? {
+                    atual: summary.receitaMensal,
+                    total: summary.receitaMensal + summary.totalPendente,
+                    // Quando tudo que falta já venceu, os dois valores são iguais e
+                    // repeti-los lado a lado só confunde: diz "em atraso" uma vez só.
+                    legenda:
+                      summary.totalEmAtraso >= summary.totalPendente ? (
+                        <span className="dashboard-atrasado">
+                          Falta receber{' '}
+                          <strong className="numero">
+                            {formatCurrency(summary.totalPendente)}
+                          </strong>
+                          , já vencidos
+                        </span>
+                      ) : (
+                        <>
+                          Ainda falta receber{' '}
+                          <strong className="numero">
+                            {formatCurrency(summary.totalPendente)}
+                          </strong>
+                          {summary.totalEmAtraso > 0 && (
+                            <>
+                              {', dos quais '}
+                              <span className="dashboard-atrasado numero">
+                                {formatCurrency(summary.totalEmAtraso)} em atraso
+                              </span>
+                            </>
+                          )}
+                        </>
+                      ),
+                  }
+                : undefined
+            }
+            action={
+              summary.totalPendente > 0 ? (
+                <Link to="/pagamentos" className="btn btn-primary">
+                  Conferir recebimentos
+                </Link>
+              ) : (
+                <span className="dashboard-tudo-em-dia">Tudo recebido neste mês</span>
+              )
+            }
+          />
+
           <div className="dashboard-stats">
-            <StatCard label="Unidades cadastradas" value={String(summary.totalKitnets)} />
             <StatCard
-              label="Ocupadas"
-              value={String(summary.ocupadas)}
-              hint={`${summary.vagas} vagas`}
-              tone="success"
-            />
-            {/* Projeção: o que as unidades valem se tudo estiver ocupado e em dia. */}
-            <StatCard
-              label="Valor mensal previsto"
-              value={formatCurrency(summary.valorMensal)}
-              hint={
-                summary.totalImobiliaria > 0
-                  ? `dos quais ${formatCurrency(summary.totalImobiliaria)} vão pra imobiliária`
-                  : undefined
-              }
-              tone="warning"
-            />
-            {/* Realizado: o que de fato entrou na conta no mês. */}
-            <StatCard
-              label="Recebido líquido"
-              value={formatCurrency(summary.receitaLiquidaMensal)}
-              hint={`de ${formatCurrency(summary.receitaMensal)} em aluguéis`}
-              tone="success"
-            />
-            <StatCard
-              label="Taxas às imobiliárias"
-              value={formatCurrency(summary.taxasMensal)}
-              hint="retido no mês"
-              tone="warning"
-            />
-            <StatCard
-              label="Gastos no mês"
-              value={formatCurrency(summary.gastoMensal)}
-              tone="danger"
-            />
-            <StatCard
-              label="Lucro líquido"
+              label="O que sobrou"
               value={formatCurrency(summary.lucroLiquido)}
-              hint="Recebido líquido - gastos do mês"
-              tone={summary.lucroLiquido >= 0 ? 'success' : 'danger'}
+              hint={`depois de ${formatCurrency(summary.gastoMensal)} em gastos`}
+              tone={summary.lucroLiquido >= 0 ? 'positive' : 'negative'}
             />
             <StatCard
-              label="Repasses a receber"
-              value={formatCurrency(summary.totalPendente)}
-              hint={
-                summary.totalEmAtraso > 0
-                  ? `${formatCurrency(summary.totalEmAtraso)} já vencidos`
-                  : `${summary.quantidadePendente} em aberto`
-              }
-              tone={summary.totalEmAtraso > 0 ? 'danger' : 'warning'}
+              label="Se todos pagarem"
+              value={formatCurrency(summary.valorMensal)}
+              hint="soma dos aluguéis das suas unidades"
+            />
+            <StatCard
+              label="Unidades ocupadas"
+              value={`${summary.ocupadas} de ${summary.totalKitnets}`}
+              hint={summary.vagas > 0 ? `${summary.vagas} à espera de morador` : 'nenhuma vaga'}
+              tone={summary.vagas > 0 ? 'warning' : 'positive'}
+            />
+            <StatCard
+              label="Ficou com as imobiliárias"
+              value={formatCurrency(summary.taxasMensal)}
+              hint="taxa retida neste mês"
+              tone="negative"
             />
           </div>
 
           <div className="dashboard-grid">
-            <Card title="Receita vs. gastos (12 meses)" className="dashboard-chart-card">
-              <BarChart
-                data={summary.historico.map((point) => ({ label: point.label, values: [point.receita, point.gasto] }))}
-                series={[
-                  { label: 'Receita', color: 'var(--color-success)' },
-                  { label: 'Gastos', color: 'var(--color-danger)' },
-                ]}
-                formatValue={(value) => formatCompactCurrency(value)}
-              />
-            </Card>
-
-            <Card title="Líquido vs. taxas (12 meses)" className="dashboard-chart-card">
+            <Card
+              title="Quanto ficou com você"
+              subtitle="Últimos 12 meses, mês a mês"
+              className="dashboard-chart-card"
+            >
               <BarChart
                 data={summary.historico.map((point) => ({
                   label: point.label,
                   values: [point.liquido, point.taxa],
                 }))}
                 series={[
-                  { label: 'Você recebeu', color: 'var(--color-brand)' },
-                  { label: 'Ficou com a imobiliária', color: 'var(--color-ink-muted)' },
+                  { label: 'Você recebeu', color: 'var(--color-positive)' },
+                  { label: 'Ficou com a imobiliária', color: 'var(--color-negative)' },
                 ]}
                 formatValue={(value) => formatCompactCurrency(value)}
               />
             </Card>
 
-            <Card title="Gastos por imóvel (mês atual)" className="dashboard-chart-card">
+            <Card
+              title="Onde foi o dinheiro"
+              subtitle={`Gastos de ${mesAtual}, por imóvel`}
+              className="dashboard-chart-card"
+            >
               <DonutChart
                 data={summary.gastosPorImovel.map((item, index) => ({
                   label: item.imovel,
                   value: item.total,
-                  color: KITNET_COLORS[index % KITNET_COLORS.length],
+                  color: CORES_GASTOS[index % CORES_GASTOS.length],
                 }))}
                 formatValue={(value) => formatCurrency(value)}
                 emptyMessage="Nenhum gasto lançado neste mês."
@@ -148,58 +200,87 @@ export function Dashboard() {
             </Card>
           </div>
 
-          <Card title="Por imobiliária (mês atual)" className="dashboard-upcoming">
+          <Card
+            title="Quem administra o quê"
+            subtitle={`Movimento de ${mesAtual} por imobiliária`}
+            action={
+              <Link to="/imobiliarias" className="btn btn-quiet btn-sm">
+                Gerenciar
+              </Link>
+            }
+          >
             <Table
               rows={summary.porImobiliaria}
-              // Unidades sem administradora vêm agrupadas numa linha com id nulo.
               rowKey={(row) => row.imobiliariaId ?? 'gestao-direta'}
               emptyMessage="Nenhuma unidade cadastrada ainda."
               columns={[
                 { header: 'Imobiliária', render: (row) => row.nome },
                 {
-                  header: 'Unidades',
+                  header: 'Ocupadas',
                   align: 'right' as const,
-                  render: (row) => `${row.ocupadas}/${row.unidades}`,
+                  render: (row) => (
+                    <span className="numero">
+                      {row.ocupadas} de {row.unidades}
+                    </span>
+                  ),
                 },
                 {
-                  header: 'Bruto',
+                  header: 'Aluguel',
                   align: 'right' as const,
-                  render: (row) => formatCurrency(row.bruto),
+                  render: (row) => <span className="numero">{formatCurrency(row.bruto)}</span>,
                 },
                 {
-                  header: 'Taxas',
+                  header: 'Taxa',
                   align: 'right' as const,
-                  render: (row) => formatCurrency(row.taxas),
+                  // Sinal explícito, não só a cor: daltonismo e impressão em
+                  // preto e branco continuam legíveis.
+                  render: (row) => (
+                    <span className="numero dashboard-saida">
+                      {row.taxas > 0 ? `− ${formatCurrency(row.taxas)}` : formatCurrency(0)}
+                    </span>
+                  ),
                 },
                 {
-                  header: 'Líquido',
+                  header: 'Você recebeu',
                   align: 'right' as const,
-                  render: (row) => formatCurrency(row.liquido),
+                  render: (row) => (
+                    <strong className="numero">{formatCurrency(row.liquido)}</strong>
+                  ),
                 },
               ]}
             />
           </Card>
 
-          <Card title="Próximos vencimentos" className="dashboard-upcoming">
+          <Card
+            title="Próximos vencimentos"
+            subtitle="Os aluguéis mais perto de vencer"
+            action={
+              <Link to="/pagamentos" className="btn btn-quiet btn-sm">
+                Ver todos
+              </Link>
+            }
+          >
             <Table
               rows={summary.proximosVencimentos}
               rowKey={(row) => row.id}
-              emptyMessage="Nenhum pagamento pendente por aqui."
+              emptyMessage="Nenhum aluguel pendente — está tudo em dia."
               columns={[
                 { header: 'Morador', render: (row) => row.morador },
                 {
                   header: 'Vencimento',
                   render: (row) => (
                     <div className="dashboard-vencimento">
-                      <span>{formatDate(row.vencimento)}</span>
-                      <span className="dashboard-vencimento-hint">{formatVencimentoLabel(row.vencimento, false)}</span>
+                      <span className="numero">{formatDate(row.vencimento)}</span>
+                      <span className="dashboard-vencimento-hint">
+                        {formatVencimentoLabel(row.vencimento, false)}
+                      </span>
                     </div>
                   ),
                 },
                 {
                   header: 'Valor',
-                  align: 'right',
-                  render: (row) => formatCurrency(row.valor),
+                  align: 'right' as const,
+                  render: (row) => <span className="numero">{formatCurrency(row.valor)}</span>,
                 },
               ]}
             />

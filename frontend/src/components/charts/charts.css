@@ -5,14 +5,13 @@
 }
 
 .bar-chart-axis {
-  stroke: var(--color-ink);
-  stroke-width: 2;
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
 }
 
 .bar-chart-bar {
-  stroke: var(--color-ink);
-  stroke-width: 2;
-  transition: opacity var(--duration-normal) var(--ease-out-expo);
+  rx: 2;
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
 .bar-chart-bar:hover {
@@ -21,10 +20,9 @@
 
 .bar-chart-label {
   font-size: 11px;
-  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   fill: var(--color-ink-muted);
   text-anchor: middle;
-  text-transform: uppercase;
 }
 
 .bar-chart-legend {
@@ -39,8 +37,7 @@
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-sm);
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 450;
   letter-spacing: 0.02em;
   color: var(--color-ink-muted);
 }
@@ -48,8 +45,7 @@
 .bar-chart-legend-swatch {
   width: 12px;
   height: 12px;
-  border: var(--border-width) solid var(--color-ink);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   display: inline-block;
 }
 
@@ -67,7 +63,7 @@
 }
 
 .donut-chart-slice {
-  transition: opacity var(--duration-normal) var(--ease-out-expo);
+  transition: opacity var(--duration-normal) var(--ease-out);
 }
 
 .donut-chart-slice:hover {
@@ -76,8 +72,8 @@
 
 .donut-chart-total-label {
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  font-weight: 450;
   letter-spacing: 0.06em;
   fill: var(--color-ink-muted);
 }
@@ -85,7 +81,8 @@
 .donut-chart-total-value {
   font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
   fill: var(--color-ink);
 }
 
@@ -113,14 +110,13 @@
 .donut-chart-legend-item strong {
   margin-left: auto;
   color: var(--color-ink);
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .donut-chart-legend-swatch {
   width: 10px;
   height: 10px;
-  border: var(--border-width) solid var(--color-ink);
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;

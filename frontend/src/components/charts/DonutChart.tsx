@@ -34,7 +34,7 @@ export function DonutChart({ data, formatValue, emptyMessage = 'Sem dados no per
           cy={SIZE / 2}
           r={RADIUS}
           fill="none"
-          stroke="var(--color-border-soft)"
+          stroke="var(--color-border-strong)"
           strokeWidth={STROKE}
         />
         {data.map((slice) => {

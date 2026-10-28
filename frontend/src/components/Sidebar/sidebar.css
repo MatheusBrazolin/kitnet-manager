@@ -1,8 +1,8 @@
 .sidebar {
   width: var(--sidebar-width);
   flex-shrink: 0;
-  background: var(--color-ink);
-  border-right: var(--border-width-lg) solid var(--color-ink);
+  background: var(--color-surface);
+  border-right: var(--border-width) solid var(--color-border);
   display: flex;
   flex-direction: column;
   padding: var(--space-5) var(--space-4);
@@ -26,22 +26,18 @@
   height: 34px;
   border-radius: var(--radius-sm);
   background: var(--color-brand);
-  border: var(--border-width) solid var(--color-bg);
-  color: var(--color-ink);
-  font-weight: 700;
-  font-family: var(--font-display);
+  color: var(--color-brand-ink);
+  font-weight: 600;
   display: grid;
   place-items: center;
   font-size: var(--text-base);
 }
 
 .sidebar-brand-name {
-  font-weight: 700;
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  color: var(--color-bg);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  font-size: var(--text-md);
+  color: var(--color-ink);
+  letter-spacing: -0.01em;
 }
 
 .sidebar-nav {
@@ -55,52 +51,57 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0.6rem var(--space-3);
+  padding: 0.55rem var(--space-3);
   border-radius: var(--radius-sm);
-  border: var(--border-width) solid transparent;
-  color: var(--color-bg);
-  opacity: 0.7;
-  font-weight: 700;
-  font-size: var(--text-sm);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  color: var(--color-ink-muted);
+  font-weight: 450;
+  font-size: var(--text-base);
   transition:
-    opacity var(--duration-normal) var(--ease-out-expo),
-    background var(--duration-normal) var(--ease-out-expo),
-    border-color var(--duration-normal) var(--ease-out-expo),
-    transform var(--duration-normal) var(--ease-out-expo);
+    background var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
 
 .sidebar-link-icon {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
-  transition: transform var(--duration-normal) var(--ease-spring);
+  color: var(--color-ink-faint);
+  transition: color var(--duration-fast) var(--ease-out);
 }
 
 .sidebar-link:hover {
-  opacity: 1;
-  border-color: var(--color-bg);
-  transform: translateX(2px);
+  background: var(--color-surface-hover);
+  color: var(--color-ink);
 }
 
 .sidebar-link:hover .sidebar-link-icon {
-  transform: scale(1.1);
+  color: var(--color-ink-muted);
 }
 
-.sidebar-link-active {
-  background: var(--color-brand);
-  border-color: var(--color-bg);
-  color: var(--color-ink);
-  opacity: 1;
-  transform: translateX(2px);
+.sidebar-link:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* O item ativo é o único com cor de marca na barra inteira — por isso ele é
+   inconfundível sem precisar de borda nem de deslocamento. */
+.sidebar-link-active,
+.sidebar-link-active:hover {
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-weight: 500;
+}
+
+.sidebar-link-active .sidebar-link-icon,
+.sidebar-link-active:hover .sidebar-link-icon {
+  color: var(--color-brand);
 }
 
 .sidebar-footer {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  border-top: var(--border-width) solid var(--color-ink-muted);
+  border-top: var(--border-width) solid var(--color-border);
   padding-top: var(--space-4);
 }
 
@@ -115,11 +116,10 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  background: var(--color-success);
-  color: var(--color-success-ink);
-  border: var(--border-width) solid var(--color-bg);
-  font-weight: 700;
-  font-family: var(--font-display);
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-weight: 600;
+  font-size: var(--text-sm);
   display: grid;
   place-items: center;
   flex-shrink: 0;
@@ -132,9 +132,9 @@
 }
 
 .sidebar-user-name {
-  font-weight: 700;
+  font-weight: 500;
   font-size: var(--text-sm);
-  color: var(--color-bg);
+  color: var(--color-ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -142,24 +142,12 @@
 
 .sidebar-user-papel {
   font-size: var(--text-xs);
-  color: var(--color-bg);
-  opacity: 0.6;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  color: var(--color-ink-faint);
 }
 
 .sidebar-logout {
   width: 100%;
-  background: var(--color-ink);
-  color: var(--color-bg);
-  border-color: var(--color-bg);
-  box-shadow: none;
-}
-
-.sidebar-logout:hover {
-  background: var(--color-danger);
-  color: var(--color-danger-ink);
-  border-color: var(--color-ink);
+  justify-content: flex-start;
 }
 
 @media (max-width: 860px) {
@@ -169,7 +157,7 @@
     flex-direction: row;
     align-items: center;
     border-right: none;
-    border-bottom: var(--border-width-lg) solid var(--color-ink);
+    border-bottom: var(--border-width) solid var(--color-border);
     padding: var(--space-3) var(--space-4);
     gap: var(--space-3);
   }
@@ -208,9 +196,9 @@
     right: 0;
     justify-content: space-around;
     gap: 2px;
-    background: var(--color-ink);
-    border-top: var(--border-width-lg) solid var(--color-brand);
-    padding: 0.4rem 0.2rem calc(0.45rem + env(safe-area-inset-bottom, 0px));
+    background: var(--color-surface);
+    border-top: var(--border-width) solid var(--color-border-strong);
+    padding: 0.3rem 0.2rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
     z-index: var(--z-tabbar);
   }
 
@@ -225,9 +213,9 @@
     justify-content: center;
     gap: 0.2rem;
     padding: 0.2rem 0.05rem;
-    color: var(--color-bg);
-    opacity: 0.6;
-    transition: opacity var(--duration-normal) var(--ease-out-expo);
+    border-radius: var(--radius-sm);
+    color: var(--color-ink-faint);
+    transition: color var(--duration-fast) var(--ease-out);
   }
 
   .mobile-tab-icon {
@@ -239,10 +227,9 @@
   .mobile-tab-label {
     /* 8px (0.5rem) estava muito abaixo do mínimo legível, e isto não é um rótulo
        decorativo — é a navegação principal do app. */
-    font-size: 0.625rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0;
+    font-size: 0.6875rem;
+    font-weight: 450;
+    letter-spacing: -0.01em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -250,13 +237,13 @@
   }
 
   .mobile-tab-active {
-    opacity: 1;
     color: var(--color-brand);
+    font-weight: 500;
   }
 
   .mobile-tab:focus-visible {
-    outline: var(--border-width) solid var(--color-brand);
-    outline-offset: -2px;
+    outline: none;
+    box-shadow: var(--shadow-focus);
   }
 }
 

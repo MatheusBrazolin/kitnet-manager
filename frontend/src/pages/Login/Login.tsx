@@ -38,17 +38,35 @@ export function Login() {
           <span>K</span> KitManager
         </div>
         <div className="auth-showcase-copy">
-          <h1>Gerencie suas kitnets sem planilha.</h1>
-          <p>Cadastro de imóveis, moradores e pagamentos em um só painel, feito para donos de kitnets.</p>
+          <h1>Saiba exatamente quanto caiu na sua conta.</h1>
+          <p>
+            A imobiliária desconta a taxa dela e repassa o resto. O KitManager guarda
+            quanto era, quanto ficou retido e quanto sobrou — mês a mês, sem planilha.
+          </p>
+
+          {/* Amostra do produto, com números de exemplo. Mostra o formato da
+              resposta que o app dá, que é mais convincente que descrevê-la. */}
+          <div className="auth-preview" aria-hidden="true">
+            <p className="auth-preview-label">Você recebeu em outubro</p>
+            <p className="auth-preview-valor numero">R$ 6.380,00</p>
+            <div className="auth-preview-track">
+              <div className="auth-preview-fill" />
+            </div>
+            <p className="auth-preview-legenda numero">Ainda falta receber R$ 2.200,00</p>
+          </div>
         </div>
         <p className="auth-showcase-foot">© {new Date().getFullYear()} KitManager</p>
       </section>
 
       <section className="auth-panel">
         <form className="auth-form" onSubmit={handleSubmit}>
+          <div className="auth-form-brand">
+            <span>K</span> KitManager
+          </div>
+
           <div>
             <h2>Entrar</h2>
-            <p className="auth-form-subtitle">Acesse sua conta para continuar.</p>
+            <p className="auth-form-subtitle">Bom te ver de novo.</p>
           </div>
 
           <ErrorBanner message={error} />
@@ -73,7 +91,7 @@ export function Login() {
             autoComplete="current-password"
           />
 
-          <button type="submit" className="btn btn-primary" disabled={isSubmitting}>
+          <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
             {isSubmitting ? 'Entrando...' : 'Entrar'}
           </button>
 

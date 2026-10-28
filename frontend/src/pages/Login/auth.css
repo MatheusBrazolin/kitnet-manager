@@ -4,120 +4,139 @@
   min-height: 100vh;
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.05fr 1fr;
   background: var(--color-bg);
 }
 
+/**
+ * Painel de apresentação.
+ *
+ * Antes tinha dois quadrados coloridos flutuando em loop infinito de 7s — o elemento
+ * mais chamativo da primeira tela do produto, sem comunicar nada. No lugar, uma prova
+ * do que o app faz: o número que o cliente quer ver. Vale mais que qualquer forma.
+ */
 .auth-showcase {
-  background: var(--color-ink);
-  color: var(--color-bg);
-  border-right: var(--border-width-lg) solid var(--color-ink);
-  padding: var(--space-8);
+  background: var(--color-surface-sunken);
+  color: var(--color-ink);
+  border-right: var(--border-width) solid var(--color-border);
+  padding: var(--space-8) var(--space-6);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  gap: var(--space-6);
   position: relative;
   overflow: hidden;
 }
 
-.auth-showcase::after,
+/* Textura de fundo discreta: pontos levíssimos, só para o painel não ser um
+   retângulo chapado. Em `prefers-reduced-motion` nada muda — é estático. */
 .auth-showcase::before {
   content: '';
   position: absolute;
-  border-radius: var(--radius-lg);
-  animation: float-shape 7s var(--ease-out-expo) infinite;
+  inset: 0;
+  background-image: radial-gradient(var(--color-border-strong) 1px, transparent 1px);
+  background-size: 22px 22px;
+  opacity: 0.6;
+  pointer-events: none;
 }
 
-.auth-showcase::after {
-  width: 260px;
-  height: 260px;
-  right: -80px;
-  bottom: -80px;
-  background: var(--color-brand);
-  border: var(--border-width-lg) solid var(--color-bg);
-  transform: rotate(18deg);
-}
-
-.auth-showcase::before {
-  width: 120px;
-  height: 120px;
-  right: 60px;
-  bottom: 40px;
-  background: var(--color-success);
-  border: var(--border-width) solid var(--color-bg);
-  transform: rotate(-12deg);
-  animation-delay: 0.4s;
-  opacity: 0.9;
-}
-
-@keyframes float-shape {
-  0%,
-  100% {
-    transform: translateY(0) rotate(var(--rot, 18deg));
-  }
-  50% {
-    transform: translateY(-14px) rotate(var(--rot, 18deg));
-  }
-}
-
-.auth-showcase::after {
-  --rot: 18deg;
-}
-
-.auth-showcase::before {
-  --rot: -12deg;
+.auth-showcase > * {
+  position: relative;
+  z-index: 1;
 }
 
 .auth-showcase-mark {
-  font-weight: 700;
-  font-family: var(--font-display);
-  font-size: var(--text-lg);
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  font-weight: 600;
+  font-size: var(--text-md);
+  letter-spacing: -0.01em;
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  z-index: 1;
 }
 
 .auth-showcase-mark span {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: var(--radius-sm);
   background: var(--color-brand);
-  border: var(--border-width) solid var(--color-bg);
-  color: var(--color-ink);
+  color: var(--color-brand-ink);
   display: grid;
   place-items: center;
-}
-
-.auth-showcase-copy {
-  z-index: 1;
+  font-weight: 600;
 }
 
 .auth-showcase-copy h1 {
-  font-family: var(--font-display);
-  font-size: clamp(1.9rem, 1.3rem + 2.4vw, 3rem);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  max-width: 16ch;
+  font-size: clamp(1.75rem, 1.2rem + 2.2vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  max-width: 18ch;
 }
 
 .auth-showcase-copy p {
   margin-top: var(--space-3);
-  color: var(--color-bg);
-  opacity: 0.75;
-  font-weight: 500;
-  max-width: 38ch;
+  color: var(--color-ink-muted);
+  max-width: 40ch;
+}
+
+/* Amostra do painel real: mostra o formato da informação que o produto entrega. */
+.auth-preview {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  max-width: 340px;
+  animation: enter-up var(--duration-slow) var(--ease-out) both;
+  animation-delay: 120ms;
+}
+
+.auth-preview-label {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.auth-preview-valor {
+  font-size: var(--text-3xl);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  margin-top: var(--space-1);
+}
+
+.auth-preview-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-sunken);
+  overflow: hidden;
+  margin-top: var(--space-4);
+}
+
+.auth-preview-fill {
+  height: 100%;
+  width: 72%;
+  border-radius: var(--radius-pill);
+  background: var(--color-positive);
+  /* Cresce uma vez ao abrir a página: sugere "isto é parte de um total" sem
+     precisar de legenda, e para. Nada de loop infinito. */
+  animation: auth-preview-grow var(--duration-slow) var(--ease-out) both;
+  animation-delay: 320ms;
+}
+
+@keyframes auth-preview-grow {
+  from {
+    width: 0;
+  }
+}
+
+.auth-preview-legenda {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
 }
 
 .auth-showcase-foot {
-  color: var(--color-bg);
-  opacity: 0.5;
+  color: var(--color-ink-faint);
   font-size: var(--text-sm);
-  font-weight: 600;
-  z-index: 1;
 }
 
 .auth-panel {
@@ -129,46 +148,56 @@
 
 .auth-form {
   width: 100%;
-  max-width: 360px;
+  max-width: 380px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
-  animation: fade-slide-up var(--duration-slow) var(--ease-out-expo) both;
+  gap: var(--space-5);
+  animation: enter-up var(--duration-normal) var(--ease-out) both;
 }
 
-.auth-form .btn-primary:not(:disabled):hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-lg);
+/* Marca dentro do formulário: no celular o painel da esquerda some, e sem isto
+   a tela de entrada não dizia em lugar nenhum de qual produto era. */
+.auth-form-brand {
+  display: none;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  font-size: var(--text-md);
+}
+
+.auth-form-brand span {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: var(--color-brand);
+  color: var(--color-brand-ink);
+  display: grid;
+  place-items: center;
 }
 
 .auth-form h2 {
-  font-family: var(--font-display);
   font-size: var(--text-2xl);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: -0.01em;
+  font-weight: 600;
+  letter-spacing: -0.03em;
 }
 
 .auth-form-subtitle {
   color: var(--color-ink-muted);
   margin-top: var(--space-1);
-  font-weight: 500;
-}
-
-.auth-form .btn-primary {
-  margin-top: var(--space-2);
 }
 
 .auth-switch {
   text-align: center;
   color: var(--color-ink-muted);
   font-size: var(--text-sm);
-  font-weight: 500;
 }
 
 .auth-switch a {
   color: var(--color-brand-strong);
-  font-weight: 700;
+  font-weight: 500;
+}
+
+.auth-switch a:hover {
   text-decoration: underline;
 }
 
@@ -179,5 +208,9 @@
 
   .auth-showcase {
     display: none;
+  }
+
+  .auth-form-brand {
+    display: flex;
   }
 }

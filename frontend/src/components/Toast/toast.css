@@ -1,0 +1,111 @@
+.toast-viewport {
+  position: fixed;
+  bottom: var(--space-5);
+  right: var(--space-5);
+  z-index: var(--z-toast);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  /* O container não captura clique; cada aviso captura o seu. Sem isto, uma faixa
+     invisível no canto bloquearia os botões embaixo. */
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 260px;
+  max-width: min(380px, calc(100vw - 2 * var(--space-5)));
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--color-border-strong);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  animation: toast-entra var(--duration-normal) var(--ease-out) both;
+}
+
+.toast-saindo {
+  animation: toast-sai var(--duration-fast) var(--ease-out) both;
+}
+
+.toast-icone {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.toast-success .toast-icone {
+  color: var(--color-positive);
+}
+
+.toast-error .toast-icone {
+  color: var(--color-danger);
+}
+
+.toast-mensagem {
+  flex: 1;
+  min-width: 0;
+}
+
+.toast-fechar {
+  flex-shrink: 0;
+  display: inline-flex;
+  padding: var(--space-1);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-ink-faint);
+  transition: color var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
+}
+
+.toast-fechar:hover {
+  color: var(--color-ink);
+  background: var(--color-surface-hover);
+}
+
+.toast-fechar:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+@keyframes toast-entra {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes toast-sai {
+  to {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+/* No celular o aviso ocupa a largura e fica acima da barra de abas, senão nasce
+   escondido atrás dela. */
+@media (max-width: 860px) {
+  .toast-viewport {
+    left: var(--space-4);
+    right: var(--space-4);
+    bottom: calc(var(--tabbar-height) + var(--space-3) + env(safe-area-inset-bottom, 0px));
+  }
+
+  .toast {
+    min-width: 0;
+    max-width: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toast,
+  .toast-saindo {
+    animation: enter-fade 0.01ms both !important;
+  }
+}

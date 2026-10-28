@@ -6,6 +6,7 @@ import './index.css';
 import App from './App.tsx';
 import { AuthProvider } from './context/AuthContext';
 import { ConfirmProvider } from './components/ConfirmDialog/ConfirmProvider';
+import { ToastProvider } from './components/Toast/ToastProvider';
 import { initSentry } from './services/sentry';
 
 initSentry();
@@ -24,9 +25,11 @@ createRoot(document.getElementById('root')!).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <AuthProvider>
-          <ConfirmProvider>
-            <App />
-          </ConfirmProvider>
+          <ToastProvider>
+            <ConfirmProvider>
+              <App />
+            </ConfirmProvider>
+          </ToastProvider>
         </AuthProvider>
       </BrowserRouter>
     </QueryClientProvider>
