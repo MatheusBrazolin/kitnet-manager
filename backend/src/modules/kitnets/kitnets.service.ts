@@ -6,7 +6,10 @@ import {
 import { PrismaService } from '../../database/prisma.service';
 import { CreateKitnetDto } from './dto/create-kitnet.dto';
 import { UpdateKitnetDto } from './dto/update-kitnet.dto';
-import { IMOVEL_COM_TOTAL_UNIDADES } from '../../common/prisma/includes';
+import {
+  IMOBILIARIA_PARA_TAXA,
+  IMOVEL_COM_TOTAL_UNIDADES,
+} from '../../common/prisma/includes';
 
 @Injectable()
 export class KitnetsService {
@@ -15,7 +18,11 @@ export class KitnetsService {
   findAll(userId: number) {
     return this.prisma.kitnet.findMany({
       where: { userId },
-      include: { moradores: true, imovel: IMOVEL_COM_TOTAL_UNIDADES },
+      include: {
+        moradores: true,
+        imovel: IMOVEL_COM_TOTAL_UNIDADES,
+        imobiliaria: IMOBILIARIA_PARA_TAXA,
+      },
       orderBy: { numero: 'asc' },
     });
   }
@@ -23,7 +30,11 @@ export class KitnetsService {
   async findOwnedOrThrow(userId: number, id: number) {
     const kitnet = await this.prisma.kitnet.findUnique({
       where: { id },
-      include: { moradores: true, imovel: IMOVEL_COM_TOTAL_UNIDADES },
+      include: {
+        moradores: true,
+        imovel: IMOVEL_COM_TOTAL_UNIDADES,
+        imobiliaria: IMOBILIARIA_PARA_TAXA,
+      },
     });
     if (!kitnet) {
       throw new NotFoundException('Kitnet não encontrada');
@@ -50,6 +61,25 @@ export class KitnetsService {
     return { ...kitnet, gastos, totalGasto, historicoValor };
   }
 
+  /**
+   * Uma unidade só pode apontar para uma administradora da MESMA conta — senão bastaria
+   * mandar um id qualquer no corpo para descobrir (e usar) a taxa de outro proprietário.
+   */
+  private async assertImobiliariaOwnership(
+    userId: number,
+    imobiliariaId: number,
+  ) {
+    const imobiliaria = await this.prisma.imobiliaria.findUnique({
+      where: { id: imobiliariaId },
+    });
+    if (!imobiliaria) {
+      throw new NotFoundException('Imobiliária não encontrada');
+    }
+    if (imobiliaria.userId !== userId) {
+      throw new ForbiddenException('Você não tem acesso a esta imobiliária');
+    }
+  }
+
   private async assertImovelOwnership(userId: number, imovelId: number) {
     const imovel = await this.prisma.imovel.findUnique({
       where: { id: imovelId },
@@ -64,6 +94,9 @@ export class KitnetsService {
 
   async create(userId: number, dto: CreateKitnetDto) {
     await this.assertImovelOwnership(userId, dto.imovelId);
+    if (dto.imobiliariaId !== undefined && dto.imobiliariaId !== null) {
+      await this.assertImobiliariaOwnership(userId, dto.imobiliariaId);
+    }
     // Em transação: uma kitnet sem o primeiro ponto de histórico quebra a invariante do
     // modelo e faz as parcelas retroativas serem geradas com o valor de hoje.
     return this.prisma.$transaction(async (tx) => {
@@ -84,6 +117,9 @@ export class KitnetsService {
     const atual = await this.findOwnedOrThrow(userId, id);
     if (dto.imovelId !== undefined) {
       await this.assertImovelOwnership(userId, dto.imovelId);
+    }
+    if (dto.imobiliariaId !== undefined && dto.imobiliariaId !== null) {
+      await this.assertImobiliariaOwnership(userId, dto.imobiliariaId);
     }
 
     // Só registra um novo ponto no histórico quando o valor realmente muda — editar só o

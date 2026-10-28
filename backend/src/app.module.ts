@@ -10,6 +10,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { KitnetsModule } from './modules/kitnets/kitnets.module';
 import { ImoveisModule } from './modules/imoveis/imoveis.module';
+import { ImobiliariasModule } from './modules/imobiliarias/imobiliarias.module';
 import { MoradoresModule } from './modules/moradores/moradores.module';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module';
 import { GastosModule } from './modules/gastos/gastos.module';
@@ -39,6 +40,7 @@ import { HealthModule } from './modules/health/health.module';
     UsersModule,
     KitnetsModule,
     ImoveisModule,
+    ImobiliariasModule,
     MoradoresModule,
     PagamentosModule,
     GastosModule,

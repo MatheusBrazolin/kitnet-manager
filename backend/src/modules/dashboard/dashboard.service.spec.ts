@@ -6,6 +6,9 @@ type PrismaMock = {
   kitnet: { findMany: jest.Mock };
   pagamento: { aggregate: jest.Mock; findMany: jest.Mock };
   gasto: { aggregate: jest.Mock; findMany: jest.Mock };
+  // Histórico e tabela por imobiliária são agregados no banco (date_trunc/GROUP BY),
+  // porque groupBy do Prisma não agrupa por campo de relação.
+  $queryRaw: jest.Mock;
 };
 
 describe('DashboardService', () => {
@@ -20,13 +23,17 @@ describe('DashboardService', () => {
     prisma = {
       kitnet: { findMany: jest.fn().mockResolvedValue([]) },
       pagamento: {
-        aggregate: jest.fn().mockResolvedValue({ _sum: { valor: 0 } }),
+        aggregate: jest.fn().mockResolvedValue({
+          _sum: { valor: 0, valorTaxa: 0, valorLiquido: 0 },
+          _count: { _all: 0 },
+        }),
         findMany: jest.fn().mockResolvedValue([]),
       },
       gasto: {
         aggregate: jest.fn().mockResolvedValue({ _sum: { valor: 0 } }),
         findMany: jest.fn().mockResolvedValue([]),
       },
+      $queryRaw: jest.fn().mockResolvedValue([]),
     };
 
     service = new DashboardService(
@@ -73,19 +80,42 @@ describe('DashboardService', () => {
       expect(resumo.totalImobiliaria).toBe(180);
     });
 
-    it('calcula lucro líquido como receita recebida menos gastos do mês', async () => {
-      prisma.pagamento.aggregate.mockResolvedValue({ _sum: { valor: 5000 } });
+    // O lucro passou a partir do LÍQUIDO: com a taxa da imobiliária agora explícita,
+    // chamar de lucro um número que ainda embute o repasse seria enganoso — esse
+    // dinheiro nunca chegou à conta do proprietário.
+    it('calcula lucro líquido a partir do recebido líquido, não do bruto', async () => {
+      prisma.pagamento.aggregate.mockResolvedValue({
+        _sum: { valor: 5000, valorTaxa: 500, valorLiquido: 4500 },
+        _count: { _all: 3 },
+      });
       prisma.gasto.aggregate.mockResolvedValue({ _sum: { valor: 1800 } });
 
       const resumo = await service.getSummary(ownerId);
 
       expect(resumo.receitaMensal).toBe(5000);
+      expect(resumo.taxasMensal).toBe(500);
+      expect(resumo.receitaLiquidaMensal).toBe(4500);
       expect(resumo.gastoMensal).toBe(1800);
-      expect(resumo.lucroLiquido).toBe(3200);
+      expect(resumo.lucroLiquido).toBe(2700);
+    });
+
+    it('expõe o total e a quantidade de repasses ainda pendentes', async () => {
+      prisma.pagamento.aggregate.mockResolvedValue({
+        _sum: { valor: 3200, valorTaxa: 0, valorLiquido: 0 },
+        _count: { _all: 4 },
+      });
+
+      const resumo = await service.getSummary(ownerId);
+
+      expect(resumo.totalPendente).toBe(3200);
+      expect(resumo.quantidadePendente).toBe(4);
     });
 
     it('trata agregações vazias como zero em vez de null', async () => {
-      prisma.pagamento.aggregate.mockResolvedValue({ _sum: { valor: null } });
+      prisma.pagamento.aggregate.mockResolvedValue({
+        _sum: { valor: null, valorTaxa: null, valorLiquido: null },
+        _count: { _all: 0 },
+      });
       prisma.gasto.aggregate.mockResolvedValue({ _sum: { valor: null } });
 
       const resumo = await service.getSummary(ownerId);
@@ -93,6 +123,8 @@ describe('DashboardService', () => {
       expect(resumo.receitaMensal).toBe(0);
       expect(resumo.gastoMensal).toBe(0);
       expect(resumo.totalEmAtraso).toBe(0);
+      expect(resumo.taxasMensal).toBe(0);
+      expect(resumo.receitaLiquidaMensal).toBe(0);
       expect(resumo.lucroLiquido).toBe(0);
     });
 
@@ -144,6 +176,105 @@ describe('DashboardService', () => {
 
       expect(receita.gte).toEqual(new Date(Date.UTC(2026, 8, 1)));
       expect(receita.lt).toEqual(new Date(Date.UTC(2026, 9, 1)));
+    });
+  });
+
+  describe('projeção de taxa', () => {
+    // Regressão: a projeção somava o campo cru. Com taxa percentual, `taxaImobiliaria`
+    // guarda 10 (dez por cento) — somar isso como se fossem dez reais dava um número
+    // sem sentido na tela.
+    it('resolve percentual sobre o aluguel em vez de somar o número cru', async () => {
+      prisma.kitnet.findMany.mockResolvedValue([
+        {
+          status: 'ocupada',
+          valor: 1500,
+          taxaImobiliaria: null,
+          taxaTipo: 'FIXA',
+          imobiliaria: { taxaPadraoTipo: 'PERCENTUAL', taxaPadraoValor: 10 },
+        },
+        {
+          status: 'ocupada',
+          valor: 1000,
+          taxaImobiliaria: 80,
+          taxaTipo: 'FIXA',
+          imobiliaria: { taxaPadraoTipo: 'PERCENTUAL', taxaPadraoValor: 10 },
+        },
+      ]);
+
+      const resumo = await service.getSummary(ownerId);
+
+      // 10% de 1500 = 150, mais a taxa fixa própria de 80.
+      expect(resumo.totalImobiliaria).toBe(230);
+      expect(resumo.valorMensal).toBe(2500);
+    });
+
+    it('unidade sem imobiliária não projeta taxa nenhuma', async () => {
+      prisma.kitnet.findMany.mockResolvedValue([
+        {
+          status: 'ocupada',
+          valor: 1200,
+          taxaImobiliaria: null,
+          taxaTipo: 'FIXA',
+          imobiliaria: null,
+        },
+      ]);
+
+      const resumo = await service.getSummary(ownerId);
+
+      expect(resumo.totalImobiliaria).toBe(0);
+    });
+  });
+
+  describe('histórico', () => {
+    it('devolve 12 meses, preenchendo com zero os que não tiveram movimento', async () => {
+      const resumo = await service.getSummary(ownerId);
+
+      expect(resumo.historico).toHaveLength(12);
+      expect(
+        resumo.historico.every((p) => p.receita === 0 && p.taxa === 0),
+      ).toBe(true);
+      // Janela terminando no mês corrente (set/2026 no relógio fixado do teste).
+      expect(resumo.historico[11].label).toBe('set/26');
+      expect(resumo.historico[0].label).toBe('out/25');
+    });
+
+    it('casa cada mês agregado pelo banco com sua posição na série', async () => {
+      prisma.$queryRaw.mockImplementation((strings: TemplateStringsArray) => {
+        const sql = strings.join(' ');
+        if (sql.includes('"Pagamento"')) {
+          return Promise.resolve([
+            {
+              mes: new Date(Date.UTC(2026, 8, 1)),
+              bruto: 5000,
+              taxa: 500,
+              liquido: 4500,
+            },
+          ]);
+        }
+        if (sql.includes('"Gasto"')) {
+          return Promise.resolve([
+            { mes: new Date(Date.UTC(2026, 8, 1)), gasto: 700 },
+          ]);
+        }
+        return Promise.resolve([]);
+      });
+
+      const resumo = await service.getSummary(ownerId);
+
+      expect(resumo.historico[11]).toEqual({
+        label: 'set/26',
+        receita: 5000,
+        gasto: 700,
+        liquido: 4500,
+        taxa: 500,
+      });
+      expect(resumo.historico[10]).toEqual({
+        label: 'ago/26',
+        receita: 0,
+        gasto: 0,
+        liquido: 0,
+        taxa: 0,
+      });
     });
   });
 });

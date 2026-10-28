@@ -1,4 +1,5 @@
 import {
+  IsEnum,
   IsInt,
   IsNumber,
   IsOptional,
@@ -6,6 +7,7 @@ import {
   Min,
   MinLength,
 } from 'class-validator';
+import { TaxaTipo } from '@prisma/client';
 
 export class CreateKitnetDto {
   @IsString()
@@ -16,12 +18,23 @@ export class CreateKitnetDto {
   @Min(0)
   valor: number;
 
-  // Parte do valor do aluguel retida pela imobiliária (ex.: aluguel de 1400, imobiliária
-  // fica com 100). Omitido/null quando o aluguel é direto, sem imobiliária.
+  // Taxa desta unidade especificamente. Omitida/null significa "segue a taxa padrão da
+  // imobiliária vinculada" — e, sem imobiliária, que o aluguel é direto. Zero é
+  // diferente de omitido: é uma isenção negociada para esta unidade.
   @IsOptional()
   @IsNumber()
   @Min(0)
   taxaImobiliaria?: number | null;
+
+  // Diz se o número acima é um percentual do aluguel ou um valor fixo em reais.
+  @IsOptional()
+  @IsEnum(TaxaTipo)
+  taxaTipo?: TaxaTipo;
+
+  // Null = gestão direta, sem administradora.
+  @IsOptional()
+  @IsInt()
+  imobiliariaId?: number | null;
 
   @IsInt()
   imovelId: number;

@@ -25,6 +25,13 @@ enum StatusMembro {
   ACEITO
 }
 
+// Como a taxa da imobiliária é cobrada sobre o aluguel: um percentual do valor bruto
+// (ex.: 10% de R$ 1.500 = R$ 150) ou um valor fixo em reais, independente do aluguel.
+enum TaxaTipo {
+  PERCENTUAL
+  FIXA
+}
+
 enum StatusPagamento {
   PENDENTE
   PAGO
@@ -53,8 +60,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  kitnets Kitnet[]
-  imoveis Imovel[]
+  kitnets      Kitnet[]
+  imoveis      Imovel[]
+  imobiliarias Imobiliaria[]
 
   // Pessoas com acesso à minha conta (eu sou o "dono" dos dados).
   membros  Membro[] @relation("MembrosDaConta")
@@ -77,6 +85,30 @@ model Membro {
   user   User @relation("FiliacaoDoUsuario", fields: [userId], references: [id], onDelete: Cascade)
 }
 
+// Administradora que intermedeia o aluguel das unidades. O sistema não movimenta
+// dinheiro: a imobiliária recebe do inquilino e repassa ao proprietário já descontada a
+// taxa — aqui só registramos quanto foi retido para que o controle feche.
+model Imobiliaria {
+  id              Int      @id @default(autoincrement())
+  nome            String
+  telefone        String
+  // Nome do corretor ou responsável pelo contato, quando houver.
+  contato         String?
+  // Taxa aplicada às unidades desta imobiliária que não definirem uma taxa própria.
+  taxaPadraoTipo  TaxaTipo @default(PERCENTUAL)
+  taxaPadraoValor Float    @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  kitnets Kitnet[]
+
+  @@index([userId])
+}
+
 model Imovel {
   id        Int      @id @default(autoincrement())
   nome      String
@@ -96,10 +128,12 @@ model Kitnet {
   id              Int      @id @default(autoincrement())
   numero          String
   valor           Float
-  // Parte do valor do aluguel retida pela imobiliária, quando a unidade é alugada por
-  // intermediação dela (ex.: aluguel de R$ 1.400, imobiliária fica com R$ 100). Nulo/0
-  // quando o aluguel é direto, sem imobiliária.
+  // Taxa desta unidade especificamente. Quando nula, vale a taxa padrão da imobiliária
+  // vinculada; sem imobiliária, não há taxa (gestão direta). `taxaTipo` diz se o número
+  // em `taxaImobiliaria` é um percentual do aluguel ou um valor fixo em reais — antes
+  // da coluna existir, todo valor gravado era fixo, daí o default FIXA na migration.
   taxaImobiliaria Float?
+  taxaTipo        TaxaTipo @default(FIXA)
   status          String   @default("vaga")
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -110,12 +144,21 @@ model Kitnet {
   imovelId Int
   imovel   Imovel @relation(fields: [imovelId], references: [id], onDelete: Cascade)
 
+  // Nula = gestão direta (proprietário aluga sem intermediação).
+  // SetNull e não Cascade: apagar a administradora jamais pode apagar as unidades. Na
+  // prática o service bloqueia a exclusão enquanto houver unidades vinculadas, igual ao
+  // que ImoveisService faz com imóveis que ainda têm unidades.
+  imobiliariaId Int?
+  imobiliaria   Imobiliaria? @relation(fields: [imobiliariaId], references: [id], onDelete: SetNull)
+
   moradores      Morador[]
   gastos         Gasto[]
   historicoValor KitnetValorHistorico[]
 
   @@unique([imovelId, numero])
   @@index([userId])
+  // O dashboard agrupa unidades, bruto, taxa e líquido por administradora.
+  @@index([imobiliariaId])
 }
 
 // Registro append-only de cada valor de aluguel que a unidade já teve — criado uma vez na
@@ -167,6 +210,13 @@ model Pagamento {
   status         StatusPagamento @default(PENDENTE)
   // Data em que o valor foi efetivamente recebido; preenchida só quando status = PAGO.
   dataPagamento  DateTime?
+  // Quanto a imobiliária reteve e quanto sobrou para o proprietário NESTE repasse.
+  // Gravados (snapshot) no momento em que a parcela é marcada como paga, e não
+  // recalculados depois: mudar a taxa da unidade hoje não pode reescrever o que já foi
+  // recebido meses atrás. Nulos enquanto a parcela não for paga, e zerados de volta ao
+  // desfazer o pagamento ou anular a parcela.
+  valorTaxa      Float?
+  valorLiquido   Float?
   formaPagamento String?
   // ALUGUEL (padrão, gerado automaticamente) ou COMPLEMENTAR (lançamento manual extra,
   // que não substitui nem concorre com a parcela do aluguel do mês).
