@@ -8,6 +8,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { CreateImovelDto } from './dto/create-imovel.dto';
 import { UpdateImovelDto } from './dto/update-imovel.dto';
 import { CreateUnidadesLoteDto } from './dto/create-unidades-lote.dto';
+import { IMOBILIARIA_PARA_TAXA } from '../../common/prisma/includes';
 
 @Injectable()
 export class ImoveisService {
@@ -17,7 +18,13 @@ export class ImoveisService {
     return this.prisma.imovel.findMany({
       where: { userId },
       include: {
-        kitnets: { include: { moradores: true }, orderBy: { numero: 'asc' } },
+        kitnets: {
+          // A administradora vem junto porque a lista de unidades mostra quem
+          // administra cada uma e o líquido — e o líquido depende da taxa padrão dela
+          // quando a unidade não define a própria.
+          include: { moradores: true, imobiliaria: IMOBILIARIA_PARA_TAXA },
+          orderBy: { numero: 'asc' },
+        },
       },
       orderBy: { nome: 'asc' },
     });
@@ -27,7 +34,13 @@ export class ImoveisService {
     const imovel = await this.prisma.imovel.findUnique({
       where: { id },
       include: {
-        kitnets: { include: { moradores: true }, orderBy: { numero: 'asc' } },
+        kitnets: {
+          // A administradora vem junto porque a lista de unidades mostra quem
+          // administra cada uma e o líquido — e o líquido depende da taxa padrão dela
+          // quando a unidade não define a própria.
+          include: { moradores: true, imobiliaria: IMOBILIARIA_PARA_TAXA },
+          orderBy: { numero: 'asc' },
+        },
       },
     });
     if (!imovel) {

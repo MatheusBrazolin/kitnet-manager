@@ -13,6 +13,9 @@ const Moradores = lazy(() => import('./pages/Moradores/Moradores').then((m) => (
 const Pagamentos = lazy(() => import('./pages/Pagamentos/Pagamentos').then((m) => ({ default: m.Pagamentos })));
 const Gastos = lazy(() => import('./pages/Gastos/Gastos').then((m) => ({ default: m.Gastos })));
 const Equipe = lazy(() => import('./pages/Equipe/Equipe').then((m) => ({ default: m.Equipe })));
+const Imobiliarias = lazy(() =>
+  import('./pages/Imobiliarias/Imobiliarias').then((m) => ({ default: m.Imobiliarias })),
+);
 
 // Mesmo visual do loading de autenticação em Layout.tsx (classes já existentes em
 // layout.css) — o usuário vê o mesmo spinner tanto esperando a sessão quanto esperando o
@@ -70,6 +73,14 @@ function App() {
           element={
             <Suspense fallback={<RouteFallback />}>
               <Gastos />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/imobiliarias"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <Imobiliarias />
             </Suspense>
           }
         />

@@ -45,6 +45,8 @@ export function Dashboard() {
           <div className="skeleton dashboard-skeleton-stat" />
           <div className="skeleton dashboard-skeleton-stat" />
           <div className="skeleton dashboard-skeleton-stat" />
+          <div className="skeleton dashboard-skeleton-stat" />
+          <div className="skeleton dashboard-skeleton-stat" />
         </div>
       )}
 
@@ -60,14 +62,28 @@ export function Dashboard() {
               hint={`${summary.vagas} vagas`}
               tone="success"
             />
+            {/* Projeção: o que as unidades valem se tudo estiver ocupado e em dia. */}
             <StatCard
-              label="Valor mensal"
+              label="Valor mensal previsto"
               value={formatCurrency(summary.valorMensal)}
               hint={
                 summary.totalImobiliaria > 0
                   ? `dos quais ${formatCurrency(summary.totalImobiliaria)} vão pra imobiliária`
                   : undefined
               }
+              tone="warning"
+            />
+            {/* Realizado: o que de fato entrou na conta no mês. */}
+            <StatCard
+              label="Recebido líquido"
+              value={formatCurrency(summary.receitaLiquidaMensal)}
+              hint={`de ${formatCurrency(summary.receitaMensal)} em aluguéis`}
+              tone="success"
+            />
+            <StatCard
+              label="Taxas às imobiliárias"
+              value={formatCurrency(summary.taxasMensal)}
+              hint="retido no mês"
               tone="warning"
             />
             <StatCard
@@ -78,23 +94,42 @@ export function Dashboard() {
             <StatCard
               label="Lucro líquido"
               value={formatCurrency(summary.lucroLiquido)}
-              hint="Recebido - gastos do mês"
+              hint="Recebido líquido - gastos do mês"
               tone={summary.lucroLiquido >= 0 ? 'success' : 'danger'}
             />
             <StatCard
-              label="Total em atraso"
-              value={formatCurrency(summary.totalEmAtraso)}
-              tone={summary.totalEmAtraso > 0 ? 'danger' : 'success'}
+              label="Repasses a receber"
+              value={formatCurrency(summary.totalPendente)}
+              hint={
+                summary.totalEmAtraso > 0
+                  ? `${formatCurrency(summary.totalEmAtraso)} já vencidos`
+                  : `${summary.quantidadePendente} em aberto`
+              }
+              tone={summary.totalEmAtraso > 0 ? 'danger' : 'warning'}
             />
           </div>
 
           <div className="dashboard-grid">
-            <Card title="Receita vs. gastos (6 meses)" className="dashboard-chart-card">
+            <Card title="Receita vs. gastos (12 meses)" className="dashboard-chart-card">
               <BarChart
                 data={summary.historico.map((point) => ({ label: point.label, values: [point.receita, point.gasto] }))}
                 series={[
                   { label: 'Receita', color: 'var(--color-success)' },
                   { label: 'Gastos', color: 'var(--color-danger)' },
+                ]}
+                formatValue={(value) => formatCompactCurrency(value)}
+              />
+            </Card>
+
+            <Card title="Líquido vs. taxas (12 meses)" className="dashboard-chart-card">
+              <BarChart
+                data={summary.historico.map((point) => ({
+                  label: point.label,
+                  values: [point.liquido, point.taxa],
+                }))}
+                series={[
+                  { label: 'Você recebeu', color: 'var(--color-brand)' },
+                  { label: 'Ficou com a imobiliária', color: 'var(--color-ink-muted)' },
                 ]}
                 formatValue={(value) => formatCompactCurrency(value)}
               />
@@ -112,6 +147,38 @@ export function Dashboard() {
               />
             </Card>
           </div>
+
+          <Card title="Por imobiliária (mês atual)" className="dashboard-upcoming">
+            <Table
+              rows={summary.porImobiliaria}
+              // Unidades sem administradora vêm agrupadas numa linha com id nulo.
+              rowKey={(row) => row.imobiliariaId ?? 'gestao-direta'}
+              emptyMessage="Nenhuma unidade cadastrada ainda."
+              columns={[
+                { header: 'Imobiliária', render: (row) => row.nome },
+                {
+                  header: 'Unidades',
+                  align: 'right' as const,
+                  render: (row) => `${row.ocupadas}/${row.unidades}`,
+                },
+                {
+                  header: 'Bruto',
+                  align: 'right' as const,
+                  render: (row) => formatCurrency(row.bruto),
+                },
+                {
+                  header: 'Taxas',
+                  align: 'right' as const,
+                  render: (row) => formatCurrency(row.taxas),
+                },
+                {
+                  header: 'Líquido',
+                  align: 'right' as const,
+                  render: (row) => formatCurrency(row.liquido),
+                },
+              ]}
+            />
+          </Card>
 
           <Card title="Próximos vencimentos" className="dashboard-upcoming">
             <Table

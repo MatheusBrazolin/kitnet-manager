@@ -150,3 +150,37 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Tipo da taxa e valor lado a lado: são uma decisão só ("10% ou R$ 100?"). */
+.imovel-taxa-campos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.imovel-taxa-campos select {
+  flex: 1 1 200px;
+  min-width: 0;
+}
+
+.imovel-taxa-campos > :not(select) {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+
+/* O "%" colado ao campo, e não como placeholder, que sumiria ao digitar. */
+.imovel-taxa-percentual {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.imovel-taxa-percentual input {
+  flex: 1;
+  min-width: 0;
+}
+
+.imovel-taxa-percentual span {
+  font-weight: 700;
+  color: var(--color-ink-muted);
+}
