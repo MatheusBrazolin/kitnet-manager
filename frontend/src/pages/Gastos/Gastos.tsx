@@ -13,13 +13,13 @@ import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
 import { CurrencyInput } from '../../components/CurrencyInput';
-import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
+import { useConfirm } from '../../components/ConfirmDialog/confirm-context';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../utils/currency';
 import { formatDate, hojeIsoLocal } from '../../utils/dates';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
 import { formatUnidadeLabel } from '../../utils/unidade';
-import { useToast } from '../../components/Toast/ToastProvider';
+import { useToast } from '../../components/Toast/toast-context';
 
 const PAGE_SIZE = 20;
 

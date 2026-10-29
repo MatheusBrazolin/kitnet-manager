@@ -10,13 +10,13 @@ import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { CurrencyInput } from '../../components/CurrencyInput';
-import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
+import { useConfirm } from '../../components/ConfirmDialog/confirm-context';
 import { useAuth } from '../../hooks/useAuth';
 import { formatCurrency } from '../../utils/currency';
 import { formatTaxaLabel } from '../../utils/repasse';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
 import './imobiliarias.css';
-import { useToast } from '../../components/Toast/ToastProvider';
+import { useToast } from '../../components/Toast/toast-context';
 
 export function Imobiliarias() {
   const queryClient = useQueryClient();

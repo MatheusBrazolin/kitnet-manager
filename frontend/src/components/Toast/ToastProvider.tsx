@@ -1,13 +1,5 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { ToastContext, type ToastApi } from './toast-context';
 import './toast.css';
 
 type ToastTone = 'success' | 'error';
@@ -17,14 +9,6 @@ interface Toast {
   tone: ToastTone;
   mensagem: string;
 }
-
-interface ToastApi {
-  /** Confirma que algo deu certo. Ex.: `sucesso('Pagamento confirmado')`. */
-  sucesso: (mensagem: string) => void;
-  erro: (mensagem: string) => void;
-}
-
-const ToastContext = createContext<ToastApi | undefined>(undefined);
 
 const DURACAO_MS = 4000;
 
@@ -121,12 +105,4 @@ function IconeX() {
       <path d="M18 6 6 18M6 6l12 12" />
     </svg>
   );
-}
-
-export function useToast(): ToastApi {
-  const context = useContext(ToastContext);
-  if (!context) {
-    throw new Error('useToast deve ser usado dentro de um ToastProvider');
-  }
-  return context;
 }

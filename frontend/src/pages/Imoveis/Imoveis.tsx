@@ -14,14 +14,14 @@ import { KitnetDetailModal } from '../../components/KitnetDetailModal/KitnetDeta
 import { ExpandableGroupCard } from '../../components/ExpandableGroupCard/ExpandableGroupCard';
 import { CurrencyInput } from '../../components/CurrencyInput';
 import { PencilIcon } from '../../components/icons';
-import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
+import { useConfirm } from '../../components/ConfirmDialog/confirm-context';
 import { useAuth } from '../../hooks/useAuth';
 import { useToggleSet } from '../../hooks/useToggleSet';
 import { formatCurrency } from '../../utils/currency';
 import { calcularRepasseDaUnidade, formatTaxaLabel } from '../../utils/repasse';
 import './imoveis.css';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
-import { useToast } from '../../components/Toast/ToastProvider';
+import { useToast } from '../../components/Toast/toast-context';
 
 export function Imoveis() {
   const queryClient = useQueryClient();

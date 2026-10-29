@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { NotificationBell } from './NotificationBell';
-import { AuthContext } from '../../context/AuthContext';
+import { AuthContext } from '../../context/auth-context';
 import { api } from '../../services/api';
 import type { PagamentoAlerta, User } from '../../types';
 import { ToastProvider } from '../Toast/ToastProvider';

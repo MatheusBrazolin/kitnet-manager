@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
-import { useConfirm } from '../ConfirmDialog/ConfirmProvider';
+import { useConfirm } from '../ConfirmDialog/confirm-context';
 
 /**
  * Saída por iniciativa do próprio membro.
