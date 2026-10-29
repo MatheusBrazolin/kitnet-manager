@@ -70,6 +70,31 @@
      fixa (ver sidebar.css) */
   .layout-content {
     padding: var(--space-5);
-    padding-bottom: calc(var(--tabbar-height) + var(--space-4) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(
+      var(--tabbar-height) + var(--space-4) + env(safe-area-inset-bottom, 0px)
+    );
+  }
+}
+
+/* ---- Celular: devolver altura ao conteúdo -------------------------------
+   A barra do sino ocupava uma linha inteira só para um ícone. Somada ao
+   cabeçalho, o conteúdo de verdade só começava depois de ~190px numa tela de
+   812px. Aqui ela encolhe e se alinha ao topo da página. */
+@media (max-width: 860px) {
+  /* O sino deixa de ocupar uma linha só para si e passa a flutuar no canto
+     superior direito do conteúdo, alinhado ao título da página. Numa tela de
+     812px, a linha dele custava ~60px antes de qualquer conteúdo aparecer.
+
+     Os títulos das páginas são curtos ("Pagamentos", "Imóveis", "Relatório do
+     ano"), então o espaço reservado à direita é suficiente — e o cabeçalho de
+     página já quebra a linha quando precisa. */
+  .layout-content {
+    position: relative;
+  }
+
+  /* O sino desta barra se repete no cabeçalho (ver Sidebar). Aqui ele sai de
+     cena: a barra ocupava uma linha inteira de ~60px para um ícone só. */
+  .layout-topbar {
+    display: none;
   }
 }

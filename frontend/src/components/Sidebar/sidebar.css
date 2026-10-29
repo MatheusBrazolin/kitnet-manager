@@ -173,6 +173,13 @@
   justify-content: flex-start;
 }
 
+/* No desktop o sino vive na barra de conteúdo, não no cabeçalho lateral. Precisa
+   vir ANTES da media query: com a mesma especificidade, quem é declarado depois
+   vence, e no fim do arquivo esta regra anulava a do celular. */
+.sidebar-sino-mobile {
+  display: none;
+}
+
 @media (max-width: 860px) {
   .sidebar {
     width: 100%;
@@ -204,6 +211,19 @@
   .sidebar-user-info {
     display: none;
   }
+
+  /* O sino entra no cabeçalho do celular. */
+  .sidebar-sino-mobile {
+    display: block;
+    order: 1;
+  }
+
+  /* "Sair" sai do cabeçalho: é a ação menos usada do app e ocupava o canto mais
+     valioso de uma tela de 375px. Agora vive na folha "Mais", junto de
+     Configurações. */
+  .sidebar-logout {
+    display: none;
+  }
 }
 
 .mobile-tabbar {
@@ -228,6 +248,12 @@
   .mobile-tab {
     flex: 1;
     min-width: 0;
+    /* "Mais" é <button> e os outros são <a>: sem zerar o estilo nativo, ele
+       aparece com fundo e borda de botão no meio dos links. */
+    background: none;
+    border: none;
+    font-family: inherit;
+    cursor: pointer;
     /* 44px é o alvo de toque mínimo recomendado; a barra tinha ~39px de altura útil. */
     min-height: 44px;
     display: flex;
@@ -270,17 +296,109 @@
   }
 }
 
-/* Abaixo de 360px, seis abas deixam ~53px para cada uma e qualquer rótulo é cortado no
-   meio de uma palavra. Só o ícone é mais honesto que "PAGAMENT…"; o texto continua no
-   DOM, apenas oculto visualmente, então leitores de tela seguem anunciando o nome. */
+/* Com cinco itens em vez de oito, cada aba tem ~75px e os rótulos cabem inteiros —
+   a regra que escondia o texto abaixo de 360px deixou de ser necessária. Em telas
+   bem estreitas o rótulo só diminui. */
 @media (max-width: 359px) {
   .mobile-tab-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+    font-size: 0.625rem;
+  }
+}
+
+/* ===========================================================================
+   Folha "Mais" (celular)
+   ===========================================================================
+   Reaproveita o Modal — que já cuida de foco preso, ESC e devolução do foco —
+   e o reveste como folha que sobe do rodapé. Subir de baixo e não aparecer no
+   centro: o dedo está no rodapé, que é de onde o menu foi aberto, e o
+   movimento vindo dali liga a ação ao resultado.
+   =========================================================================== */
+@media (max-width: 860px) {
+  .menu-mais {
+    position: fixed;
+    inset: auto 0 0 0;
+    max-width: none;
+    width: 100%;
+    max-height: 80dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    animation: menu-mais-sobe var(--duration-slow) var(--ease-drawer) both;
+    /* Acompanha a área segura do iPhone para o último item não ficar embaixo da
+       barra de gestos. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@keyframes menu-mais-sobe {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.menu-mais-lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.menu-mais-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* 52px de altura: alvo de toque confortável, acima do mínimo de 44px. Numa
+     lista que se percorre com o polegar, apertado custa toque errado. */
+  min-height: 52px;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-ink);
+  font-size: var(--text-md);
+  font-weight: 450;
+  text-align: left;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.menu-mais-item:hover,
+.menu-mais-item:focus-visible {
+  background: var(--color-surface-hover);
+}
+
+.menu-mais-item:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.menu-mais-item-ativo {
+  background: var(--color-brand-soft);
+  color: var(--color-brand);
+  font-weight: 500;
+}
+
+.menu-mais-icone {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* Sair separado por uma linha: é destrutivo e não deve ser tocado por engano
+   ao mirar em "Configurações", logo acima. */
+.menu-mais-sair {
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  color: var(--color-danger);
+}
+
+.menu-mais-sair:hover,
+.menu-mais-sair:focus-visible {
+  background: var(--color-danger-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-mais {
+    animation: none;
   }
 }
