@@ -1,4 +1,10 @@
-import { Controller, Get, HttpException, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 
 /**
@@ -9,8 +15,56 @@ import { PrismaService } from '../../database/prisma.service';
  * e o banco caiu, ou a aplicação nem subiu?". Antes as duas situações eram
  * indistinguíveis de fora, porque as duas davam erro em tudo.
  */
+/**
+ * Traduz a falha do banco numa causa acionável.
+ *
+ * `PrismaClientInitializationError` sozinho não serve: ele cobre tanto "o banco está
+ * inalcançável" quanto "a senha está errada", e as duas pedem ações opostas — uma é
+ * despausar/corrigir host, a outra é trocar credencial. Esta rota é pública, então a
+ * mensagem crua do Prisma não pode ir junto: ela traz o host e a porta do banco. Daí a
+ * classificação em rótulos fixos, com a mensagem inteira indo só para o log do servidor.
+ */
+function classificar(erro: unknown): { causa: string; dica: string } {
+  const texto = erro instanceof Error ? erro.message : String(erro);
+  const codigo = (erro as { errorCode?: string })?.errorCode;
+
+  // P1001 / "can't reach": servidor não respondeu. Em Supabase no plano gratuito, a
+  // causa mais comum é o projeto ter sido pausado por inatividade.
+  if (codigo === 'P1001' || /can't reach database server/i.test(texto)) {
+    return {
+      causa: 'inalcancavel',
+      dica: 'O banco não respondeu. Confira se o projeto não está pausado e se o host/porta da DATABASE_URL estão certos.',
+    };
+  }
+  // P1000: o servidor respondeu e recusou as credenciais.
+  if (codigo === 'P1000' || /authentication failed/i.test(texto)) {
+    return {
+      causa: 'credenciais',
+      dica: 'O banco respondeu mas recusou usuário ou senha da DATABASE_URL.',
+    };
+  }
+  if (codigo === 'P1003' || /does not exist/i.test(texto)) {
+    return {
+      causa: 'banco-inexistente',
+      dica: 'Conectou no servidor, mas o banco indicado na DATABASE_URL não existe.',
+    };
+  }
+  if (codigo === 'P1002' || /timed out/i.test(texto)) {
+    return {
+      causa: 'timeout',
+      dica: 'A conexão estourou o tempo. Em serverless, costuma ser falta de pooler na DATABASE_URL.',
+    };
+  }
+  return {
+    causa: codigo ?? (erro instanceof Error ? erro.name : 'desconhecida'),
+    dica: 'Veja o log do servidor para a mensagem completa.',
+  };
+}
+
 @Controller('health')
 export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
@@ -26,16 +80,14 @@ export class HealthController {
       await this.prisma.$queryRaw`SELECT 1`;
       return { ...base, database: 'up' };
     } catch (erro) {
-      // A causa vai no corpo porque é o que distingue "senha do banco errada"
-      // de "banco inalcançável" de "migration faltando" — sem ela, quem está
-      // de fora só sabe que algo no banco falhou.
-      const causa =
-        erro instanceof Error
-          ? ((erro as { errorCode?: string }).errorCode ?? erro.name)
-          : 'desconhecida';
-
+      // A mensagem inteira só no log: ela traz host e porta do banco, e esta rota
+      // é pública.
+      this.logger.error(
+        'Healthcheck não conseguiu falar com o banco',
+        erro instanceof Error ? erro.stack : String(erro),
+      );
       throw new HttpException(
-        { ...base, status: 'error', database: 'down', causa },
+        { ...base, status: 'error', database: 'down', ...classificar(erro) },
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
