@@ -10,7 +10,7 @@ import { BellIcon } from '../icons';
 import { useAuth } from '../../hooks/useAuth';
 import './notification-bell.css';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
-import { useToast } from '../Toast/ToastProvider';
+import { useToast } from '../Toast/toast-context';
 
 const REFRESH_MS = 60_000;
 

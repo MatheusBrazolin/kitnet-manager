@@ -1,23 +1,5 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
-
-export type Tema = 'claro' | 'escuro' | 'sistema';
-
-interface ThemeApi {
-  tema: Tema;
-  /** O tema que está de fato aplicado agora ('sistema' já resolvido). */
-  temaEfetivo: 'claro' | 'escuro';
-  setTema: (tema: Tema) => void;
-}
-
-const ThemeContext = createContext<ThemeApi | undefined>(undefined);
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { ThemeContext, type Tema } from './theme-context';
 
 const CHAVE = 'kitmanager.tema';
 
@@ -80,12 +62,4 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const api = useMemo(() => ({ tema, temaEfetivo, setTema }), [tema, temaEfetivo, setTema]);
 
   return <ThemeContext.Provider value={api}>{children}</ThemeContext.Provider>;
-}
-
-export function useTema(): ThemeApi {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTema deve ser usado dentro de um ThemeProvider');
-  }
-  return context;
 }

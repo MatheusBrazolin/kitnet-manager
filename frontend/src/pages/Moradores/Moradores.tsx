@@ -13,14 +13,14 @@ import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { MoradorDetailModal } from '../../components/MoradorDetailModal/MoradorDetailModal';
 import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
-import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
+import { useConfirm } from '../../components/ConfirmDialog/confirm-context';
 import { useAuth } from '../../hooks/useAuth';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
 import { formatUnidadeLabel, linkWhatsApp } from '../../utils/unidade';
 import { StatusBadge } from '../../components/StatusBadge';
 import './moradores.css';
 import { hojeIsoLocal } from '../../utils/dates';
-import { useToast } from '../../components/Toast/ToastProvider';
+import { useToast } from '../../components/Toast/toast-context';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
 

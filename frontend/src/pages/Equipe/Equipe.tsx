@@ -10,11 +10,11 @@ import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { Modal } from '../../components/Modal/Modal';
 import { Header } from '../../components/Header/Header';
 import { StatusBadge } from '../../components/StatusBadge';
-import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
+import { useConfirm } from '../../components/ConfirmDialog/confirm-context';
 import { PAPEL_LABEL } from '../../utils/papel';
 import { useAuth } from '../../hooks/useAuth';
 import './equipe.css';
-import { useToast } from '../../components/Toast/ToastProvider';
+import { useToast } from '../../components/Toast/toast-context';
 
 export function Equipe() {
   const queryClient = useQueryClient();

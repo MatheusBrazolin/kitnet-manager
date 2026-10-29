@@ -20,7 +20,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToggleSet } from '../../hooks/useToggleSet';
 import './pagamentos.css';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
-import { useToast } from '../../components/Toast/ToastProvider';
+import { useToast } from '../../components/Toast/toast-context';
 
 interface GrupoImovel {
   imovelId: number;

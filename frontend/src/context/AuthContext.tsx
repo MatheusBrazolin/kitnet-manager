@@ -1,10 +1,11 @@
-import { createContext, useEffect, useState, type ReactNode } from 'react';
+import {  useEffect, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { api, clearStoredToken, getApiErrorMessage, getStoredToken, storeToken } from '../services/api';
 import { prefetchCoreData } from '../services/prefetch';
 import { limparCacheDeDados } from '../services/invalidate';
 import type { User } from '../types';
+import { AuthContext } from './auth-context';
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -22,22 +23,6 @@ interface AuthResponse {
   token: string;
   user: User;
 }
-
-export interface AuthContextValue {
-  user: User | null;
-  isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
-  logout: () => void;
-  /**
-   * Relê /auth/me. Necessário quando algo muda a conta que a sessão enxerga sem passar
-   * por login — hoje, aceitar ou recusar um convite de membro, que altera contaId e
-   * papel para o mesmo token.
-   */
-  recarregarSessao: () => Promise<void>;
-}
-
-export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();

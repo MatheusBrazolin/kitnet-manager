@@ -3,7 +3,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Imobiliarias } from './Imobiliarias';
-import { AuthContext } from '../../context/AuthContext';
+import { AuthContext } from '../../context/auth-context';
 import { ConfirmProvider } from '../../components/ConfirmDialog/ConfirmProvider';
 import { api } from '../../services/api';
 import type { Imobiliaria, Papel, User } from '../../types';
