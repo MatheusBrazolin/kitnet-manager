@@ -4,6 +4,7 @@ import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import { PrismaModule } from './database/prisma.module';
+import { EmailModule } from './common/email/email.module';
 import { ContaModule } from './common/conta/conta.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { AuthModule } from './modules/auth/auth.module';
@@ -44,6 +45,7 @@ import { HealthModule } from './modules/health/health.module';
     }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
     PrismaModule,
+    EmailModule,
     ContaModule,
     AuthModule,
     UsersModule,

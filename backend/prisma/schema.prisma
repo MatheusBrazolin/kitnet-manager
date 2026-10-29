@@ -51,6 +51,29 @@ enum TipoPagamento {
   COMPLEMENTAR
 }
 
+/// Token de uso único para redefinir a senha de quem perdeu o acesso.
+///
+/// Guarda o **hash** do token, nunca ele próprio: quem vazar o banco não pode usar as
+/// linhas para redefinir a senha de ninguém — teria que inverter um SHA-256. É a mesma
+/// razão de `password` ser hash, aplicada a uma credencial temporária.
+model TokenRecuperacao {
+  id        Int       @id @default(autoincrement())
+  tokenHash String    @unique
+  expiraEm  DateTime
+  /// Marcado no momento do uso. Um link só vale uma vez: sem isso, quem reencontrasse
+  /// o e-mail antigo poderia redefinir a senha de novo, meses depois.
+  usadoEm   DateTime?
+  createdAt DateTime  @default(now())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// A limpeza de tokens vencidos e a invalidação dos pedidos anteriores de uma pessoa
+  /// varrem por estes campos.
+  @@index([userId, usadoEm])
+  @@index([expiraEm])
+}
+
 model User {
   id                Int       @id @default(autoincrement())
   name              String
@@ -70,9 +93,10 @@ model User {
   imobiliarias Imobiliaria[]
 
   // Pessoas com acesso à minha conta (eu sou o "dono" dos dados).
-  membros  Membro[] @relation("MembrosDaConta")
+  membros           Membro[]           @relation("MembrosDaConta")
   // Minha própria filiação, caso eu seja membro da conta de outra pessoa.
-  filiacao Membro?  @relation("FiliacaoDoUsuario")
+  filiacao          Membro?            @relation("FiliacaoDoUsuario")
+  tokensRecuperacao TokenRecuperacao[]
 }
 
 model Membro {
