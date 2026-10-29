@@ -109,7 +109,35 @@
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  padding: 0 var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background var(--duration-fast) var(--ease-out);
+}
+
+.sidebar-user:hover {
+  background: var(--color-surface-hover);
+}
+
+.sidebar-user:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.sidebar-user-active,
+.sidebar-user-active:hover {
+  background: var(--color-brand-soft);
+}
+
+.sidebar-user-gear {
+  width: 16px;
+  height: 16px;
+  margin-left: auto;
+  flex-shrink: 0;
+  color: var(--color-ink-faint);
+}
+
+.sidebar-user-active .sidebar-user-gear {
+  color: var(--color-brand);
 }
 
 .sidebar-avatar {

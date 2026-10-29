@@ -7,6 +7,7 @@ import { NotificationBell } from './NotificationBell';
 import { AuthContext } from '../../context/AuthContext';
 import { api } from '../../services/api';
 import type { PagamentoAlerta, User } from '../../types';
+import { ToastProvider } from '../Toast/ToastProvider';
 
 const OWNER: User = {
   id: 1,
@@ -35,7 +36,9 @@ function renderBell() {
         <AuthContext.Provider
           value={{ user: OWNER, isLoading: false, login: vi.fn(), register: vi.fn(), logout: vi.fn(), recarregarSessao: vi.fn() }}
         >
-          <NotificationBell />
+          <ToastProvider>
+            <NotificationBell />
+          </ToastProvider>
         </AuthContext.Provider>
       </QueryClientProvider>
     </MemoryRouter>,
@@ -94,7 +97,9 @@ describe('NotificationBell', () => {
               recarregarSessao: vi.fn(),
             }}
           >
-            <NotificationBell />
+            <ToastProvider>
+              <NotificationBell />
+            </ToastProvider>
           </AuthContext.Provider>
         </QueryClientProvider>
       </MemoryRouter>,

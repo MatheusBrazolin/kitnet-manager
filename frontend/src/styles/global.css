@@ -395,3 +395,95 @@ a {
     min-height: 44px;
   }
 }
+
+/**
+ * Estado vazio com saída.
+ *
+ * Os estados vazios diziam só "Nenhum registro encontrado" — informavam o problema e
+ * deixavam a pessoa parada. Aqui cada um explica o conceito em uma frase e oferece o
+ * botão que resolve, porque quem chega numa lista vazia é justamente quem ainda não
+ * entendeu o que aquela tela faz.
+ */
+.estado-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-4);
+  text-align: center;
+}
+
+.estado-vazio h3 {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.estado-vazio p {
+  color: var(--color-ink-muted);
+  max-width: 44ch;
+}
+
+.estado-vazio .btn {
+  margin-top: var(--space-1);
+}
+
+/* Total de uma lista, no cabeçalho do card. Resolve a pergunta "quanto dá tudo
+   isso?" sem obrigar a somar de cabeça nem voltar ao painel. */
+.lista-total {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}
+
+.lista-total-label {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.lista-total-valor {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Saída de dinheiro acompanha o sinal "−" no JSX; a cor sozinha não basta. */
+.gasto-valor {
+  color: var(--color-negative);
+}
+
+/* Busca local no cabeçalho de uma lista. */
+.lista-busca {
+  padding: 0.45rem 0.7rem;
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-size: var(--text-sm);
+  min-width: 240px;
+  outline: none;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.lista-busca:focus {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--shadow-focus);
+}
+
+.lista-telefone {
+  color: var(--color-ink);
+}
+
+.lista-telefone:hover {
+  color: var(--color-brand-strong);
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .lista-busca {
+    min-width: 0;
+    width: 100%;
+  }
+}

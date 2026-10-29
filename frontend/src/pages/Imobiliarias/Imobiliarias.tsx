@@ -16,9 +16,11 @@ import { formatCurrency } from '../../utils/currency';
 import { formatTaxaLabel } from '../../utils/repasse';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
 import './imobiliarias.css';
+import { useToast } from '../../components/Toast/ToastProvider';
 
 export function Imobiliarias() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const { user } = useAuth();
   // Mesma regra dos outros cadastros: VISUALIZADOR só lê (ViewerReadOnlyGuard no
   // backend), então nem mostramos as ações para ele.
@@ -97,6 +99,7 @@ export function Imobiliarias() {
       // A taxa padrão entra no cálculo do líquido das unidades e nos números do
       // dashboard, então não basta invalidar a lista desta tela.
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso(editandoId !== null ? 'Imobiliária atualizada' : 'Imobiliária cadastrada');
       queryClient.invalidateQueries({ queryKey: ['imobiliarias'] });
     } catch (err) {
       setError(
@@ -121,6 +124,7 @@ export function Imobiliarias() {
     try {
       await api.delete(`/imobiliarias/${imobiliaria.id}`);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Imobiliária removida');
       queryClient.invalidateQueries({ queryKey: ['imobiliarias'] });
     } catch (err) {
       setListError(

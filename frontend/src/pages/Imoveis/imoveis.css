@@ -184,3 +184,18 @@
   font-weight: 700;
   color: var(--color-ink-muted);
 }
+
+/* Ação principal do card, visível sem precisar abrir menu nenhum. */
+.imovel-card-acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+}
+
+/* Unidade vaga é a informação que o dono procura ao abrir a tela — ela toma o
+   lugar da contagem de moradores no resumo quando existe. */
+.imovel-card-stat-vaga {
+  color: var(--color-warning);
+  font-weight: 500;
+}

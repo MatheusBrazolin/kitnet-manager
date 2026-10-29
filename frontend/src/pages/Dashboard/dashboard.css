@@ -50,6 +50,12 @@
 .dashboard-chart-card {
   display: flex;
   flex-direction: column;
+  /* Idem: sem isto o card se estica para caber o gráfico em vez de deixá-lo rolar. */
+  min-width: 0;
+}
+
+.dashboard-chart-card .card-body {
+  min-width: 0;
 }
 
 /* Saída de dinheiro: magenta em vez de vermelho, porque pagar a imobiliária é

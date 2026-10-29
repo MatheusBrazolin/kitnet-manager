@@ -10,6 +10,7 @@ import { BellIcon } from '../icons';
 import { useAuth } from '../../hooks/useAuth';
 import './notification-bell.css';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
+import { useToast } from '../Toast/ToastProvider';
 
 const REFRESH_MS = 60_000;
 
@@ -23,6 +24,7 @@ function alertaLabel(alerta: PagamentoAlerta): string {
 
 export function NotificationBell() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const { user } = useAuth();
   const isViewer = user?.papel === 'VISUALIZADOR';
   const [isOpen, setIsOpen] = useState(false);
@@ -58,6 +60,7 @@ export function NotificationBell() {
       // backend assume hoje quando não vem.
       await api.patch(`/pagamentos/${id}/marcar-pago`, {});
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Pagamento confirmado');
     } catch (err) {
       setActionError(getApiErrorMessage(err, 'Não foi possível confirmar o pagamento.'));
     } finally {

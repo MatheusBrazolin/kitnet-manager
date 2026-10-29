@@ -4,6 +4,7 @@ import {
   BuildingIcon,
   GridIcon,
   HomeIcon,
+  GearIcon,
   LogoutIcon,
   UserPlusIcon,
   UsersIcon,
@@ -52,13 +53,27 @@ export function Sidebar() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="sidebar-user">
+          {/* O bloco do usuário vira o atalho para Configurações. Pôr "Configurações"
+              como um sétimo item na navegação principal apertaria ainda mais a barra de
+              abas do celular, onde os rótulos já truncam — e é onde as pessoas procuram
+              as próprias configurações de qualquer forma. */}
+          <NavLink
+            to="/configuracoes"
+            className={({ isActive }) =>
+              `sidebar-user${isActive ? ' sidebar-user-active' : ''}`
+            }
+          >
             <div className="sidebar-avatar">{user?.name.charAt(0).toUpperCase()}</div>
             <div className="sidebar-user-info">
-              <span className="sidebar-user-name" title={user?.name}>{user?.name}</span>
-              {user?.papel && <span className="sidebar-user-papel">{PAPEL_LABEL[user.papel]}</span>}
+              <span className="sidebar-user-name" title={user?.name}>
+                {user?.name}
+              </span>
+              {user?.papel && (
+                <span className="sidebar-user-papel">{PAPEL_LABEL[user.papel]}</span>
+              )}
             </div>
-          </div>
+            <GearIcon className="sidebar-user-gear" />
+          </NavLink>
           <button type="button" className="btn btn-ghost sidebar-logout" onClick={logout}>
             <LogoutIcon className="sidebar-link-icon" />
             Sair
