@@ -256,11 +256,19 @@ describe('Isolamento multi-tenant (e2e)', () => {
       .send({ name: 'Invadida' })
       .expect(404);
 
-    // B não consegue nem tomar o e-mail de A para si.
+    // Trocar o e-mail exige a senha atual: o e-mail é o login e o único caminho de
+    // recuperação da conta, e não há confirmação por link.
     await request(app.getHttpServer())
       .patch('/api/perfil')
       .set('Authorization', `Bearer ${tokenB}`)
       .send({ email: emailA })
+      .expect(400);
+
+    // B não consegue tomar o e-mail de A para si nem com a própria senha correta.
+    await request(app.getHttpServer())
+      .patch('/api/perfil')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ email: emailA, senhaAtual: senha })
       .expect(409);
 
     // E o PATCH que B pode fazer altera apenas o próprio cadastro.
@@ -301,5 +309,48 @@ describe('Isolamento multi-tenant (e2e)', () => {
       .delete(`/api/imobiliarias/${imobiliariaId}`)
       .set('Authorization', `Bearer ${token}`)
       .expect(409);
+  });
+
+  // Trocar a senha derruba as sessões abertas em outros aparelhos: o JWT é stateless e
+  // vale 7 dias, então sem isso um token vazado continuava valendo mesmo depois de a
+  // vítima trocar a senha — justamente a ação que ela toma para se proteger.
+  it('invalida o token antigo depois que a senha é trocada', async () => {
+    const email = `a-${Date.now()}@example.com`;
+    const tokenAntigo = await registrarUsuario('Usuária A', email);
+
+    // O token antigo funciona antes da troca.
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${tokenAntigo}`)
+      .expect(200);
+
+    // `iat` tem resolução de segundos: sem esperar, o token antigo e o carimbo da troca
+    // cairiam no mesmo segundo e o teste passaria por acidente.
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+
+    await request(app.getHttpServer())
+      .patch('/api/perfil/senha')
+      .set('Authorization', `Bearer ${tokenAntigo}`)
+      .send({ senhaAtual: senha, novaSenha: 'outraSenha123' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${tokenAntigo}`)
+      .expect(401);
+
+    // E a senha nova entra normalmente.
+    const relogin = await request(app.getHttpServer())
+      .post('/api/auth/login')
+      .send({ email, password: 'outraSenha123' })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set(
+        'Authorization',
+        `Bearer ${(relogin.body as { token: string }).token}`,
+      )
+      .expect(200);
   });
 });

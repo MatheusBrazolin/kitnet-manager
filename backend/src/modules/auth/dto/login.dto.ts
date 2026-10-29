@@ -1,6 +1,8 @@
+import { NormalizarEmail } from '../../../common/dto/normalizar-email';
 import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
 
 export class LoginDto {
+  @NormalizarEmail()
   @IsEmail()
   email: string;
 

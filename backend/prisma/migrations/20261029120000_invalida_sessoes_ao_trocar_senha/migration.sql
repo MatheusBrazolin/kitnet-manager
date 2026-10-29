@@ -1,0 +1,14 @@
+-- Invalidar sessões abertas quando a senha muda.
+--
+-- O JWT é stateless e dura 7 dias (JWT_EXPIRES_IN). Até aqui, trocar a senha não
+-- derrubava nenhuma sessão: um token vazado — num computador compartilhado, num log de
+-- proxy, por XSS — continuava com acesso total de leitura e escrita por até uma semana,
+-- mesmo depois de a vítima perceber e trocar a senha. Ou seja, a ação que a pessoa toma
+-- justamente para se proteger não a protegia.
+--
+-- Com esta coluna, a JwtStrategy compara o `iat` do token com `passwordChangedAt` e
+-- recusa qualquer token emitido antes da troca.
+--
+-- Fica NULL para quem já existe: nenhuma sessão atual é derrubada por esta migration, e
+-- a proteção passa a valer a partir da primeira troca de senha de cada um.
+ALTER TABLE "User" ADD COLUMN "passwordChangedAt" TIMESTAMP(3);

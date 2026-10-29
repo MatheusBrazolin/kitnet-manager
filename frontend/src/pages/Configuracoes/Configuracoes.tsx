@@ -26,6 +26,7 @@ export function Configuracoes() {
 
   const [nome, setNome] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
+  const [senhaParaEmail, setSenhaParaEmail] = useState('');
   const [perfilError, setPerfilError] = useState<string | null>(null);
   const [isSalvandoPerfil, setIsSalvandoPerfil] = useState(false);
 
@@ -34,14 +35,22 @@ export function Configuracoes() {
   const [senhaError, setSenhaError] = useState<string | null>(null);
   const [isSalvandoSenha, setIsSalvandoSenha] = useState(false);
 
-  const perfilMudou = nome !== (user?.name ?? '') || email !== (user?.email ?? '');
+  const nomeMudou = nome !== (user?.name ?? '');
+  const emailMudou = email !== (user?.email ?? '');
+  const perfilMudou = nomeMudou || emailMudou;
 
   async function salvarPerfil(event: FormEvent) {
     event.preventDefault();
     setPerfilError(null);
     setIsSalvandoPerfil(true);
     try {
-      await api.patch('/perfil', { name: nome, email });
+      await api.patch('/perfil', {
+        name: nome,
+        email,
+        // Só vai quando o e-mail muda; o backend exige a senha nesse caso.
+        senhaAtual: emailMudou ? senhaParaEmail : undefined,
+      });
+      setSenhaParaEmail('');
       // O nome aparece na barra lateral e na saudação do painel; sem recarregar a
       // sessão a tela continuaria mostrando o valor antigo.
       await recarregarSessao();
@@ -61,7 +70,7 @@ export function Configuracoes() {
       await api.patch('/perfil/senha', { senhaAtual, novaSenha });
       setSenhaAtual('');
       setNovaSenha('');
-      toast.sucesso('Senha alterada');
+      toast.sucesso('Senha alterada. Outros aparelhos foram desconectados.');
     } catch (err) {
       setSenhaError(getApiErrorMessage(err, 'Não foi possível alterar a senha.'));
     } finally {
@@ -105,11 +114,26 @@ export function Configuracoes() {
             <p className="field-static-hint">É com ele que você entra na sua conta.</p>
           </div>
 
+          {/* A senha só é pedida quando o e-mail muda. O e-mail é o login e o único
+              caminho de volta para a conta; como ainda não há confirmação por link,
+              a senha é a prova de que é o dono fazendo a troca. */}
+          {emailMudou && (
+            <PasswordField
+              id="senhaParaEmail"
+              label="Confirme sua senha para trocar o e-mail"
+              value={senhaParaEmail}
+              onChange={setSenhaParaEmail}
+              autoComplete="current-password"
+            />
+          )}
+
           <div className="configuracoes-acoes">
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={isSalvandoPerfil || !perfilMudou}
+              disabled={
+                isSalvandoPerfil || !perfilMudou || (emailMudou && !senhaParaEmail)
+              }
             >
               {isSalvandoPerfil ? 'Salvando...' : 'Salvar alterações'}
             </button>
@@ -137,7 +161,10 @@ export function Configuracoes() {
             minLength={8}
             autoComplete="new-password"
           />
-          <p className="field-static-hint">Pelo menos 8 caracteres.</p>
+          <p className="field-static-hint">
+            Pelo menos 8 caracteres, com letra e número. Ao trocar, as sessões abertas
+            em outros aparelhos são encerradas.
+          </p>
 
           <div className="configuracoes-acoes">
             <button

@@ -24,15 +24,24 @@ describe('PerfilService', () => {
   const senhaAtual = 'senha123456';
   let hashAtual: string;
 
-  const usuario = {
-    id: userId,
-    name: 'Maria',
-    email: 'maria@example.com',
-    plano: 'FREE',
+  // `password` entra aqui porque `update` agora confere a senha quando o e-mail muda.
+  let usuario: {
+    id: number;
+    name: string;
+    email: string;
+    plano: string;
+    password: string;
   };
 
   beforeAll(async () => {
     hashAtual = await bcrypt.hash(senhaAtual, 10);
+    usuario = {
+      id: userId,
+      name: 'Maria',
+      email: 'maria@example.com',
+      plano: 'FREE',
+      password: hashAtual,
+    };
   });
 
   beforeEach(() => {
@@ -50,6 +59,7 @@ describe('PerfilService', () => {
 
   describe('update', () => {
     it('atualiza o nome e devolve o perfil no formato de /auth/me, sem password', async () => {
+      prisma.user.findUnique.mockResolvedValue(usuario);
       prisma.user.update.mockResolvedValue({ ...usuario, name: 'Maria Silva' });
 
       const result = await service.update(userId, { name: 'Maria Silva' });
@@ -70,8 +80,10 @@ describe('PerfilService', () => {
       expect(result).not.toHaveProperty('password');
     });
 
-    it('atualiza o e-mail quando ninguém mais o usa', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+    it('atualiza o e-mail quando a senha confere e ninguém mais o usa', async () => {
+      prisma.user.findUnique
+        .mockResolvedValueOnce(usuario) // carrega o próprio usuário
+        .mockResolvedValueOnce(null); // ninguém usa o e-mail novo
       prisma.user.update.mockResolvedValue({
         ...usuario,
         email: 'novo@example.com',
@@ -79,6 +91,7 @@ describe('PerfilService', () => {
 
       const result = await service.update(userId, {
         email: 'novo@example.com',
+        senhaAtual,
       });
 
       expect(prisma.user.update).toHaveBeenCalledWith({
@@ -89,15 +102,47 @@ describe('PerfilService', () => {
     });
 
     it('recusa com 409 um e-mail já usado por outra pessoa', async () => {
-      prisma.user.findUnique.mockResolvedValue({
-        id: 99,
-        email: 'ocupado@example.com',
-      });
+      prisma.user.findUnique
+        .mockResolvedValueOnce(usuario)
+        .mockResolvedValueOnce({ id: 99, email: 'ocupado@example.com' });
 
       await expect(
-        service.update(userId, { email: 'ocupado@example.com' }),
+        service.update(userId, { email: 'ocupado@example.com', senhaAtual }),
       ).rejects.toBeInstanceOf(ConflictException);
       expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    // O e-mail é o login e o único caminho de recuperação da conta; como não há
+    // confirmação por link, a senha é a única prova de que é o dono trocando.
+    it('exige a senha atual para trocar o e-mail', async () => {
+      prisma.user.findUnique.mockResolvedValue(usuario);
+
+      await expect(
+        service.update(userId, { email: 'novo@example.com' }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    it('recusa a troca de e-mail quando a senha está errada', async () => {
+      prisma.user.findUnique.mockResolvedValue(usuario);
+
+      await expect(
+        service.update(userId, {
+          email: 'novo@example.com',
+          senhaAtual: 'errada',
+        }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(prisma.user.update).not.toHaveBeenCalled();
+    });
+
+    // Só o nome mudando não é troca de e-mail, mesmo com o campo preenchido no corpo.
+    it('não pede senha quando o e-mail enviado é o mesmo de hoje', async () => {
+      prisma.user.findUnique.mockResolvedValue(usuario);
+      prisma.user.update.mockResolvedValue({ ...usuario, name: 'Maria S.' });
+
+      await expect(
+        service.update(userId, { name: 'Maria S.', email: usuario.email }),
+      ).resolves.toBeDefined();
     });
 
     // A tela manda o formulário inteiro mesmo quando só o nome mudou — reenviar o próprio
@@ -163,6 +208,43 @@ describe('PerfilService', () => {
       await expect(
         bcrypt.compare('novasenha123', args[0].data.password),
       ).resolves.toBe(true);
+    });
+  });
+
+  // O JWT é stateless e dura 7 dias: sem este carimbo, um token vazado continuava
+  // valendo mesmo depois de a vítima trocar a senha — justamente a ação que ela toma
+  // para se proteger. A JwtStrategy compara o `iat` do token com esta data.
+  describe('invalidação de sessões ao trocar a senha', () => {
+    it('grava passwordChangedAt junto com o hash novo', async () => {
+      prisma.user.findUnique.mockResolvedValue(usuario);
+      prisma.user.update.mockResolvedValue(usuario);
+      const antes = Date.now();
+
+      await service.updateSenha(userId, {
+        senhaAtual,
+        novaSenha: 'novaSenha123',
+      });
+
+      const [[args]] = prisma.user.update.mock.calls as [
+        [{ data: { password: string; passwordChangedAt: Date } }],
+      ];
+      expect(args.data.passwordChangedAt).toBeInstanceOf(Date);
+      expect(args.data.passwordChangedAt.getTime()).toBeGreaterThanOrEqual(
+        antes,
+      );
+      expect(args.data.password).not.toBe('novaSenha123');
+    });
+
+    it('avisa na resposta que as outras sessões caíram', async () => {
+      prisma.user.findUnique.mockResolvedValue(usuario);
+      prisma.user.update.mockResolvedValue(usuario);
+
+      const resposta = await service.updateSenha(userId, {
+        senhaAtual,
+        novaSenha: 'novaSenha123',
+      });
+
+      expect(resposta.mensagem).toMatch(/sess/i);
     });
   });
 });

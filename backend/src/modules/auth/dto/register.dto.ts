@@ -1,3 +1,4 @@
+import { NormalizarEmail } from '../../../common/dto/normalizar-email';
 import {
   IsEmail,
   IsString,
@@ -12,6 +13,7 @@ export class RegisterDto {
   @MaxLength(120)
   name: string;
 
+  @NormalizarEmail()
   @IsEmail()
   email: string;
 

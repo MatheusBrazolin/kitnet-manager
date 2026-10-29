@@ -31,7 +31,14 @@ import { HealthModule } from './modules/health/health.module';
             ? undefined
             : { target: 'pino-pretty' },
         autoLogging: true,
-        redact: ['req.headers.authorization', 'req.body.password'],
+        redact: [
+          'req.headers.authorization',
+          'req.body.password',
+          // Preventivo: o pino-http não serializa o corpo hoje, mas se alguém
+          // acrescentar um serializer as senhas de /perfil/senha iriam para o log.
+          'req.body.senhaAtual',
+          'req.body.novaSenha',
+        ],
       },
     }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }]),
