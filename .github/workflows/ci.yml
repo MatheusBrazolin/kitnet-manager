@@ -30,7 +30,10 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://kitmanager:kitmanager@localhost:5432/kitmanager_test
-      JWT_SECRET: ci-test-secret
+      # Precisa ter 16+ caracteres: a API confere isso no boot (env.validation.ts) e
+      # não sobe com segredo curto. O valor anterior tinha 14 e derrubava o e2e inteiro
+      # com um stack trace do NestFactory, sem dizer o motivo.
+      JWT_SECRET: segredo-de-teste-apenas-para-a-ci
       JWT_EXPIRES_IN: 1h
       CORS_ORIGIN: http://localhost:5173
 
