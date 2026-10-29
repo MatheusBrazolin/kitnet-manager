@@ -1,5 +1,6 @@
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { ThrottlerException } from '@nestjs/throttler';
 import { HttpExceptionFilter } from './http-exception.filter';
 import * as sentry from '../observability/sentry';
 
@@ -67,6 +68,20 @@ describe('HttpExceptionFilter', () => {
     const corpo = corpoEnviado();
     expect(corpo.statusCode).toBe(502);
     expect(corpo.detalhe).toBe('x');
+  });
+
+  // Quem erra a senha cinco vezes via "ThrottlerException: Too Many Requests" na tela:
+  // nome de classe, em inglês, para uma situação que só pedia "espere um pouco".
+  it('traduz o bloqueio por excesso de tentativas', () => {
+    filter.catch(new ThrottlerException(), host as never);
+
+    expect(response.status).toHaveBeenCalledWith(429);
+    expect(response.json).toHaveBeenCalledWith({
+      statusCode: 429,
+      message:
+        'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.',
+      error: 'Too Many Requests',
+    });
   });
 
   it('formats a known HttpException as { statusCode, message, error } and does not report to Sentry', () => {

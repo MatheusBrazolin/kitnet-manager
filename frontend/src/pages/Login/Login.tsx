@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { PasswordField } from '../../components/PasswordField/PasswordField';
 import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import './auth.css';
+import { Logo } from '../../components/Logo/Logo';
 
 export function Login() {
   const { login, user } = useAuth();
@@ -12,6 +13,10 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [params] = useSearchParams();
+  // Quem acabou de redefinir a senha chega aqui vindo do link do e-mail. Sem esta
+  // confirmação, a tela de login parece que o processo falhou e voltou do zero.
+  const senhaRedefinida = params.get('senha-redefinida') === '1';
 
   if (user) {
     return <Navigate to="/" replace />;
@@ -35,7 +40,7 @@ export function Login() {
     <div className="auth-page">
       <section className="auth-showcase">
         <div className="auth-showcase-mark">
-          <span>K</span> KitManager
+          <Logo /> KitManager
         </div>
         <div className="auth-showcase-copy">
           <h1>Saiba exatamente quanto caiu na sua conta.</h1>
@@ -61,13 +66,19 @@ export function Login() {
       <section className="auth-panel">
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-form-brand">
-            <span>K</span> KitManager
+            <Logo /> KitManager
           </div>
 
           <div>
             <h2>Entrar</h2>
             <p className="auth-form-subtitle">Bom te ver de novo.</p>
           </div>
+
+          {senhaRedefinida && !error && (
+            <p className="auth-sucesso" role="status">
+              Senha redefinida. Entre com a senha nova.
+            </p>
+          )}
 
           <ErrorBanner message={error} />
 
@@ -90,6 +101,10 @@ export function Login() {
             placeholder="••••••••"
             autoComplete="current-password"
           />
+
+          <p className="auth-esqueci">
+            <Link to="/esqueci-senha">Esqueci minha senha</Link>
+          </p>
 
           <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
             {isSubmitting ? 'Entrando...' : 'Entrar'}

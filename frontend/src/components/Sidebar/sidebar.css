@@ -22,15 +22,10 @@
 }
 
 .sidebar-brand-mark {
+  /* O próprio SVG já traz o tile terracota e o raio — aqui só o tamanho. */
   width: 34px;
   height: 34px;
-  border-radius: var(--radius-sm);
-  background: var(--color-brand);
-  color: var(--color-brand-ink);
-  font-weight: 600;
-  display: grid;
-  place-items: center;
-  font-size: var(--text-base);
+  flex-shrink: 0;
 }
 
 .sidebar-brand-name {

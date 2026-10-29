@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { ThrottlerException } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import { captureException } from '../observability/sentry';
 
@@ -52,6 +53,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
     statusCode: number;
     body: ErrorResponseBody;
   } {
+    // O ThrottlerException chega aqui com "ThrottlerException: Too Many Requests" no
+    // corpo, e isso ia direto para a tela: quem erra a senha cinco vezes via um nome de
+    // classe em inglês em vez de saber que era só esperar. Vem antes do ramo genérico de
+    // HttpException porque é dele que a mensagem crua sairia.
+    if (exception instanceof ThrottlerException) {
+      const statusCode = HttpStatus.TOO_MANY_REQUESTS;
+      return {
+        statusCode,
+        body: {
+          statusCode,
+          message:
+            'Muitas tentativas seguidas. Espere alguns minutos e tente de novo.',
+          error: 'Too Many Requests',
+        },
+      };
+    }
+
     if (exception instanceof HttpException) {
       const statusCode = exception.getStatus();
       const response = exception.getResponse();

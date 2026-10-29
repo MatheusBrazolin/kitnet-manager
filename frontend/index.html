@@ -2,7 +2,11 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
+    <!-- favicon.svg é a versão simplificada do logo (duas janelas), desenhada
+         para 16–32px; logo.svg, com as quatro unidades, é o mark completo. -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,6 +19,21 @@
     <meta name="theme-color" content="#f7f5f0" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#111317" media="(prefers-color-scheme: dark)" />
     <title>KitManager</title>
+    <meta
+      name="description"
+      content="Saiba exatamente quanto caiu na sua conta. O KitManager guarda quanto era o aluguel, quanto a imobiliária reteve e quanto sobrou pra você — mês a mês."
+    />
+    <!-- Preview ao compartilhar o link (WhatsApp, etc.). As URLs são relativas
+         de propósito: o app sobe em domínios diferentes (produção e previews da
+         Vercel) e um domínio fixo aqui quebraria o preview nos outros. -->
+    <meta property="og:title" content="KitManager" />
+    <meta
+      property="og:description"
+      content="Saiba exatamente quanto caiu na sua conta, mês a mês, sem planilha."
+    />
+    <meta property="og:image" content="/icon-512.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary" />
   </head>
   <body>
     <div id="root"></div>

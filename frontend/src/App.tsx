@@ -3,6 +3,8 @@ import { Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Login } from './pages/Login/Login';
 import { Register } from './pages/Login/Register';
+import { EsqueciSenha } from './pages/Login/EsqueciSenha';
+import { RedefinirSenha } from './pages/Login/RedefinirSenha';
 
 // As páginas autenticadas ficam em chunks separados do bundle de Login/Register — assim quem
 // ainda não entrou não baixa o código de Dashboard/Imóveis/Pagamentos/etc., e o carregamento
@@ -43,6 +45,8 @@ function App() {
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/esqueci-senha" element={<EsqueciSenha />} />
+      <Route path="/redefinir-senha" element={<RedefinirSenha />} />
 
       <Route element={<Layout />}>
         <Route

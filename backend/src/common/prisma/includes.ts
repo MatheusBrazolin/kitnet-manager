@@ -30,3 +30,21 @@ export const IMOBILIARIA_PARA_TAXA = {
     taxaPadraoValor: true,
   },
 } as const;
+
+/**
+ * Unidade com imóvel **e** administradora.
+ *
+ * Existe porque `KITNET_COM_IMOVEL` não traz a imobiliária, e a tela de pagamentos
+ * precisa dela: a unidade costuma não ter taxa própria (`taxaImobiliaria: null`) e
+ * herdar a padrão da administradora. Sem o objeto, o frontend resolvia a taxa como
+ * zero e o modal de "marcar pago" anunciava "Taxa da imobiliária — R$ 0,00 / Você
+ * recebe R$ 1.200,00" numa unidade de 10%, enquanto o backend gravava o correto
+ * (R$ 120 / R$ 1.080). O número exibido na hora de confirmar não era o número
+ * registrado — justamente na tela em que a conta precisa bater.
+ */
+export const KITNET_COM_IMOVEL_E_IMOBILIARIA = {
+  include: {
+    imovel: IMOVEL_COM_TOTAL_UNIDADES,
+    imobiliaria: IMOBILIARIA_PARA_TAXA,
+  },
+} as const;

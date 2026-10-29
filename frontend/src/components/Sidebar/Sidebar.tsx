@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom';
+import { Logo } from '../Logo/Logo';
 import { useAuth } from '../../hooks/useAuth';
 import {
   BuildingIcon,
@@ -33,7 +34,7 @@ export function Sidebar() {
     <>
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <span className="sidebar-brand-mark">K</span>
+          <Logo className="sidebar-brand-mark" size={34} />
           <span className="sidebar-brand-name">KitManager</span>
         </div>
 
