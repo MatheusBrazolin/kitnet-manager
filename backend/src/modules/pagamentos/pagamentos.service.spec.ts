@@ -846,3 +846,32 @@ describe('PagamentosService', () => {
     });
   });
 });
+
+/**
+ * Este bug já apareceu duas vezes, em endpoints diferentes: a listagem devolvia a
+ * unidade sem o objeto `imobiliaria`, o frontend resolvia a taxa herdada como zero e
+ * anunciava o bruto como líquido. Em /imoveis isso fazia toda unidade aparecer como
+ * "Gestão direta"; em /pagamentos, o modal de marcar pago dizia "Taxa — R$ 0,00 /
+ * Você recebe R$ 1.200,00" numa unidade de 10%, enquanto o backend gravava R$ 120 e
+ * R$ 1.080. O número confirmado não era o número registrado.
+ *
+ * O teste olha o `include` em vez do resultado porque é ali que a informação some: o
+ * mock devolveria a imobiliária de qualquer jeito.
+ */
+describe('PagamentosService: a listagem precisa trazer a imobiliária', () => {
+  it('inclui a administradora da unidade no findAll', async () => {
+    const prisma = {
+      pagamento: { findMany: jest.fn().mockResolvedValue([]) },
+      morador: { findMany: jest.fn().mockResolvedValue([]) },
+    };
+    const service = new PagamentosService(prisma as unknown as PrismaService);
+
+    await service.findAll(1);
+
+    const [args] = prisma.pagamento.findMany.mock.calls as Array<
+      [{ include: { morador: { include: { kitnet: { include: object } } } } }]
+    >;
+    const incluiNaKitnet = args[0].include.morador.include.kitnet.include;
+    expect(incluiNaKitnet).toHaveProperty('imobiliaria');
+  });
+});
