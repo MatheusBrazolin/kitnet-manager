@@ -10,6 +10,14 @@ function erroPrisma(errorCode: string, message: string) {
   });
 }
 
+function controllerComUpsert(upsert: jest.Mock) {
+  const prisma = {
+    $queryRaw: jest.fn().mockResolvedValue([]),
+    atividadeBanco: { upsert },
+  };
+  return new HealthController(prisma as unknown as PrismaService);
+}
+
 function controllerQueFalhaCom(erro: unknown) {
   const prisma = { $queryRaw: jest.fn().mockRejectedValue(erro) };
   return new HealthController(prisma as unknown as PrismaService);
@@ -90,5 +98,40 @@ describe('HealthController', () => {
     const corpo = await corpoDoErro(controllerQueFalhaCom(new Error('vish')));
     expect(corpo.causa).toBe('Error');
     expect(corpo.database).toBe('down');
+  });
+});
+
+describe('HealthController: marca de atividade', () => {
+  /**
+   * O bug que este teste existe para impedir: com `@updatedAt` no schema e um
+   * `update: {}` vazio, o Prisma não emite escrita nenhuma — o endpoint respondia 200
+   * e o carimbo ficava parado. Tudo "funcionava", e o banco seria pausado do mesmo
+   * jeito, que é justamente o que esta rota existe para evitar.
+   */
+  it('manda uma data explícita no update, não um objeto vazio', async () => {
+    const upsert = jest
+      .fn()
+      .mockResolvedValue({ id: 1, atualizadoEm: new Date() });
+    const controller = controllerComUpsert(upsert);
+
+    await controller.registrarAtividade();
+
+    const [[args]] = upsert.mock.calls as [
+      [{ update: { atualizadoEm?: Date }; create: { atualizadoEm?: Date } }],
+    ];
+    expect(args.update.atualizadoEm).toBeInstanceOf(Date);
+    expect(args.create.atualizadoEm).toBeInstanceOf(Date);
+  });
+
+  // Sempre a mesma linha: a tabela não pode crescer a cada ping, nem deixar registro
+  // fictício para limpar depois.
+  it('sobrescreve sempre a linha de id 1', async () => {
+    const upsert = jest
+      .fn()
+      .mockResolvedValue({ id: 1, atualizadoEm: new Date() });
+    await controllerComUpsert(upsert).registrarAtividade();
+
+    const [[args]] = upsert.mock.calls as [[{ where: { id: number } }]];
+    expect(args.where).toEqual({ id: 1 });
   });
 });

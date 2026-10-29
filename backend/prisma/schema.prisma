@@ -51,6 +51,29 @@ enum TipoPagamento {
   COMPLEMENTAR
 }
 
+/// Marca de atividade, com uma única linha — existe só para o banco não ser pausado.
+///
+/// O Supabase no plano gratuito pausa o projeto após ~7 dias sem atividade, e foi isso
+/// que derrubou a produção: o app continuou no ar e só o banco sumiu. Um workflow
+/// agendado atualiza o carimbo aqui duas vezes por semana.
+///
+/// Tabela própria, e não uma escrita de mentira em `Morador` ou `Pagamento`: se o
+/// `DELETE` de um registro fictício falhasse uma vez — rede caindo no meio, timeout —
+/// sobraria um morador fantasma nos relatórios de dinheiro, e ninguém notaria até
+/// conferir com o contador.
+///
+/// A mesma linha é sempre sobrescrita (`id` fixo), então a tabela nunca cresce.
+model AtividadeBanco {
+  id Int @id @default(1)
+
+  /// Preenchido explicitamente pelo código, NÃO com `@updatedAt`. O `@updatedAt` só
+  /// dispara quando algum campo muda; num upsert cujo `update` é vazio, o Prisma não
+  /// emite escrita nenhuma e o carimbo fica parado. O endpoint respondia 200 fingindo
+  /// trabalhar enquanto o banco caminhava para a pausa — exatamente o que esta tabela
+  /// existe para evitar.
+  atualizadoEm DateTime
+}
+
 /// Token de uso único para redefinir a senha de quem perdeu o acesso.
 ///
 /// Guarda o **hash** do token, nunca ele próprio: quem vazar o banco não pode usar as
