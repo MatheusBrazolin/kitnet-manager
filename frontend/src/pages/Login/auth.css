@@ -31,10 +31,13 @@
 /* Textura de fundo discreta: pontos levíssimos, só para o painel não ser um
    retângulo chapado. Em `prefers-reduced-motion` nada muda — é estático. */
 .auth-showcase::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(var(--color-border-strong) 1px, transparent 1px);
+  background-image: radial-gradient(
+    var(--color-border-strong) 1px,
+    transparent 1px
+  );
   background-size: 22px 22px;
   opacity: 0.6;
   pointer-events: none;
@@ -42,7 +45,8 @@
 
 .auth-showcase > * {
   position: relative;
-  z-index: 1;
+  /* Acima da aurora (0) e da textura (1). */
+  z-index: 2;
 }
 
 .auth-showcase-mark {
@@ -249,4 +253,243 @@
   font-size: var(--text-sm);
   color: var(--color-ink-muted);
   line-height: 1.5;
+}
+
+/* ===========================================================================
+   Vida na primeira tela
+   ===========================================================================
+   A tela de entrada era correta e parada. Como é o primeiro contato com o
+   produto, ela carrega a impressão de "isto foi feito com cuidado" ou não.
+   Os efeitos aqui são ambientes de propósito: nada pisca, nada chama atenção
+   para si. Num app sobre o dinheiro de alguém, movimento chamativo passa a
+   sensação errada.
+
+   Tudo anima só `transform`, `opacity` e `filter`, que o navegador resolve na
+   GPU sem recalcular layout. E tudo some em `prefers-reduced-motion`.
+   =========================================================================== */
+
+/**
+ * Aurora: duas manchas de luz quente derivando devagar atrás do conteúdo.
+ *
+ * O ciclo é de 28s e 34s — longo e com durações diferentes de propósito. Dois
+ * loops do mesmo tamanho ficam em sincronia e o olho percebe a repetição; em
+ * tempos primos entre si o padrão demora tanto a se repetir que a tela parece
+ * respirar em vez de rodar em loop.
+ */
+.auth-showcase::after {
+  content: "";
+  position: absolute;
+  /* Estourando a caixa: as bordas desfocadas precisam nascer fora da tela, ou
+     aparece um corte reto no canto. */
+  inset: -30%;
+  pointer-events: none;
+  /* Camada mais ao fundo: a textura de pontos (::before) fica por cima, senão o
+     desfoque de 42px a engole e o painel vira uma mancha. */
+  z-index: 0;
+  background:
+    radial-gradient(38% 42% at 22% 28%, var(--color-brand) 0%, transparent 62%),
+    radial-gradient(
+      34% 38% at 78% 72%,
+      var(--color-positive) 0%,
+      transparent 60%
+    );
+  /* Mais fraca no claro: sobre o bege, qualquer cor satura rápido e o painel
+     perde a leitura de "papel". No escuro ela precisa de mais corpo para
+     aparecer — ver a regra de tema abaixo. */
+  opacity: 0.09;
+  filter: blur(42px);
+  animation: aurora-deriva 28s ease-in-out infinite alternate;
+}
+
+:root[data-theme="dark"] .auth-showcase::after {
+  opacity: 0.2;
+}
+
+/* Segunda camada, em contratempo, para o movimento não ter uma direção só. */
+.auth-showcase-copy::before {
+  content: "";
+  position: absolute;
+  inset: -40% -20%;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    30% 34% at 60% 40%,
+    var(--color-brand-strong) 0%,
+    transparent 64%
+  );
+  opacity: 0.06;
+  filter: blur(54px);
+  animation: aurora-deriva-2 34s ease-in-out infinite alternate;
+}
+
+:root[data-theme="dark"] .auth-showcase-copy::before {
+  opacity: 0.14;
+}
+
+.auth-showcase-copy {
+  position: relative;
+}
+
+@keyframes aurora-deriva {
+  from {
+    transform: translate3d(-4%, -2%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(5%, 3%, 0) scale(1.14);
+  }
+}
+
+@keyframes aurora-deriva-2 {
+  from {
+    transform: translate3d(3%, 4%, 0) scale(1.08);
+  }
+  to {
+    transform: translate3d(-5%, -3%, 0) scale(0.94);
+  }
+}
+
+/* A textura de pontos sobe para cima da aurora, senão o desfoque a engole. */
+.auth-showcase::before {
+  z-index: 1;
+}
+
+/**
+ * Brilho que atravessa a barra de progresso uma vez, logo depois que ela
+ * termina de crescer. É o detalhe que faz a barra parecer um objeto com
+ * superfície em vez de um retângulo verde.
+ */
+.auth-preview-fill {
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-preview-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    #ffffff80 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: auth-brilho 1.1s var(--ease-out) 900ms both;
+}
+
+@keyframes auth-brilho {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+/**
+ * O cartão de amostra ganha uma elevação leve ao passar o mouse. Não é
+ * interativo — é só o que separa "imagem colada na página" de "peça da
+ * interface".
+ */
+.auth-preview {
+  transition:
+    transform var(--duration-normal) var(--ease-out),
+    box-shadow var(--duration-normal) var(--ease-out);
+}
+
+.auth-preview:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* O valor que conta: dígitos tabulares são obrigatórios aqui, senão a largura
+   do número muda a cada quadro e o texto ao lado treme. */
+.auth-preview-valor {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Entrada escalonada do formulário. O atraso por campo é pequeno (50ms) de
+   propósito: o suficiente para o olho ler como sequência, não o bastante para
+   alguém esperar a tela montar antes de digitar.
+
+   O índice vem de `nth-child` em vez de uma variável no JSX: assim Login,
+   Cadastro, Esqueci a senha e Redefinir ganham o efeito sem nenhuma mudança no
+   componente, e um campo novo entra na sequência sozinho. */
+.auth-form > * {
+  animation: enter-up var(--duration-normal) var(--ease-out) both;
+}
+
+.auth-form > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.auth-form > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+.auth-form > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+.auth-form > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+.auth-form > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.auth-form > *:nth-child(6) {
+  animation-delay: 250ms;
+}
+/* A partir daqui todos entram juntos: passar de ~300ms faria o último campo
+   chegar depois de alguém já estar digitando no primeiro. */
+.auth-form > *:nth-child(n + 7) {
+  animation-delay: 300ms;
+}
+
+/**
+ * Foco com halo suave. O campo cresce um fio ao receber foco — meio pixel,
+ * imperceptível conscientemente, mas é o que dá resposta física ao clique.
+ */
+.auth-form input {
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.auth-form input:focus-visible {
+  transform: scale(1.005);
+}
+
+/* O botão afunda ao ser pressionado. */
+.auth-form .btn-primary:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+/**
+ * Enquanto entra, o botão ganha uma faixa de luz percorrendo — comunica
+ * "estou trabalhando" sem trocar o texto por um spinner, que faria o botão
+ * mudar de tamanho.
+ */
+.auth-form .btn-primary:disabled {
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-form .btn-primary:disabled::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, #ffffff2e 50%, transparent);
+  animation: auth-brilho 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-showcase::after,
+  .auth-showcase-copy::before,
+  .auth-preview-fill::after,
+  .auth-form > *,
+  .auth-form .btn-primary:disabled::after {
+    animation: none;
+  }
+
+  .auth-preview:hover,
+  .auth-form input:focus-visible,
+  .auth-form .btn-primary:active:not(:disabled) {
+    transform: none;
+  }
 }
