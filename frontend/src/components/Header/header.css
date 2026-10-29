@@ -32,4 +32,20 @@
   .header .btn {
     width: 100%;
   }
+
+  /* Quando a página tem duas ações, elas dividem uma linha em vez de empilhar
+     duas faixas de largura total — numa tela de 812px, duas faixas empurravam
+     o conteúdo para baixo sem necessidade. O `1fr 1fr` mantém os dois alvos de
+     toque largos o suficiente. */
+  .header > div:last-child:not(:first-child) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  /* Uma ação só volta a ocupar a linha inteira. */
+  .header > div:last-child:not(:first-child):has(> :only-child) {
+    grid-template-columns: 1fr;
+  }
 }

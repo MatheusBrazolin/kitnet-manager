@@ -128,3 +128,20 @@ export function ChartIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+/**
+ * Reticências horizontais, para a aba "Mais" do celular.
+ *
+ * Três pontos e não um "hambúrguer": o hambúrguer sugere o menu principal do app, e
+ * aqui é o contrário — é o que sobrou depois dos destinos principais, que já estão
+ * visíveis ao lado na própria barra.
+ */
+export function MenuIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <circle cx="5" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <circle cx="19" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
