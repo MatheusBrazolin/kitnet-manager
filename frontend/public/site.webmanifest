@@ -1,0 +1,15 @@
+{
+  "name": "KitManager",
+  "short_name": "KitManager",
+  "description": "Organize os aluguéis das suas kitnets: quanto era, quanto a imobiliária reteve e quanto sobrou pra você.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f5f0",
+  "theme_color": "#9a4b1e",
+  "lang": "pt-BR",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

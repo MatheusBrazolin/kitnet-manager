@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { PasswordField } from '../../components/PasswordField/PasswordField';
 import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import './auth.css';
+import { Logo } from '../../components/Logo/Logo';
 
 export function Login() {
   const { login, user } = useAuth();
@@ -35,7 +36,7 @@ export function Login() {
     <div className="auth-page">
       <section className="auth-showcase">
         <div className="auth-showcase-mark">
-          <span>K</span> KitManager
+          <Logo /> KitManager
         </div>
         <div className="auth-showcase-copy">
           <h1>Saiba exatamente quanto caiu na sua conta.</h1>
@@ -61,7 +62,7 @@ export function Login() {
       <section className="auth-panel">
         <form className="auth-form" onSubmit={handleSubmit}>
           <div className="auth-form-brand">
-            <span>K</span> KitManager
+            <Logo /> KitManager
           </div>
 
           <div>
