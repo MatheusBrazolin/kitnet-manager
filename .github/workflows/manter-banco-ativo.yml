@@ -1,0 +1,48 @@
+name: Manter banco ativo
+
+# O Supabase no plano gratuito pausa o projeto depois de ~7 dias sem atividade. Quando
+# isso acontece, a aplicação continua no ar e só o banco some: o login passa a dar erro
+# e nada na interface explica o motivo. Já aconteceu, e custou uma tarde de investigação
+# até chegar no painel do Supabase e ver "Project is paused".
+#
+# Este workflow bate no /api/health, que executa um `SELECT 1`. Isso conta como
+# atividade e segura a pausa.
+#
+# Segunda e quinta, não semanal: o cron do GitHub Actions é "best effort" e atrasa em
+# horário de pico, então uma execução perdida não pode chegar perto dos 7 dias. Assim o
+# intervalo máximo é de 4 dias, com folga.
+
+on:
+  schedule:
+    - cron: '0 9 * * 1,4'
+  # Para testar sem esperar o cron.
+  workflow_dispatch:
+
+# A URL fica numa variável do repositório (Settings -> Secrets and variables -> Actions
+# -> Variables) para não precisar editar o workflow se o domínio mudar. Sem ela, usa o
+# domínio atual.
+env:
+  URL: ${{ vars.APP_URL || 'https://kitnet-manager-zeta.vercel.app' }}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Acorda o banco pelo healthcheck
+        run: |
+          echo "Consultando $URL/api/health"
+
+          # --max-time cobre o cold start da função serverless, que é lento quando
+          # ninguém acessa há dias — justamente o caso aqui.
+          corpo=$(curl -s --max-time 60 "$URL/api/health" || true)
+          echo "Resposta: $corpo"
+
+          if echo "$corpo" | grep -q '"database":"up"'; then
+            echo "Banco respondeu. Nada a fazer."
+            exit 0
+          fi
+
+          # Falhar aqui é de propósito: o GitHub manda e-mail quando um job falha, e é
+          # assim que você fica sabendo ANTES de tentar usar o app e não conseguir.
+          echo "::error::O banco não respondeu. Veja se o projeto no Supabase foi pausado: https://supabase.com/dashboard"
+          exit 1
