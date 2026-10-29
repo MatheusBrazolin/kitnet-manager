@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { PasswordField } from '../../components/PasswordField/PasswordField';
 import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
@@ -13,6 +13,10 @@ export function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [params] = useSearchParams();
+  // Quem acabou de redefinir a senha chega aqui vindo do link do e-mail. Sem esta
+  // confirmação, a tela de login parece que o processo falhou e voltou do zero.
+  const senhaRedefinida = params.get('senha-redefinida') === '1';
 
   if (user) {
     return <Navigate to="/" replace />;
@@ -70,6 +74,12 @@ export function Login() {
             <p className="auth-form-subtitle">Bom te ver de novo.</p>
           </div>
 
+          {senhaRedefinida && !error && (
+            <p className="auth-sucesso" role="status">
+              Senha redefinida. Entre com a senha nova.
+            </p>
+          )}
+
           <ErrorBanner message={error} />
 
           <div className="field">
@@ -91,6 +101,10 @@ export function Login() {
             placeholder="••••••••"
             autoComplete="current-password"
           />
+
+          <p className="auth-esqueci">
+            <Link to="/esqueci-senha">Esqueci minha senha</Link>
+          </p>
 
           <button type="submit" className="btn btn-primary btn-block" disabled={isSubmitting}>
             {isSubmitting ? 'Entrando...' : 'Entrar'}

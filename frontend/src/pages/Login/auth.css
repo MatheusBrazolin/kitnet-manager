@@ -203,3 +203,50 @@
     display: flex;
   }
 }
+
+/* ---- Recuperação de senha -------------------------------------------------
+   As telas de "esqueci minha senha" e "criar senha nova" não têm a vitrine da
+   esquerda: são passagens rápidas, e um painel de marketing ao lado só atrasaria
+   quem está tentando recuperar o acesso. O formulário fica centralizado sozinho. */
+.auth-page-simples {
+  grid-template-columns: 1fr;
+  place-items: center;
+}
+
+.auth-page-simples .auth-panel {
+  width: min(100%, 420px);
+}
+
+/* Na tela simples a marca sempre aparece — não há vitrine para carregá-la. */
+.auth-page-simples .auth-form-brand {
+  display: flex;
+}
+
+.auth-esqueci {
+  margin-top: calc(-1 * var(--space-2));
+  font-size: var(--text-sm);
+  text-align: right;
+}
+
+.auth-esqueci a {
+  color: var(--color-ink-muted);
+}
+
+.auth-esqueci a:hover {
+  color: var(--color-brand);
+}
+
+.auth-sucesso {
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-positive-soft);
+  color: var(--color-positive-ink);
+  font-size: var(--text-sm);
+  border: var(--border-width) solid var(--color-border);
+}
+
+.auth-dica {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  line-height: 1.5;
+}
