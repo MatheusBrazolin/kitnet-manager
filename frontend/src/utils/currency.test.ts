@@ -50,7 +50,12 @@ describe('valores ausentes ou inválidos', () => {
     expect(formatCurrency(entrada as number)).toBe(esperado);
   });
 
+  // Sem fixar a string exata: a notação compacta do Intl varia com a versão do ICU
+  // (o mesmo zero sai como "R$ 0" aqui e "R$ 0,0" no runner do CI). O que precisa
+  // valer é a ausência de NaN, não a grafia.
   it('o formato compacto também não produz NaN', () => {
-    expect(formatCompactCurrency(undefined as unknown as number)).toBe('R$ 0');
+    const formatado = formatCompactCurrency(undefined as unknown as number);
+    expect(formatado).not.toContain('NaN');
+    expect(formatado).toMatch(/^R\$ 0/);
   });
 });
