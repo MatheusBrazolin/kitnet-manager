@@ -1,4 +1,4 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { ThrottlerException } from '@nestjs/throttler';
 import { HttpExceptionFilter } from './http-exception.filter';
@@ -27,6 +27,47 @@ describe('HttpExceptionFilter', () => {
 
   afterEach(() => {
     captureExceptionSpy.mockRestore();
+  });
+
+  /** Corpo que o filtro mandou pro response, já tipado. */
+  function corpoEnviado(): Record<string, unknown> {
+    const [primeiraChamada] = response.json.mock.calls as Array<
+      [Record<string, unknown>]
+    >;
+    return primeiraChamada[0];
+  }
+
+  // O /health responde 503 com `database` e `causa`. Antes o filtro achatava
+  // tudo em { statusCode, message, error } e o diagnóstico sumia justamente
+  // durante uma pane, que é quando ele serve pra alguma coisa.
+  it('preserva campos que o controller colocou de propósito no corpo', () => {
+    filter.catch(
+      new HttpException(
+        { status: 'error', database: 'down', causa: 'P1001' },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      ),
+      host as never,
+    );
+
+    expect(response.status).toHaveBeenCalledWith(503);
+    const corpo = corpoEnviado();
+    expect(corpo.database).toBe('down');
+    expect(corpo.causa).toBe('P1001');
+    expect(corpo.statusCode).toBe(503);
+  });
+
+  it('não deixa o corpo da exceção sobrescrever o statusCode real', () => {
+    filter.catch(
+      new HttpException(
+        { statusCode: 200, detalhe: 'x' },
+        HttpStatus.BAD_GATEWAY,
+      ),
+      host as never,
+    );
+
+    const corpo = corpoEnviado();
+    expect(corpo.statusCode).toBe(502);
+    expect(corpo.detalhe).toBe('x');
   });
 
   // Quem erra a senha cinco vezes via "ThrottlerException: Too Many Requests" na tela:
