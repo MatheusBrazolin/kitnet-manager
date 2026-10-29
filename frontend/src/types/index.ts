@@ -99,6 +99,8 @@ export type StatusPagamento = 'PENDENTE' | 'PAGO' | 'ATRASADO' | 'ANULADO';
 export type TipoPagamento = 'ALUGUEL' | 'COMPLEMENTAR';
 
 export interface PagamentoAlerta {
+  /** Quanto sobra depois da taxa — é este o valor que confirmar pelo sino registra. */
+  valorLiquido: number;
   id: number;
   valor: number;
   vencimento: string;
@@ -177,6 +179,8 @@ export interface KitnetDetail extends Kitnet {
 }
 
 export interface DashboardSummary {
+  /** Só o passo-a-passo de boas-vindas usa — sabe se já existe imóvel sem unidades. */
+  totalImoveis: number;
   totalKitnets: number;
   ocupadas: number;
   vagas: number;

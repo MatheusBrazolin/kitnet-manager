@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import { firstErrorMessage } from '../../utils/queryError';
@@ -60,7 +61,9 @@ function agruparPorImovel(pagamentos: Pagamento[]): GrupoImovel[] {
       grupo.countAtrasado += 1;
     }
     if (pagamento.status === 'PAGO') {
-      grupo.totalRecebido += pagamento.valor;
+      // Líquido, para bater com o "você recebeu" do painel. `valorLiquido` é nulo em
+      // parcelas pagas antes de existir o snapshot, e aí o bruto é o melhor dado.
+      grupo.totalRecebido += pagamento.valorLiquido ?? pagamento.valor;
     }
     if (pagamento.status === 'ANULADO') {
       grupo.countAnulado += 1;
@@ -429,7 +432,15 @@ export function Pagamentos() {
       />
 
       {!isLoadingMoradores && moradores.length === 0 && (
-        <p className="form-error">Cadastre um morador antes de lançar pagamentos.</p>
+        <div className="pre-requisito">
+          <p>
+            Os aluguéis aparecem aqui sozinhos assim que você cadastrar um morador numa
+            unidade.
+          </p>
+          <Link to="/moradores" className="btn btn-ghost btn-sm">
+            Cadastrar morador
+          </Link>
+        </div>
       )}
       <ErrorBanner message={displayedError} />
 
@@ -568,7 +579,29 @@ export function Pagamentos() {
                               ? `Recebido em ${formatDate(row.vencimento)}`
                               : formatDate(row.vencimento),
                         },
-                        { header: 'Valor', render: (row) => formatCurrency(row.valor) },
+                        {
+                          header: 'Valor',
+                          align: 'right' as const,
+                          // Parcela paga mostra o LÍQUIDO em destaque, com o bruto
+                          // embaixo. O painel diz "você recebeu R$ X" (líquido) e esta
+                          // lista dizia R$ Y (bruto): dois números diferentes para a
+                          // mesma coisa, sem nada explicando a diferença.
+                          render: (row) =>
+                            row.status === 'PAGO' && row.valorLiquido !== null ? (
+                              <span className="payment-valor">
+                                <strong className="numero">
+                                  {formatCurrency(row.valorLiquido)}
+                                </strong>
+                                {row.valorTaxa !== null && row.valorTaxa > 0 && (
+                                  <small className="payment-valor-referencia numero">
+                                    de {formatCurrency(row.valor)} − {formatCurrency(row.valorTaxa)} de taxa
+                                  </small>
+                                )}
+                              </span>
+                            ) : (
+                              <span className="numero">{formatCurrency(row.valor)}</span>
+                            ),
+                        },
                         {
                           header: 'Status',
                           render: (row) => (

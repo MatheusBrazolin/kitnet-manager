@@ -115,7 +115,16 @@ export function Imoveis() {
       if (editingImovelId !== null) {
         await api.patch(`/imoveis/${editingImovelId}`, { nome, endereco: endereco || undefined });
       } else {
-        await api.post('/imoveis', { nome, endereco: endereco || undefined });
+        const { data: criado } = await api.post<Imovel>('/imoveis', {
+          nome,
+          endereco: endereco || undefined,
+        });
+        // Abre o card já expandido: o imóvel nasce sem unidades, e o passo seguinte
+        // (cadastrar as unidades) estava escondido atrás de um clique de descoberta
+        // no card fechado.
+        if (!expandidos.has(criado.id)) {
+          toggleExpandido(criado.id);
+        }
       }
       setIsCreateOpen(false);
       invalidarDadosDoNegocio(queryClient);
@@ -223,18 +232,37 @@ export function Imoveis() {
     setLoteImovelId(imovel.id);
     setLoteQuantidade('1');
     setLotePrefixo('');
-    setLoteLinhas(null);
+    // Já abre com a primeira linha pronta: antes era preciso clicar em "Gerar campos"
+    // antes de qualquer coisa, e até lá o botão "Salvar" ficava desabilitado sem dizer
+    // por quê — quem clicava nele não via reação nenhuma e concluía que travou.
+    setLoteLinhas(linhasPara(imovel, '1', ''));
     setLoteValorPadrao('');
     setLoteError(null);
   }
 
-  function gerarLinhas(imovel: Imovel) {
-    const quantidade = Math.max(1, Math.min(50, Number(loteQuantidade) || 1));
+  /**
+   * Numeração sugerida para as novas unidades, continuando de onde o imóvel parou.
+   * Ex.: um imóvel com 3 unidades gera "04", "05"...
+   */
+  function linhasPara(imovel: Imovel, quantidadeBruta: string, prefixo: string) {
+    const quantidade = Math.max(1, Math.min(50, Number(quantidadeBruta) || 1));
     const existentes = imovel.kitnets?.length ?? 0;
-    setLoteLinhas(
-      Array.from({ length: quantidade }, (_, index) => ({
-        numero: `${lotePrefixo}${String(existentes + index + 1).padStart(2, '0')}`,
-        valor: '',
+    return Array.from({ length: quantidade }, (_, index) => ({
+      numero: `${prefixo}${String(existentes + index + 1).padStart(2, '0')}`,
+      valor: '',
+    }));
+  }
+
+  /**
+   * Regenera as linhas quando a quantidade ou o prefixo mudam, preservando os valores
+   * já digitados pela posição — mudar de 3 para 4 unidades não pode apagar os três
+   * aluguéis que a pessoa acabou de preencher.
+   */
+  function ajustarLinhas(imovel: Imovel, quantidadeBruta: string, prefixo: string) {
+    setLoteLinhas((atuais) =>
+      linhasPara(imovel, quantidadeBruta, prefixo).map((linha, index) => ({
+        ...linha,
+        valor: atuais?.[index]?.valor ?? '',
       })),
     );
     setLoteError(null);
@@ -529,7 +557,10 @@ export function Imoveis() {
                   min={1}
                   max={50}
                   value={loteQuantidade}
-                  onChange={(event) => setLoteQuantidade(event.target.value)}
+                  onChange={(event) => {
+                    setLoteQuantidade(event.target.value);
+                    ajustarLinhas(loteImovel, event.target.value, lotePrefixo);
+                  }}
                 />
               </div>
               <div className="field">
@@ -538,12 +569,12 @@ export function Imoveis() {
                   id="lotePrefixo"
                   placeholder="Ex.: Quarto "
                   value={lotePrefixo}
-                  onChange={(event) => setLotePrefixo(event.target.value)}
+                  onChange={(event) => {
+                    setLotePrefixo(event.target.value);
+                    ajustarLinhas(loteImovel, loteQuantidade, event.target.value);
+                  }}
                 />
               </div>
-              <button type="button" className="btn btn-ghost" onClick={() => gerarLinhas(loteImovel)}>
-                Gerar campos
-              </button>
             </div>
 
             {loteLinhas && (

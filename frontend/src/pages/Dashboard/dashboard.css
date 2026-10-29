@@ -111,3 +111,156 @@
     width: 100%;
   }
 }
+
+/* ---- Boas-vindas ------------------------------------------------------
+   Primeira tela de quem acabou de criar a conta, e por isso a que mais
+   precisa funcionar. Os estilos foram perdidos quando este arquivo foi
+   reescrito no redesenho: as 11 classes abaixo ficaram sem nenhuma regra,
+   o que empilhava os três passos como uma lista numerada crua com os
+   ícones em tamanho natural ocupando a tela inteira. */
+.dashboard-onboarding {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.dashboard-onboarding-kicker {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.dashboard-onboarding-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.dashboard-onboarding-subtitle {
+  color: var(--color-ink-muted);
+  max-width: 62ch;
+}
+
+.dashboard-onboarding-steps {
+  list-style: none;
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.dashboard-onboarding-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .dashboard-onboarding-step:hover {
+    border-color: var(--color-border-strong);
+    box-shadow: var(--shadow-sm);
+  }
+}
+
+.dashboard-onboarding-step-number {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-brand-soft);
+  color: var(--color-brand-strong);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+/* Sem largura explícita o SVG assume o tamanho natural do viewBox e estoura
+   o cartão — foi o "ícone gigante" que apareceu na tela de boas-vindas. */
+.dashboard-onboarding-step-icon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--color-ink-faint);
+}
+
+.dashboard-onboarding-step-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.dashboard-onboarding-step-body h3 {
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.dashboard-onboarding-step-body p {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  margin-top: 0.1rem;
+}
+
+.dashboard-onboarding-step-cta {
+  flex-shrink: 0;
+}
+
+.dashboard-onboarding-note {
+  margin-top: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-positive-soft);
+  color: var(--color-positive-ink);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 640px) {
+  .dashboard-onboarding {
+    padding: var(--space-5) var(--space-4);
+  }
+
+  /* Em pé, com o polegar: o passo vira bloco e o botão ocupa a largura. */
+  .dashboard-onboarding-step {
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .dashboard-onboarding-step-body {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .dashboard-onboarding-step-cta {
+    flex: 1 1 100%;
+    order: 4;
+  }
+}
+
+/* Passo já concluído: marcado, mas sem sumir — quem está configurando precisa ver
+   o que já fez e o que falta. */
+.dashboard-onboarding-step-ok {
+  opacity: 0.7;
+}
+
+.dashboard-onboarding-step-ok .dashboard-onboarding-step-number {
+  background: var(--color-positive-soft);
+  color: var(--color-positive-ink);
+}
+
+.dashboard-onboarding-step-feito {
+  flex-shrink: 0;
+  font-size: var(--text-sm);
+  color: var(--color-positive);
+  font-weight: 500;
+}

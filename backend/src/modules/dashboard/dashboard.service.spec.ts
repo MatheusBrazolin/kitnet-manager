@@ -4,6 +4,7 @@ import { PagamentosService } from '../pagamentos/pagamentos.service';
 
 type PrismaMock = {
   kitnet: { findMany: jest.Mock };
+  imovel: { count: jest.Mock };
   pagamento: { aggregate: jest.Mock; findMany: jest.Mock };
   gasto: { aggregate: jest.Mock; findMany: jest.Mock };
   // Histórico e tabela por imobiliária são agregados no banco (date_trunc/GROUP BY),
@@ -22,6 +23,7 @@ describe('DashboardService', () => {
 
     prisma = {
       kitnet: { findMany: jest.fn().mockResolvedValue([]) },
+      imovel: { count: jest.fn().mockResolvedValue(0) },
       pagamento: {
         aggregate: jest.fn().mockResolvedValue({
           _sum: { valor: 0, valorTaxa: 0, valorLiquido: 0 },

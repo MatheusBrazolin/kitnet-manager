@@ -108,7 +108,16 @@ export function NotificationBell() {
                     <span
                       className={`notification-bell-item-tag${alerta.venceHoje ? '' : ' notification-bell-item-tag-danger'}`}
                     >
-                      {alertaLabel(alerta)} · {formatCurrency(alerta.valor)}
+                      {alertaLabel(alerta)}
+                    </span>
+                    <span className="notification-bell-item-valor">
+                      <strong className="numero">{formatCurrency(alerta.valorLiquido)}</strong>
+                      {alerta.valorLiquido !== alerta.valor && (
+                        <small className="numero">
+                          {' '}
+                          de {formatCurrency(alerta.valor)}
+                        </small>
+                      )}
                     </span>
                   </div>
                   {!isViewer && (
