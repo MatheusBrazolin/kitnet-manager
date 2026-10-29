@@ -16,6 +16,7 @@ import { PagamentosModule } from './modules/pagamentos/pagamentos.module';
 import { GastosModule } from './modules/gastos/gastos.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
 import { MembrosModule } from './modules/membros/membros.module';
+import { PerfilModule } from './modules/perfil/perfil.module';
 import { HealthModule } from './modules/health/health.module';
 
 @Module({
@@ -46,6 +47,7 @@ import { HealthModule } from './modules/health/health.module';
     GastosModule,
     DashboardModule,
     MembrosModule,
+    PerfilModule,
     HealthModule,
   ],
   providers: [

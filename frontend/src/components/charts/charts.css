@@ -1,37 +1,82 @@
+.bar-chart {
+  /* Âncora da tabela oculta, que é posicionada fora do fluxo. */
+  position: relative;
+  /* `min-width: 0` em toda a cadeia até o container de rolagem: por padrão um item de
+     flex/grid tem `min-width: auto` e se recusa a encolher abaixo do conteúdo. Sem
+     isto o container de 592px simplesmente estourava o card de 375px em vez de rolar,
+     e o gráfico abria sempre no mês mais antigo porque não havia o que rolar. */
+  min-width: 0;
+}
+
+/* O SVG é desenhado em pixels reais e tem largura mínima por mês (ver BarChart.tsx);
+   quando não cabe, é este container que rola — e não a página inteira. */
+.bar-chart-scroll {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* A barra de rolagem some no macOS e no celular: sem esta dica de borda, nada indica
+     que há mais meses à esquerda. */
+  mask-image: linear-gradient(90deg, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+}
+
 .bar-chart-svg {
-  width: 100%;
-  height: auto;
-  overflow: visible;
+  display: block;
 }
 
 .bar-chart-axis {
-  stroke: var(--color-ink);
-  stroke-width: 2;
+  stroke: var(--color-border-strong);
+  stroke-width: 1;
 }
 
 .bar-chart-bar {
-  stroke: var(--color-ink);
-  stroke-width: 2;
-  transition: opacity var(--duration-normal) var(--ease-out-expo);
+  rx: 2;
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
-.bar-chart-bar:hover {
-  opacity: 0.8;
+/* Os meses fora de foco recuam em vez de sumir: o formato da série continua legível,
+   mas o mês cujos valores estão na legenda fica evidente. */
+.bar-chart-group:not(.is-active) .bar-chart-bar {
+  opacity: 0.55;
+}
+
+.bar-chart-hit {
+  fill: transparent;
+  cursor: pointer;
+}
+
+.bar-chart-group:hover .bar-chart-bar,
+.bar-chart-group.is-active .bar-chart-bar {
+  opacity: 1;
+}
+
+.bar-chart-empty {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  padding: var(--space-4) 0;
 }
 
 .bar-chart-label {
   font-size: 11px;
-  font-weight: 700;
+  font-variant-numeric: tabular-nums;
   fill: var(--color-ink-muted);
   text-anchor: middle;
-  text-transform: uppercase;
 }
 
 .bar-chart-legend {
   display: flex;
-  gap: var(--space-4);
+  gap: var(--space-2) var(--space-4);
   margin-top: var(--space-3);
   flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.bar-chart-legend-month {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  flex-basis: 100%;
 }
 
 .bar-chart-legend-item {
@@ -39,18 +84,58 @@
   align-items: center;
   gap: var(--space-2);
   font-size: var(--text-sm);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  font-weight: 450;
   color: var(--color-ink-muted);
+  /* Sem isto, "Ficou com a imobiliária R$ 670" era cortado no meio num celular
+     de 375px — e o valor, que é o ponto da legenda, ficava de fora. */
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  /* Cada série em sua própria linha: duas lado a lado não cabem com o valor junto. */
+  .bar-chart-legend-item {
+    flex-basis: 100%;
+  }
+}
+
+.bar-chart-legend-item strong {
+  color: var(--color-ink);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
 }
 
 .bar-chart-legend-swatch {
   width: 12px;
   height: 12px;
-  border: var(--border-width) solid var(--color-ink);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   display: inline-block;
+  flex-shrink: 0;
+}
+
+/* Tabela com os mesmos dados do gráfico, fora da tela mas dentro da árvore de
+   acessibilidade (`display: none` a esconderia também do leitor de tela). */
+.bar-chart-table {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* O reset global já zera as transições; isto cobre o caso de a rolagem do gráfico ser
+   herdada como `smooth` de algum ancestral — rolar sozinho é movimento também. */
+@media (prefers-reduced-motion: reduce) {
+  .bar-chart-scroll {
+    scroll-behavior: auto;
+  }
+
+  .bar-chart-bar {
+    transition: none;
+  }
 }
 
 .donut-chart {
@@ -67,7 +152,7 @@
 }
 
 .donut-chart-slice {
-  transition: opacity var(--duration-normal) var(--ease-out-expo);
+  transition: opacity var(--duration-normal) var(--ease-out);
 }
 
 .donut-chart-slice:hover {
@@ -76,8 +161,8 @@
 
 .donut-chart-total-label {
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
+  font-weight: 450;
   letter-spacing: 0.06em;
   fill: var(--color-ink-muted);
 }
@@ -85,7 +170,8 @@
 .donut-chart-total-value {
   font-family: var(--font-display);
   font-size: 14px;
-  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
   fill: var(--color-ink);
 }
 
@@ -113,14 +199,13 @@
 .donut-chart-legend-item strong {
   margin-left: auto;
   color: var(--color-ink);
-  font-weight: 700;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
 
 .donut-chart-legend-swatch {
   width: 10px;
   height: 10px;
-  border: var(--border-width) solid var(--color-ink);
   border-radius: 50%;
   display: inline-block;
   flex-shrink: 0;

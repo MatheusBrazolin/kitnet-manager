@@ -13,6 +13,12 @@ const Moradores = lazy(() => import('./pages/Moradores/Moradores').then((m) => (
 const Pagamentos = lazy(() => import('./pages/Pagamentos/Pagamentos').then((m) => ({ default: m.Pagamentos })));
 const Gastos = lazy(() => import('./pages/Gastos/Gastos').then((m) => ({ default: m.Gastos })));
 const Equipe = lazy(() => import('./pages/Equipe/Equipe').then((m) => ({ default: m.Equipe })));
+const NaoEncontrado = lazy(() =>
+  import('./pages/NaoEncontrado/NaoEncontrado').then((m) => ({ default: m.NaoEncontrado })),
+);
+const Configuracoes = lazy(() =>
+  import('./pages/Configuracoes/Configuracoes').then((m) => ({ default: m.Configuracoes })),
+);
 const Imobiliarias = lazy(() =>
   import('./pages/Imobiliarias/Imobiliarias').then((m) => ({ default: m.Imobiliarias })),
 );
@@ -85,10 +91,28 @@ function App() {
           }
         />
         <Route
+          path="/configuracoes"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <Configuracoes />
+            </Suspense>
+          }
+        />
+        <Route
           path="/equipe"
           element={
             <Suspense fallback={<RouteFallback />}>
               <Equipe />
+            </Suspense>
+          }
+        />
+        {/* Dentro do Layout de propósito: quem erra a URL continua logado e com a
+            navegação à mão, em vez de cair numa página solta. */}
+        <Route
+          path="*"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <NaoEncontrado />
             </Suspense>
           }
         />

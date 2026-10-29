@@ -19,6 +19,7 @@ import { formatUnidadeLabel } from '../../utils/unidade';
 import { StatusBadge } from '../../components/StatusBadge';
 import './moradores.css';
 import { hojeIsoLocal } from '../../utils/dates';
+import { useToast } from '../../components/Toast/ToastProvider';
 
 type MoradorRow = Morador & { kitnet: Kitnet };
 
@@ -26,6 +27,7 @@ const PAGE_SIZE = 20;
 
 export function Moradores() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const confirm = useConfirm();
   const { user } = useAuth();
   const isViewer = user?.papel === 'VISUALIZADOR';
@@ -42,7 +44,7 @@ export function Moradores() {
         .then((response) => response.data),
     placeholderData: (previous) => previous,
   });
-  const moradores = moradoresPage?.data ?? [];
+  const moradoresDaPagina = moradoresPage?.data ?? [];
 
   // Se a página atual ficou "fora do range" (ex.: apagou o último morador da última
   // página), volta pra última página válida em vez de mostrar uma lista vazia confusa.
@@ -68,6 +70,19 @@ export function Moradores() {
   const [dataEntrada, setDataEntrada] = useState(hojeIsoLocal());
   const [diaVencimento, setDiaVencimento] = useState('10');
   const [selectedMoradorId, setSelectedMoradorId] = useState<number | null>(null);
+  const [busca, setBusca] = useState('');
+
+  // Filtro local sobre a página carregada. Não existia busca nenhuma, e com 20 por
+  // página achar um morador entre 40 obrigava a paginar até dar sorte.
+  const buscaNormalizada = busca.trim().toLowerCase();
+  const moradores = buscaNormalizada
+    ? moradoresDaPagina.filter(
+        (morador) =>
+          morador.nome.toLowerCase().includes(buscaNormalizada) ||
+          morador.telefone.includes(buscaNormalizada) ||
+          morador.kitnet.numero.toLowerCase().includes(buscaNormalizada),
+      )
+    : moradoresDaPagina;
   const [error, setError] = useState<string | null>(null);
   const [listError, setListError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -128,6 +143,7 @@ export function Moradores() {
       }
       setIsModalOpen(false);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso(editingId !== null ? 'Morador atualizado' : 'Morador cadastrado');
     } catch (err) {
       setError(getApiErrorMessage(err, `Não foi possível ${editingId !== null ? 'atualizar' : 'cadastrar'} o morador.`));
     } finally {
@@ -154,6 +170,7 @@ export function Moradores() {
     try {
       await api.patch(`/moradores/${morador.id}/registrar-saida`, {});
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso(`Saída de ${morador.nome} registrada`);
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível registrar a saída.'));
     }
@@ -174,6 +191,7 @@ export function Moradores() {
     try {
       await api.delete(`/moradores/${id}`);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Morador removido');
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o morador.'));
     }
@@ -198,14 +216,40 @@ export function Moradores() {
       )}
       <ErrorBanner message={displayedError} />
 
-      <Card>
+      <Card
+        action={
+          moradoresDaPagina.length > 0 ? (
+            <input
+              type="search"
+              className="lista-busca"
+              placeholder="Buscar por nome, telefone ou unidade"
+              value={busca}
+              onChange={(event) => setBusca(event.target.value)}
+              aria-label="Buscar morador"
+            />
+          ) : undefined
+        }
+      >
         {isLoading ? (
           <TableSkeleton />
+        ) : moradoresDaPagina.length === 0 ? (
+          <div className="estado-vazio">
+            <h3>Nenhum morador cadastrado</h3>
+            <p>
+              Ao cadastrar um morador, o KitManager já cria as parcelas do aluguel dele
+              mês a mês — inclusive as que ficaram para trás.
+            </p>
+            {!isViewer && kitnets.length > 0 && (
+              <button type="button" className="btn btn-primary" onClick={openModal}>
+                + Novo morador
+              </button>
+            )}
+          </div>
         ) : (
         <Table
           rows={moradores}
           rowKey={(row) => row.id}
-          emptyMessage="Nenhum morador cadastrado ainda."
+          emptyMessage={`Ninguém encontrado para “${busca}”.`}
           onRowClick={(row) => setSelectedMoradorId(row.id)}
           columns={[
             {
@@ -219,7 +263,20 @@ export function Moradores() {
                   row.nome
                 ),
             },
-            { header: 'Telefone', render: (row) => row.telefone },
+            {
+              header: 'Telefone',
+              // Link `tel:` porque cobrar aluguel por telefone/WhatsApp é o fluxo real
+              // desse público — antes era texto puro, que obrigava a copiar à mão.
+              render: (row) => (
+                <a
+                  className="lista-telefone numero"
+                  href={`tel:${row.telefone.replace(/\D/g, '')}`}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  {row.telefone}
+                </a>
+              ),
+            },
             {
               header: 'Unidade',
               render: (row) => formatUnidadeLabel(row.kitnet),

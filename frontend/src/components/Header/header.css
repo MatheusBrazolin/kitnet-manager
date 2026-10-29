@@ -3,21 +3,22 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--space-4);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
   flex-wrap: wrap;
 }
 
+/* Era `--text-display` em CAIXA ALTA — um título de 48px gritando "MORADORES"
+   acima de uma lista de três pessoas. O tamanho agora é proporcional ao que a
+   tela realmente tem. */
 .header-title {
-  font-size: var(--text-display);
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
+  font-size: var(--text-2xl);
+  font-weight: 600;
+  letter-spacing: -0.025em;
 }
 
 .header-subtitle {
   color: var(--color-ink-muted);
   margin-top: var(--space-1);
-  font-weight: 500;
 }
 
 @media (max-width: 640px) {

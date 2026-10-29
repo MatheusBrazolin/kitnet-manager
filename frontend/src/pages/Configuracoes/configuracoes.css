@@ -1,0 +1,129 @@
+.configuracoes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-bottom: var(--space-8);
+  /* Formulários de conta não ganham nada em ficar largos — uma linha de 1200px
+     de largura para o campo "Nome" é mais difícil de ler, não mais fácil. */
+  max-width: 680px;
+}
+
+.configuracoes-acoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+.configuracoes-acoes-sair {
+  margin-top: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.configuracoes-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.configuracoes-info > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.configuracoes-info dt {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.configuracoes-info dd {
+  margin: 0;
+  font-weight: 500;
+}
+
+/* ---- Seletor de tema -------------------------------------------------
+   Cada opção mostra uma amostra das cores reais em vez de só o nome: é mais
+   rápido reconhecer a aparência do que ler "claro/escuro/automático". */
+.tema-opcoes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.tema-opcao {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-3);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: left;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.tema-opcao:hover {
+  border-color: var(--color-ink-faint);
+}
+
+.tema-opcao:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.tema-opcao-ativa,
+.tema-opcao-ativa:hover {
+  border-color: var(--color-brand);
+  box-shadow: var(--shadow-focus);
+}
+
+.tema-amostra {
+  width: 100%;
+  height: 40px;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--color-border-strong);
+  margin-bottom: var(--space-1);
+}
+
+/* Valores fixos de propósito: a amostra precisa mostrar como CADA tema é, não
+   como o tema atual está. */
+.tema-amostra-claro {
+  background: linear-gradient(135deg, #f7f5f0 0 50%, #fffefb 50% 100%);
+}
+
+.tema-amostra-escuro {
+  background: linear-gradient(135deg, #111317 0 50%, #181b20 50% 100%);
+}
+
+.tema-amostra-sistema {
+  background: linear-gradient(135deg, #f7f5f0 0 50%, #111317 50% 100%);
+}
+
+.tema-opcao-rotulo {
+  font-weight: 500;
+}
+
+.tema-opcao-descricao {
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+@media (max-width: 640px) {
+  .tema-opcoes {
+    grid-template-columns: 1fr;
+  }
+
+  .tema-amostra {
+    height: 32px;
+  }
+
+  .configuracoes-acoes .btn {
+    width: 100%;
+  }
+}

@@ -18,11 +18,13 @@ import { formatCurrency } from '../../utils/currency';
 import { formatDate, hojeIsoLocal } from '../../utils/dates';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
 import { formatUnidadeLabel } from '../../utils/unidade';
+import { useToast } from '../../components/Toast/ToastProvider';
 
 const PAGE_SIZE = 20;
 
 export function Gastos() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const confirm = useConfirm();
   const { user } = useAuth();
   const isViewer = user?.papel === 'VISUALIZADOR';
@@ -40,6 +42,9 @@ export function Gastos() {
     placeholderData: (previous) => previous,
   });
   const gastos = gastosPage?.data ?? [];
+  // "Quanto gastei?" é a pergunta da tela, e ela não respondia: era uma lista pura,
+  // sem nenhum total. Soma o que está visível nesta página.
+  const totalDaPagina = gastos.reduce((total, gasto) => total + gasto.valor, 0);
 
   useEffect(() => {
     if (gastosPage && page > gastosPage.totalPages) {
@@ -108,6 +113,7 @@ export function Gastos() {
       }
       setIsModalOpen(false);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso(editingId !== null ? 'Gasto atualizado' : 'Gasto lançado');
     } catch (err) {
       setError(getApiErrorMessage(err, `Não foi possível ${editingId !== null ? 'atualizar' : 'lançar'} o gasto.`));
     } finally {
@@ -129,6 +135,7 @@ export function Gastos() {
     try {
       await api.delete(`/gastos/${id}`);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Gasto removido');
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o gasto.'));
     }
@@ -153,22 +160,53 @@ export function Gastos() {
       )}
       <ErrorBanner message={displayedError} />
 
-      <Card>
+      <Card
+        action={
+          gastos.length > 0 ? (
+            <div className="lista-total">
+              <span className="lista-total-label">
+                {gastosPage && gastosPage.totalPages > 1 ? 'Total desta página' : 'Total'}
+              </span>
+              <strong className="lista-total-valor numero">
+                {formatCurrency(totalDaPagina)}
+              </strong>
+            </div>
+          ) : undefined
+        }
+      >
         {isLoading ? (
           <TableSkeleton />
+        ) : gastos.length === 0 ? (
+          <div className="estado-vazio">
+            <h3>Nenhum gasto lançado</h3>
+            <p>
+              Registre reparos, manutenção e contas de cada unidade. Eles entram no
+              cálculo do que sobrou pra você no mês.
+            </p>
+            {!isViewer && kitnets.length > 0 && (
+              <button type="button" className="btn btn-primary" onClick={openModal}>
+                + Novo gasto
+              </button>
+            )}
+          </div>
         ) : (
         <Table
           rows={gastos}
           rowKey={(row) => row.id}
-          emptyMessage="Nenhum gasto lançado ainda."
           columns={[
             { header: 'Descrição', render: (row) => row.descricao },
             {
               header: 'Unidade',
               render: (row) => formatUnidadeLabel(row.kitnet),
             },
-            { header: 'Data', render: (row) => formatDate(row.data) },
-            { header: 'Valor', align: 'right', render: (row) => formatCurrency(row.valor) },
+            { header: 'Data', render: (row) => <span className="numero">{formatDate(row.data)}</span> },
+            {
+              header: 'Valor',
+              align: 'right',
+              render: (row) => (
+                <span className="numero gasto-valor">− {formatCurrency(row.valor)}</span>
+              ),
+            },
             ...(isViewer
               ? []
               : [

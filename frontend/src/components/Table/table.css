@@ -21,21 +21,19 @@
 }
 
 .table th {
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-ink);
-  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+  font-weight: 500;
+  text-align: left;
   padding: 0 var(--space-3) var(--space-3);
-  border-bottom: var(--border-width) solid var(--color-ink);
+  border-bottom: var(--border-width) solid var(--color-border-strong);
   white-space: nowrap;
 }
 
 .table td {
   padding: var(--space-3);
-  border-bottom: var(--border-width) solid var(--color-border-soft);
-  font-size: var(--text-sm);
-  font-weight: 500;
+  border-bottom: var(--border-width) solid var(--color-border);
+  font-size: var(--text-base);
   vertical-align: middle;
 }
 
@@ -47,7 +45,7 @@
    o elemento "levantado" sem motivo até o próximo toque em outro lugar. */
 @media (hover: hover) and (pointer: fine) {
   .table tbody tr:hover {
-    background: var(--color-surface-sunken);
+    background: var(--color-surface-hover);
   }
 }
 
@@ -56,15 +54,14 @@
 }
 
 .table-row-clickable:focus-visible {
-  outline: var(--border-width) solid var(--color-ink);
+  outline: 2px solid var(--color-border-focus);
   outline-offset: -2px;
 }
 
 .table-empty {
   color: var(--color-ink-muted);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  padding: var(--space-5) 0;
+  font-size: var(--text-base);
+  padding: var(--space-6) var(--space-4);
   text-align: center;
 }
 
@@ -93,7 +90,7 @@
 
 .table-card {
   background: var(--color-surface);
-  border: var(--border-width) solid var(--color-border-soft);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-4);
   display: flex;
@@ -109,18 +106,18 @@
    o elemento "levantado" sem motivo até o próximo toque em outro lugar. */
 @media (hover: hover) and (pointer: fine) {
   .table-card-clickable:hover {
-    background: var(--color-surface-sunken);
+    background: var(--color-surface-hover);
   }
 }
 
 .table-card-clickable:focus-visible {
-  outline: var(--border-width) solid var(--color-ink);
+  outline: 2px solid var(--color-border-focus);
   outline-offset: -2px;
 }
 
 .table-card-title {
-  font-size: var(--text-base);
-  font-weight: 700;
+  font-size: var(--text-md);
+  font-weight: 600;
 }
 
 .table-card-fields {
@@ -138,11 +135,9 @@
 }
 
 .table-card-field dt {
-  font-size: var(--text-xs);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  font-size: var(--text-sm);
   color: var(--color-ink-muted);
-  font-weight: 700;
+  font-weight: 400;
   /* Era flex-shrink: 0. Num card de 320px, "E-MAIL" fixo + um e-mail de 30+ caracteres
      sem espaços estourava o cartão e gerava scroll horizontal na página. */
   flex: 0 1 auto;
@@ -152,11 +147,9 @@
 .table-card-field dd {
   /* E-mails e nomes longos sem espaço precisam poder quebrar, senão vazam do cartão. */
   overflow-wrap: anywhere;
-  min-width: 0;
   margin: 0;
   min-width: 0;
-  font-size: var(--text-sm);
-  font-weight: 500;
+  font-size: var(--text-base);
   text-align: right;
   /* alguns valores (ex.: status de pagamento) são um <div> flex por conta
      própria, com conteúdo alinhado à esquerda por padrão — flex+flex-end
@@ -171,6 +164,6 @@
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: var(--space-2);
-  padding-top: var(--space-2);
-  border-top: var(--border-width) solid var(--color-border-soft);
+  padding-top: var(--space-3);
+  border-top: var(--border-width) solid var(--color-border);
 }

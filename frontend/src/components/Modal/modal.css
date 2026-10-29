@@ -10,13 +10,13 @@
      botão ×) ficava inalcançável. */
   overflow-y: auto;
   z-index: var(--z-modal);
-  animation: modal-fade var(--duration-normal) var(--ease-out-expo);
+  animation: modal-fade var(--duration-normal) var(--ease-out);
 }
 
 .modal {
   background: var(--color-surface);
-  border: var(--border-width-lg) solid var(--color-ink);
-  border-radius: var(--radius-md);
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
   width: 420px;
   /* 100% do overlay, não 100vw: no desktop com barra de rolagem clássica, 100vw inclui a
@@ -27,7 +27,7 @@
   max-height: calc(100dvh - 2 * var(--space-4));
   display: flex;
   flex-direction: column;
-  animation: modal-rise var(--duration-normal) var(--ease-out-expo);
+  animation: modal-rise var(--duration-normal) var(--ease-out);
 }
 
 .modal-wide {
@@ -45,8 +45,7 @@
 
 .modal-header h2 {
   font-size: var(--text-lg);
-  font-weight: 700;
-  text-transform: uppercase;
+  font-weight: 600;
   /* Títulos dinâmicos longos ("Adicionar unidades · <nome do imóvel>") esmagavam o
      botão × para ~12px sem estas duas regras. */
   min-width: 0;
@@ -55,7 +54,7 @@
 
 .modal-close {
   background: var(--color-surface);
-  border: var(--border-width) solid var(--color-ink);
+  border: var(--border-width) solid transparent;
   border-radius: var(--radius-sm);
   width: 28px;
   height: 28px;
@@ -64,13 +63,14 @@
   place-items: center;
   font-size: var(--text-lg);
   line-height: 1;
-  font-weight: 700;
-  color: var(--color-ink);
+  font-weight: 400;
+  color: var(--color-ink-muted);
+  transition: background var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
 
 .modal-close:hover {
-  background: var(--color-danger);
-  color: var(--color-danger-ink);
+  background: var(--color-surface-hover);
+  color: var(--color-ink);
 }
 
 .modal-body {

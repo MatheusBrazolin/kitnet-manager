@@ -24,7 +24,7 @@
 .layout-membro-banner {
   background: var(--color-warning-soft);
   color: var(--color-warning-ink);
-  border: var(--border-width) solid var(--color-ink);
+  border: var(--border-width) solid var(--color-border);
   border-radius: var(--radius-sm);
   padding: var(--space-3) var(--space-4);
   font-size: var(--text-sm);
@@ -43,16 +43,14 @@
   justify-content: center;
   gap: var(--space-3);
   color: var(--color-ink-muted);
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  font-weight: 500;
 }
 
 .layout-loading-spinner {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  border: var(--border-width-lg) solid var(--color-border-soft);
+  border: var(--border-width) solid var(--color-border);
   border-top-color: var(--color-brand);
   animation: spin 700ms linear infinite;
 }

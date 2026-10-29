@@ -21,9 +21,11 @@ import { formatCurrency } from '../../utils/currency';
 import { calcularRepasseDaUnidade, formatTaxaLabel } from '../../utils/repasse';
 import './imoveis.css';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
+import { useToast } from '../../components/Toast/ToastProvider';
 
 export function Imoveis() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const confirm = useConfirm();
   const { user } = useAuth();
   const isViewer = user?.papel === 'VISUALIZADOR';
@@ -117,6 +119,7 @@ export function Imoveis() {
       }
       setIsCreateOpen(false);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso(editingImovelId !== null ? 'Imóvel atualizado' : 'Imóvel cadastrado');
     } catch (err) {
       setCreateError(getApiErrorMessage(err, `Não foi possível ${editingImovelId !== null ? 'atualizar' : 'criar'} o imóvel.`));
     } finally {
@@ -156,6 +159,7 @@ export function Imoveis() {
       });
       setEditingKitnet(null);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Unidade atualizada');
     } catch (err) {
       setEditKitnetError(getApiErrorMessage(err, 'Não foi possível atualizar a unidade.'));
     } finally {
@@ -189,6 +193,7 @@ export function Imoveis() {
     try {
       await api.delete(`/imoveis/${id}`);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Imóvel removido');
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o imóvel.'));
     }
@@ -208,6 +213,7 @@ export function Imoveis() {
     try {
       await api.delete(`/kitnets/${id}`);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Unidade removida');
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover a unidade.'));
     }
@@ -262,6 +268,7 @@ export function Imoveis() {
       await api.post(`/imoveis/${loteImovelId}/unidades-lote`, { unidades });
       setLoteImovelId(null);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso(`${unidades.length} unidade${unidades.length === 1 ? '' : 's'} cadastrada${unidades.length === 1 ? '' : 's'}`);
     } catch (err) {
       setLoteError(getApiErrorMessage(err, 'Não foi possível criar as unidades.'));
     } finally {
@@ -293,7 +300,18 @@ export function Imoveis() {
         </Card>
       ) : imoveis.length === 0 ? (
         <Card>
-          <p className="table-empty">Nenhum imóvel cadastrado ainda. Crie o primeiro para começar a organizar suas unidades.</p>
+          <div className="estado-vazio">
+            <h3>Comece cadastrando um imóvel</h3>
+            <p>
+              Um imóvel é o prédio ou a casa; dentro dele você cadastra as unidades que
+              aluga. Um sobrado com três kitnets é um imóvel com três unidades.
+            </p>
+            {!isViewer && (
+              <button type="button" className="btn btn-primary" onClick={openCreateModal}>
+                + Novo imóvel
+              </button>
+            )}
+          </div>
         </Card>
       ) : (
         <div className="imoveis-list">
@@ -304,6 +322,9 @@ export function Imoveis() {
             const unidades = imovel.kitnets ?? [];
             const totalValor = unidades.reduce((total, kitnet) => total + kitnet.valor, 0);
             const totalMoradores = unidades.reduce((total, kitnet) => total + kitnet.moradores.length, 0);
+            // "Quais estão vagas?" é a primeira pergunta de quem abre esta tela, e o
+            // resumo só mostrava totais — era preciso expandir cada card para descobrir.
+            const vagas = unidades.filter((kitnet) => kitnet.status === 'vaga').length;
 
             return (
               <ExpandableGroupCard
@@ -317,13 +338,36 @@ export function Imoveis() {
                     <span className="imovel-card-stat">
                       {unidades.length} unidade{unidades.length === 1 ? '' : 's'}
                     </span>
-                    <span className="imovel-card-stat">
-                      {totalMoradores} morador{totalMoradores === 1 ? '' : 'es'}
+                    {vagas > 0 ? (
+                      <span className="imovel-card-stat imovel-card-stat-vaga">
+                        {vagas} vaga{vagas === 1 ? '' : 's'}
+                      </span>
+                    ) : (
+                      <span className="imovel-card-stat">
+                        {totalMoradores} morador{totalMoradores === 1 ? '' : 'es'}
+                      </span>
+                    )}
+                    <span className="imovel-card-stat imovel-card-stat-valor numero">
+                      {formatCurrency(totalValor)}
                     </span>
-                    <span className="imovel-card-stat imovel-card-stat-valor">{formatCurrency(totalValor)}</span>
                   </>
                 }
               >
+                {!isViewer && (
+                  <div className="imovel-card-acoes">
+                    {/* Fora do menu: adicionar unidade é a ação fundadora do produto e
+                        estava a três cliques de distância, escondida atrás de um ícone
+                        de lápis sem rótulo. */}
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={() => openLoteModal(imovel)}
+                    >
+                      + Adicionar unidades
+                    </button>
+                  </div>
+                )}
+
                 {!isViewer && (
                   <div className="imovel-card-edit" ref={menuImovelId === imovel.id ? menuRef : undefined}>
                     <button
@@ -352,16 +396,6 @@ export function Imoveis() {
                         <button
                           type="button"
                           role="menuitem"
-                          onClick={() => {
-                            setMenuImovelId(null);
-                            openLoteModal(imovel);
-                          }}
-                        >
-                          + Adicionar unidades
-                        </button>
-                        <button
-                          type="button"
-                          role="menuitem"
                           className="imovel-card-edit-menu-danger"
                           onClick={() => {
                             setMenuImovelId(null);
@@ -378,7 +412,7 @@ export function Imoveis() {
                 <Table
                   rows={unidades}
                   rowKey={(row) => row.id}
-                  emptyMessage="Nenhuma unidade neste imóvel ainda. Use “+ Unidades” para cadastrar."
+                  emptyMessage="Nenhuma unidade neste imóvel ainda. Use “+ Adicionar unidades” acima."
                   onRowClick={(row) => setSelectedKitnetId(row.id)}
                   columns={[
                     { header: 'Unidade', render: (row) => row.numero },

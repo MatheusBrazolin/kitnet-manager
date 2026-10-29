@@ -10,7 +10,7 @@
   padding: var(--space-4);
   margin-bottom: var(--space-5);
   background: var(--color-surface);
-  border: var(--border-width) solid var(--color-ink);
+  border: var(--border-width) solid var(--color-border);
   border-left: var(--border-width-lg) solid var(--color-brand);
   box-shadow: var(--shadow-sm);
 }

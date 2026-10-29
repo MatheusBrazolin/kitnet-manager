@@ -19,6 +19,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToggleSet } from '../../hooks/useToggleSet';
 import './pagamentos.css';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
+import { useToast } from '../../components/Toast/ToastProvider';
 
 interface GrupoImovel {
   imovelId: number;
@@ -91,6 +92,7 @@ function filtrarPorBusca(pagamentos: Pagamento[], buscaNormalizada: string): Pag
 
 export function Pagamentos() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const { user } = useAuth();
   const isViewer = user?.papel === 'VISUALIZADOR';
   const { data: pagamentos = [], error: pagamentosQueryError, isLoading } = useQuery({
@@ -233,6 +235,7 @@ export function Pagamentos() {
       });
       setIsModalOpen(false);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Pagamento lançado');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível lançar o pagamento.'));
     } finally {
@@ -262,6 +265,7 @@ export function Pagamentos() {
       });
       setIsComplementarModalOpen(false);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Valor extra registrado');
     } catch (err) {
       setComplementarError(getApiErrorMessage(err, 'Não foi possível lançar o pagamento complementar.'));
     } finally {
@@ -301,6 +305,7 @@ export function Pagamentos() {
       });
       setMarcandoPago(null);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Pagamento confirmado');
     } catch (err) {
       setMarcarPagoError(getApiErrorMessage(err, 'Não foi possível confirmar o pagamento.'));
     } finally {
@@ -328,6 +333,7 @@ export function Pagamentos() {
     try {
       await api.patch(`/pagamentos/${pagamento.id}/desfazer-pagamento`);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso(pagamento.status === 'ANULADO' ? 'Parcela reativada' : 'Pagamento desfeito');
     } catch (err) {
       setListError(
         getApiErrorMessage(
@@ -366,6 +372,7 @@ export function Pagamentos() {
       });
       setEditando(null);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Pagamento atualizado');
     } catch (err) {
       setEditError(getApiErrorMessage(err, 'Não foi possível salvar as alterações.'));
     } finally {
@@ -394,6 +401,7 @@ export function Pagamentos() {
       });
       setAnulando(null);
       invalidarDadosDoNegocio(queryClient);
+      toast.sucesso('Parcela marcada como não recebida');
     } catch (err) {
       setAnularError(getApiErrorMessage(err, 'Não foi possível anular o pagamento.'));
     } finally {
@@ -426,21 +434,29 @@ export function Pagamentos() {
       <ErrorBanner message={displayedError} />
 
       <div className="pagamentos-tabs">
-        <button
-          type="button"
-          className={`pagamentos-tab${aba === 'aberto' ? ' pagamentos-tab-ativa' : ''}`}
-          onClick={() => setAba('aberto')}
-        >
-          Em aberto
-          {pagamentosAberto.length > 0 && <span className="pagamentos-tab-count">{pagamentosAberto.length}</span>}
-        </button>
-        <button
-          type="button"
-          className={`pagamentos-tab${aba === 'historico' ? ' pagamentos-tab-ativa' : ''}`}
-          onClick={() => setAba('historico')}
-        >
-          Histórico
-        </button>
+        <div className="pagamentos-tabs-grupo" role="tablist" aria-label="Filtrar pagamentos">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === 'aberto'}
+            className={`pagamentos-tab${aba === 'aberto' ? ' pagamentos-tab-ativa' : ''}`}
+            onClick={() => setAba('aberto')}
+          >
+            Em aberto
+            {pagamentosAberto.length > 0 && (
+              <span className="pagamentos-tab-count numero">{pagamentosAberto.length}</span>
+            )}
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={aba === 'historico'}
+            className={`pagamentos-tab${aba === 'historico' ? ' pagamentos-tab-ativa' : ''}`}
+            onClick={() => setAba('historico')}
+          >
+            Histórico
+          </button>
+        </div>
         {aba === 'historico' && mesesDisponiveis.length > 0 && (
           <select
             className="pagamentos-tab-filtro"

@@ -7,6 +7,7 @@ import { AuthContext } from '../../context/AuthContext';
 import { ConfirmProvider } from '../../components/ConfirmDialog/ConfirmProvider';
 import { api } from '../../services/api';
 import type { Imobiliaria, Papel, User } from '../../types';
+import { ToastProvider } from '../../components/Toast/ToastProvider';
 
 // O componente Table renderiza DUAS representações da mesma linha — uma <table> para
 // desktop e uma lista de cartões para mobile, alternadas por CSS. Toda consulta por
@@ -49,9 +50,11 @@ function renderPagina(papel: Papel = 'OWNER') {
           recarregarSessao: vi.fn(),
         }}
       >
-        <ConfirmProvider>
-          <Imobiliarias />
-        </ConfirmProvider>
+        <ToastProvider>
+          <ConfirmProvider>
+            <Imobiliarias />
+          </ConfirmProvider>
+        </ToastProvider>
       </AuthContext.Provider>
     </QueryClientProvider>,
   );

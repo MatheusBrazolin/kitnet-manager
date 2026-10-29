@@ -235,6 +235,53 @@ describe('Isolamento multi-tenant (e2e)', () => {
       .expect(403);
   });
 
+  // O perfil é da PESSOA, não da conta de dados: PATCH /perfil só pode mexer em quem está
+  // autenticado. Não existe `/perfil/:id` justamente para não haver como apontar para
+  // outro usuário — este teste trava as duas pontas (a rota por id e o alvo do PATCH).
+  it('impede que o usuário B altere o perfil do usuário A', async () => {
+    const emailA = `a-${Date.now()}@example.com`;
+    const emailB = `b-${Date.now()}@example.com`;
+    const tokenA = await registrarUsuario('Usuária A', emailA);
+    const tokenB = await registrarUsuario('Usuário B', emailB);
+
+    const meA = await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+    const idA = (meA.body as { id: number }).id;
+
+    await request(app.getHttpServer())
+      .patch(`/api/perfil/${idA}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ name: 'Invadida' })
+      .expect(404);
+
+    // B não consegue nem tomar o e-mail de A para si.
+    await request(app.getHttpServer())
+      .patch('/api/perfil')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ email: emailA })
+      .expect(409);
+
+    // E o PATCH que B pode fazer altera apenas o próprio cadastro.
+    await request(app.getHttpServer())
+      .patch('/api/perfil')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ name: 'Usuário B Editado' })
+      .expect(200);
+
+    const depois = await request(app.getHttpServer())
+      .get('/api/auth/me')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .expect(200);
+
+    expect(depois.body).toMatchObject({
+      id: idA,
+      name: 'Usuária A',
+      email: emailA,
+    });
+  });
+
   it('bloqueia excluir uma imobiliária que ainda tem unidades vinculadas', async () => {
     const token = await registrarUsuario(
       'Usuária A',

@@ -14,9 +14,11 @@ import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { PAPEL_LABEL } from '../../utils/papel';
 import { useAuth } from '../../hooks/useAuth';
 import './equipe.css';
+import { useToast } from '../../components/Toast/ToastProvider';
 
 export function Equipe() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const { user } = useAuth();
   // O backend só deixa o OWNER convidar e remover membros (membros.controller.ts).
   // Um GERENTE consegue listar a equipe, então mostrar os botões pra ele só produz
@@ -57,6 +59,7 @@ export function Equipe() {
       await api.post('/membros', { email, papel });
       setIsModalOpen(false);
       queryClient.invalidateQueries({ queryKey: ['membros'] });
+      toast.sucesso('Convite enviado');
     } catch (err) {
       setError(getApiErrorMessage(err, 'Não foi possível adicionar essa pessoa.'));
     } finally {
@@ -78,6 +81,7 @@ export function Equipe() {
     try {
       await api.delete(`/membros/${membro.id}`);
       queryClient.invalidateQueries({ queryKey: ['membros'] });
+      toast.sucesso('Acesso removido');
     } catch (err) {
       setListError(getApiErrorMessage(err, 'Não foi possível remover o acesso.'));
     }

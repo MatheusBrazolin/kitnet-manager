@@ -3,17 +3,22 @@ import './card.css';
 
 interface CardProps {
   title?: string;
+  /** Linha de apoio sob o título, para o que o card responde não precisar ser deduzido. */
+  subtitle?: string;
   action?: ReactNode;
   children: ReactNode;
   className?: string;
 }
 
-export function Card({ title, action, children, className }: CardProps) {
+export function Card({ title, subtitle, action, children, className }: CardProps) {
   return (
     <section className={`card${className ? ` ${className}` : ''}`}>
       {(title || action) && (
         <header className="card-header">
-          {title && <h2 className="card-title">{title}</h2>}
+          <div className="card-heading">
+            {title && <h2 className="card-title">{title}</h2>}
+            {subtitle && <p className="card-subtitle">{subtitle}</p>}
+          </div>
           {action}
         </header>
       )}
@@ -22,19 +27,86 @@ export function Card({ title, action, children, className }: CardProps) {
   );
 }
 
+type Tone = 'neutral' | 'brand' | 'positive' | 'negative' | 'warning';
+
 interface StatCardProps {
   label: string;
   value: string;
-  hint?: string;
-  tone?: 'brand' | 'success' | 'warning' | 'danger';
+  hint?: ReactNode;
+  tone?: Tone;
+  /** Ícone opcional à esquerda do rótulo — ajuda a escanear uma fileira de números. */
+  icon?: ReactNode;
 }
 
-export function StatCard({ label, value, hint, tone = 'brand' }: StatCardProps) {
+/**
+ * Número secundário.
+ *
+ * Deliberadamente discreto: antes todos os cards tinham borda preta, sombra forte e uma
+ * tarja colorida, então oito números disputavam atenção em pé de igualdade e o que
+ * importava se perdia. Aqui o destaque fica por conta do `HeroStat`; estes dão o
+ * contexto em volta.
+ */
+export function StatCard({ label, value, hint, tone = 'neutral', icon }: StatCardProps) {
   return (
     <div className={`stat-card stat-card-${tone}`}>
-      <span className="stat-card-label">{label}</span>
-      <span className="stat-card-value">{value}</span>
+      <span className="stat-card-label">
+        {icon && <span className="stat-card-icon">{icon}</span>}
+        {label}
+      </span>
+      <span className="stat-card-value numero">{value}</span>
       {hint && <span className="stat-card-hint">{hint}</span>}
     </div>
+  );
+}
+
+interface HeroStatProps {
+  /** A pergunta que o número responde, em linguagem de gente. */
+  label: string;
+  value: ReactNode;
+  hint?: ReactNode;
+  /** Barra de progresso 0–1, quando o número faz parte de um total esperado. */
+  progress?: { atual: number; total: number; legenda: ReactNode };
+  action?: ReactNode;
+}
+
+/**
+ * O número dominante da tela.
+ *
+ * Um por página, em corpo ~3x o texto normal. É a diferença entre um painel que o
+ * usuário precisa interpretar e uma tela que já responde a pergunta dele na primeira
+ * olhada.
+ */
+export function HeroStat({ label, value, hint, progress, action }: HeroStatProps) {
+  const pct =
+    progress && progress.total > 0
+      ? Math.min(100, Math.round((progress.atual / progress.total) * 100))
+      : 0;
+
+  return (
+    <section className="hero-stat">
+      <div className="hero-stat-main">
+        <p className="hero-stat-label">{label}</p>
+        <p className="hero-stat-value numero">{value}</p>
+        {hint && <p className="hero-stat-hint">{hint}</p>}
+      </div>
+
+      {progress && (
+        <div className="hero-stat-progress">
+          <div
+            className="hero-stat-track"
+            role="progressbar"
+            aria-valuenow={pct}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-label="Quanto do esperado do mês já foi recebido"
+          >
+            <div className="hero-stat-fill" style={{ width: `${pct}%` }} />
+          </div>
+          <p className="hero-stat-legenda">{progress.legenda}</p>
+        </div>
+      )}
+
+      {action && <div className="hero-stat-action">{action}</div>}
+    </section>
   );
 }

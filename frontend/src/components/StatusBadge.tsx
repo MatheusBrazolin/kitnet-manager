@@ -14,5 +14,8 @@ const TONE_BY_LABEL: Record<string, Tone> = {
 
 export function StatusBadge({ label }: { label: string }) {
   const tone = TONE_BY_LABEL[label.toLowerCase()] ?? 'warning';
-  return <span className={`status-badge status-badge-${tone}`}>{label}</span>;
+  // Primeira letra maiúscula e o resto minúsculo: os dados chegam ora em caixa
+  // alta do enum do backend ("PAGO"), ora já formatados ("vaga").
+  const texto = label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
+  return <span className={`status-badge status-badge-${tone}`}>{texto}</span>;
 }
