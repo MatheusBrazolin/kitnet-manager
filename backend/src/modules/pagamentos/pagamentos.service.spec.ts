@@ -24,7 +24,16 @@ describe('PagamentosService', () => {
   let prisma: PrismaMock;
 
   const ownerId = 1;
-  const kitnet = { id: 10, userId: ownerId, valor: 900 };
+  // Gestão direta por padrão: sem imobiliária e sem taxa, o líquido é o bruto. Os casos
+  // que exercitam repasse sobrescrevem este fixture.
+  const kitnet = {
+    id: 10,
+    userId: ownerId,
+    valor: 900,
+    taxaImobiliaria: null,
+    taxaTipo: 'FIXA' as const,
+    imobiliaria: null,
+  };
   const morador = { id: 20, kitnetId: kitnet.id, kitnet };
   const pagamento = {
     id: 30,
@@ -179,6 +188,8 @@ describe('PagamentosService', () => {
           formaPagamento: 'Pix',
           moradorId: morador.id,
           tipo: 'COMPLEMENTAR',
+          valorTaxa: 0,
+          valorLiquido: 200,
           origem: 'Ex-morador',
           observacao: 'Acordo de rescisão',
         },
@@ -209,6 +220,8 @@ describe('PagamentosService', () => {
           formaPagamento: undefined,
           moradorId: morador.id,
           tipo: 'COMPLEMENTAR',
+          valorTaxa: 0,
+          valorLiquido: 200,
           origem: undefined,
           observacao: undefined,
         },
@@ -411,6 +424,8 @@ describe('PagamentosService', () => {
           status: 'PAGO',
           dataPagamento: new Date('2026-07-27'),
           formaPagamento: 'PIX',
+          valorTaxa: 0,
+          valorLiquido: 900,
         },
       });
     });
@@ -431,9 +446,132 @@ describe('PagamentosService', () => {
           status: 'PAGO',
           dataPagamento: new Date('2026-07-27T10:00:00Z'),
           formaPagamento: null,
+          valorTaxa: 0,
+          valorLiquido: 900,
         },
       });
       jest.useRealTimers();
+    });
+
+    // O snapshot é o ponto da feature: taxa e líquido são GRAVADOS no momento do
+    // pagamento. Recalcular na leitura faria um reajuste de taxa hoje reescrever
+    // repasses de meses já fechados.
+    describe('snapshot do repasse', () => {
+      const comImobiliaria = {
+        ...pagamento,
+        valor: 1500,
+        morador: {
+          ...morador,
+          kitnet: {
+            ...kitnet,
+            valor: 1500,
+            taxaImobiliaria: null,
+            imobiliaria: {
+              id: 5,
+              nome: 'Imobiliária Central',
+              taxaPadraoTipo: 'PERCENTUAL' as const,
+              taxaPadraoValor: 10,
+            },
+          },
+        },
+      };
+
+      function snapshotGravado() {
+        const [[args]] = prisma.pagamento.update.mock.calls as [
+          [{ data: { valorTaxa: number | null; valorLiquido: number | null } }],
+        ];
+        return { taxa: args.data.valorTaxa, liquido: args.data.valorLiquido };
+      }
+
+      it('grava taxa e líquido usando a taxa padrão da imobiliária', async () => {
+        prisma.pagamento.findUnique.mockResolvedValue(comImobiliaria);
+        prisma.pagamento.update.mockResolvedValue(comImobiliaria);
+
+        await service.marcarPago(ownerId, comImobiliaria.id, {});
+
+        expect(snapshotGravado()).toEqual({ taxa: 150, liquido: 1350 });
+      });
+
+      it('a taxa própria da unidade vence a padrão da imobiliária', async () => {
+        prisma.pagamento.findUnique.mockResolvedValue({
+          ...comImobiliaria,
+          morador: {
+            ...comImobiliaria.morador,
+            kitnet: {
+              ...comImobiliaria.morador.kitnet,
+              taxaImobiliaria: 200,
+              taxaTipo: 'FIXA' as const,
+            },
+          },
+        });
+        prisma.pagamento.update.mockResolvedValue(comImobiliaria);
+
+        await service.marcarPago(ownerId, comImobiliaria.id, {});
+
+        expect(snapshotGravado()).toEqual({ taxa: 200, liquido: 1300 });
+      });
+
+      it('sem imobiliária, o líquido é o bruto', async () => {
+        prisma.pagamento.findUnique.mockResolvedValue(pagamento);
+        prisma.pagamento.update.mockResolvedValue(pagamento);
+
+        await service.marcarPago(ownerId, pagamento.id, {});
+
+        expect(snapshotGravado()).toEqual({ taxa: 0, liquido: 900 });
+      });
+
+      // O repasse real às vezes chega diferente do combinado; o que o proprietário
+      // recebeu de fato é o dado verdadeiro, e a taxa vira a diferença.
+      it('líquido informado à mão vence o cálculo, e a taxa vira a diferença', async () => {
+        prisma.pagamento.findUnique.mockResolvedValue(comImobiliaria);
+        prisma.pagamento.update.mockResolvedValue(comImobiliaria);
+
+        await service.marcarPago(ownerId, comImobiliaria.id, {
+          valorLiquido: 1320,
+        });
+
+        expect(snapshotGravado()).toEqual({ taxa: 180, liquido: 1320 });
+      });
+
+      it('não aceita líquido maior que o bruto', async () => {
+        prisma.pagamento.findUnique.mockResolvedValue(comImobiliaria);
+        prisma.pagamento.update.mockResolvedValue(comImobiliaria);
+
+        await service.marcarPago(ownerId, comImobiliaria.id, {
+          valorLiquido: 99999,
+        });
+
+        expect(snapshotGravado()).toEqual({ taxa: 0, liquido: 1500 });
+      });
+
+      it('bruto continua sendo taxa + líquido mesmo com percentual quebrado', async () => {
+        prisma.pagamento.findUnique.mockResolvedValue({
+          ...comImobiliaria,
+          valor: 1234.56,
+          morador: {
+            ...comImobiliaria.morador,
+            kitnet: {
+              ...comImobiliaria.morador.kitnet,
+              imobiliaria: {
+                id: 5,
+                nome: 'Imobiliária Central',
+                taxaPadraoTipo: 'PERCENTUAL' as const,
+                taxaPadraoValor: 8.33,
+              },
+            },
+          },
+        });
+        prisma.pagamento.update.mockResolvedValue(comImobiliaria);
+
+        await service.marcarPago(ownerId, comImobiliaria.id, {});
+
+        const { taxa, liquido } = snapshotGravado();
+        expect(taxa).toBe(102.84);
+        expect(liquido).toBe(1131.72);
+        expect(Math.round(((taxa ?? 0) + (liquido ?? 0)) * 100) / 100).toBe(
+          1234.56,
+        );
+      });
     });
   });
 
@@ -449,7 +587,13 @@ describe('PagamentosService', () => {
 
       expect(prisma.pagamento.update).toHaveBeenCalledWith({
         where: { id: pagamento.id },
-        data: { status: 'PENDENTE', dataPagamento: null, formaPagamento: null },
+        data: {
+          status: 'PENDENTE',
+          dataPagamento: null,
+          formaPagamento: null,
+          valorTaxa: null,
+          valorLiquido: null,
+        },
       });
     });
   });
@@ -472,6 +616,8 @@ describe('PagamentosService', () => {
           status: 'ANULADO',
           dataPagamento: null,
           formaPagamento: null,
+          valorTaxa: null,
+          valorLiquido: null,
           observacao: 'Repassado à imobiliária',
         },
       });

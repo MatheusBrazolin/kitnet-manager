@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import { firstErrorMessage } from '../../utils/queryError';
-import type { Imovel, Kitnet } from '../../types';
+import type { Imobiliaria, Imovel, Kitnet, TaxaTipo } from '../../types';
 import { Card } from '../../components/Card/Card';
 import { Table } from '../../components/Table/Table';
 import { TableSkeleton } from '../../components/Table/TableSkeleton';
@@ -18,6 +18,7 @@ import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { useAuth } from '../../hooks/useAuth';
 import { useToggleSet } from '../../hooks/useToggleSet';
 import { formatCurrency } from '../../utils/currency';
+import { calcularRepasseDaUnidade, formatTaxaLabel } from '../../utils/repasse';
 import './imoveis.css';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
 
@@ -35,6 +36,12 @@ export function Imoveis() {
     queryFn: () => api.get<Imovel[]>('/imoveis').then((response) => response.data),
   });
 
+  // Lista para o seletor do modal de unidade. Chave própria, separada de ['imoveis'].
+  const { data: imobiliarias = [] } = useQuery({
+    queryKey: ['imobiliarias'],
+    queryFn: () => api.get<Imobiliaria[]>('/imobiliarias').then((r) => r.data),
+  });
+
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingImovelId, setEditingImovelId] = useState<number | null>(null);
   const [nome, setNome] = useState('');
@@ -46,6 +53,9 @@ export function Imoveis() {
   const [editNumero, setEditNumero] = useState('');
   const [editValor, setEditValor] = useState('');
   const [editTaxaImobiliaria, setEditTaxaImobiliaria] = useState('');
+  const [editTaxaTipo, setEditTaxaTipo] = useState<TaxaTipo>('FIXA');
+  // '' = gestão direta (sem administradora).
+  const [editImobiliariaId, setEditImobiliariaId] = useState('');
   const [editKitnetError, setEditKitnetError] = useState<string | null>(null);
   const [isEditKitnetSubmitting, setIsEditKitnetSubmitting] = useState(false);
 
@@ -118,7 +128,13 @@ export function Imoveis() {
     setEditingKitnet(kitnet);
     setEditNumero(kitnet.numero);
     setEditValor(String(kitnet.valor));
-    setEditTaxaImobiliaria(kitnet.taxaImobiliaria ? String(kitnet.taxaImobiliaria) : '');
+    // != null, não truthy: taxa zero é uma isenção negociada e precisa continuar
+    // aparecendo como zero, não como campo vazio (que significa "usa o padrão").
+    setEditTaxaImobiliaria(
+      kitnet.taxaImobiliaria != null ? String(kitnet.taxaImobiliaria) : '',
+    );
+    setEditTaxaTipo(kitnet.taxaTipo);
+    setEditImobiliariaId(kitnet.imobiliariaId ? String(kitnet.imobiliariaId) : '');
     setEditKitnetError(null);
   }
 
@@ -133,7 +149,10 @@ export function Imoveis() {
       await api.patch(`/kitnets/${editingKitnet.id}`, {
         numero: editNumero,
         valor: Number(editValor),
-        taxaImobiliaria: editTaxaImobiliaria ? Number(editTaxaImobiliaria) : null,
+        taxaImobiliaria:
+          editTaxaImobiliaria === '' ? null : Number(editTaxaImobiliaria),
+        taxaTipo: editTaxaTipo,
+        imobiliariaId: editImobiliariaId ? Number(editImobiliariaId) : null,
       });
       setEditingKitnet(null);
       invalidarDadosDoNegocio(queryClient);
@@ -143,6 +162,18 @@ export function Imoveis() {
       setIsEditKitnetSubmitting(false);
     }
   }
+
+  const imobiliariaSelecionada = editImobiliariaId
+    ? (imobiliarias.find((i) => i.id === Number(editImobiliariaId)) ?? null)
+    : null;
+
+  // Prévia ao vivo do que o proprietário vai receber, com a mesma conta que o backend
+  // vai gravar no pagamento.
+  const previaRepasse = calcularRepasseDaUnidade(Number(editValor) || 0, {
+    taxaImobiliaria: editTaxaImobiliaria === '' ? null : Number(editTaxaImobiliaria),
+    taxaTipo: editTaxaTipo,
+    imobiliaria: imobiliariaSelecionada,
+  });
 
   async function handleDeleteImovel(id: number) {
     const ok = await confirm({
@@ -353,15 +384,27 @@ export function Imoveis() {
                     { header: 'Unidade', render: (row) => row.numero },
                     {
                       header: 'Valor',
-                      render: (row) =>
-                        row.taxaImobiliaria ? (
+                      // `valor - taxaImobiliaria` quebraria com taxa percentual, onde o
+                      // campo guarda 10 (dez por cento) e não dez reais.
+                      render: (row) => {
+                        const { taxa, liquido } = calcularRepasseDaUnidade(
+                          row.valor,
+                          row,
+                        );
+                        return taxa > 0 ? (
                           <span className="imovel-valor-com-imobiliaria">
                             {formatCurrency(row.valor)}
-                            <small>líq. {formatCurrency(row.valor - row.taxaImobiliaria)}</small>
+                            <small>líq. {formatCurrency(liquido)}</small>
                           </span>
                         ) : (
                           formatCurrency(row.valor)
-                        ),
+                        );
+                      },
+                    },
+                    {
+                      header: 'Administração',
+                      render: (row) =>
+                        row.imobiliaria ? row.imobiliaria.nome : 'Gestão direta',
                     },
                     { header: 'Status', render: (row) => <StatusBadge label={row.status} /> },
                     { header: 'Moradores', render: (row) => row.moradores.length },
@@ -523,17 +566,82 @@ export function Imoveis() {
               <CurrencyInput id="editValor" required value={editValor} onChange={setEditValor} />
             </div>
             <div className="field">
-              <label htmlFor="editTaxaImobiliaria">Taxa da imobiliária (opcional)</label>
-              <CurrencyInput
-                id="editTaxaImobiliaria"
-                placeholder="Ex.: R$ 100 — deixe em branco se o aluguel é direto"
-                value={editTaxaImobiliaria}
-                onChange={setEditTaxaImobiliaria}
-              />
+              <label htmlFor="editImobiliaria">Administração</label>
+              <select
+                id="editImobiliaria"
+                value={editImobiliariaId}
+                onChange={(event) => setEditImobiliariaId(event.target.value)}
+              >
+                <option value="">Gestão direta (sem imobiliária)</option>
+                {imobiliarias.map((imobiliaria) => (
+                  <option key={imobiliaria.id} value={imobiliaria.id}>
+                    {imobiliaria.nome}
+                  </option>
+                ))}
+              </select>
+              {imobiliariaSelecionada && (
+                <p className="field-static-hint">
+                  Taxa padrão desta imobiliária:{' '}
+                  {formatTaxaLabel(
+                    imobiliariaSelecionada.taxaPadraoTipo,
+                    imobiliariaSelecionada.taxaPadraoValor,
+                    formatCurrency,
+                  )}
+                  .
+                </p>
+              )}
+            </div>
+
+            <div className="field">
+              <label htmlFor="editTaxaTipo">Taxa desta unidade (opcional)</label>
+              <div className="imovel-taxa-campos">
+                <select
+                  id="editTaxaTipo"
+                  value={editTaxaTipo}
+                  onChange={(event) => {
+                    // O número muda de unidade ao trocar o tipo (10% vs R$ 10);
+                    // reaproveitar o valor antigo criaria uma taxa errada em silêncio.
+                    setEditTaxaTipo(event.target.value as TaxaTipo);
+                    setEditTaxaImobiliaria('');
+                  }}
+                >
+                  <option value="PERCENTUAL">Percentual do aluguel</option>
+                  <option value="FIXA">Valor fixo em reais</option>
+                </select>
+
+                {editTaxaTipo === 'PERCENTUAL' ? (
+                  <div className="imovel-taxa-percentual">
+                    <input
+                      id="editTaxaImobiliaria"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={editTaxaImobiliaria}
+                      onChange={(event) =>
+                        setEditTaxaImobiliaria(event.target.value)
+                      }
+                      aria-label="Percentual da taxa desta unidade"
+                    />
+                    <span aria-hidden="true">%</span>
+                  </div>
+                ) : (
+                  <CurrencyInput
+                    id="editTaxaImobiliaria"
+                    ariaLabel="Valor fixo da taxa desta unidade"
+                    placeholder="Deixe em branco para usar o padrão"
+                    value={editTaxaImobiliaria}
+                    onChange={setEditTaxaImobiliaria}
+                  />
+                )}
+              </div>
               <p className="field-static-hint">
-                Preencha só se essa unidade é alugada por uma imobiliária que retém parte
-                do aluguel. Ex.: aluguel de R$ 1.400, taxa de R$ 100 → você recebe
-                R$ 1.300.
+                {editTaxaImobiliaria === ''
+                  ? imobiliariaSelecionada
+                    ? 'Em branco: esta unidade segue a taxa padrão da imobiliária.'
+                    : 'Sem imobiliária e sem taxa, você recebe o aluguel cheio.'
+                  : `Aluguel de ${formatCurrency(Number(editValor) || 0)} → você recebe ${formatCurrency(previaRepasse.liquido)} (taxa de ${formatCurrency(previaRepasse.taxa)}).`}
               </p>
             </div>
             <button type="submit" className="btn btn-primary" disabled={isEditKitnetSubmitting}>

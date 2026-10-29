@@ -40,6 +40,20 @@ describe('Isolamento multi-tenant (e2e)', () => {
     return (response.body as { id: number }).id;
   }
 
+  async function criarImobiliaria(token: string, nome: string) {
+    const response = await request(app.getHttpServer())
+      .post('/api/imobiliarias')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        nome,
+        telefone: '11999990000',
+        taxaPadraoTipo: 'PERCENTUAL',
+        taxaPadraoValor: 10,
+      })
+      .expect(201);
+    return (response.body as { id: number }).id;
+  }
+
   beforeEach(async () => {
     app = await createApp();
     await app.init();
@@ -136,5 +150,109 @@ describe('Isolamento multi-tenant (e2e)', () => {
     const kitnets = response.body as Array<{ id: number }>;
     expect(kitnets).toHaveLength(1);
     expect(kitnets[0].id).toBe(kitnetIdB);
+  });
+
+  it('impede que o usuário B leia, edite ou apague uma imobiliária do usuário A', async () => {
+    const tokenA = await registrarUsuario(
+      'Usuária A',
+      `a-${Date.now()}@example.com`,
+    );
+    const tokenB = await registrarUsuario(
+      'Usuário B',
+      `b-${Date.now()}@example.com`,
+    );
+
+    const imobiliariaId = await criarImobiliaria(tokenA, 'Imobiliária da A');
+
+    await request(app.getHttpServer())
+      .get(`/api/imobiliarias/${imobiliariaId}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .patch(`/api/imobiliarias/${imobiliariaId}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ nome: 'Invadida' })
+      .expect(403);
+
+    await request(app.getHttpServer())
+      .delete(`/api/imobiliarias/${imobiliariaId}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(403);
+  });
+
+  it('não lista para B nenhuma imobiliária cadastrada por A', async () => {
+    const tokenA = await registrarUsuario(
+      'Usuária A',
+      `a-${Date.now()}@example.com`,
+    );
+    const tokenB = await registrarUsuario(
+      'Usuário B',
+      `b-${Date.now()}@example.com`,
+    );
+
+    await criarImobiliaria(tokenA, 'Imobiliária da A');
+
+    const resposta = await request(app.getHttpServer())
+      .get('/api/imobiliarias')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .expect(200);
+
+    expect(resposta.body).toEqual([]);
+  });
+
+  // Sem esta checagem bastaria mandar um id qualquer no corpo para vincular a unidade à
+  // administradora de outro proprietário — e passar a usar a taxa dele.
+  it('impede vincular uma unidade a uma imobiliária de outra conta', async () => {
+    const tokenA = await registrarUsuario(
+      'Usuária A',
+      `a-${Date.now()}@example.com`,
+    );
+    const tokenB = await registrarUsuario(
+      'Usuário B',
+      `b-${Date.now()}@example.com`,
+    );
+
+    const imobiliariaDeA = await criarImobiliaria(tokenA, 'Imobiliária da A');
+    const imovelDeB = await criarImovel(tokenB, 'Prédio do B');
+
+    await request(app.getHttpServer())
+      .post('/api/kitnets')
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({
+        numero: '201',
+        valor: 1000,
+        imovelId: imovelDeB,
+        imobiliariaId: imobiliariaDeA,
+      })
+      .expect(403);
+
+    const kitnetDeB = await criarKitnet(tokenB, imovelDeB, '202');
+    await request(app.getHttpServer())
+      .patch(`/api/kitnets/${kitnetDeB}`)
+      .set('Authorization', `Bearer ${tokenB}`)
+      .send({ imobiliariaId: imobiliariaDeA })
+      .expect(403);
+  });
+
+  it('bloqueia excluir uma imobiliária que ainda tem unidades vinculadas', async () => {
+    const token = await registrarUsuario(
+      'Usuária A',
+      `a-${Date.now()}@example.com`,
+    );
+
+    const imobiliariaId = await criarImobiliaria(token, 'Imobiliária da A');
+    const imovelId = await criarImovel(token, 'Prédio da A');
+
+    await request(app.getHttpServer())
+      .post('/api/kitnets')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ numero: '301', valor: 1000, imovelId, imobiliariaId })
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .delete(`/api/imobiliarias/${imobiliariaId}`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(409);
   });
 });

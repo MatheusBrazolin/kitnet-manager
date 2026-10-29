@@ -103,3 +103,34 @@
     flex: 1;
   }
 }
+
+/* Bruto, taxa e líquido no modal de confirmação: o proprietário precisa ver a conta
+   fechando antes de confirmar, não só o número final. */
+.pagamento-repasse {
+  margin: var(--space-2) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+}
+
+.pagamento-repasse > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.pagamento-repasse dt {
+  color: var(--color-ink-muted);
+}
+
+.pagamento-repasse dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.pagamento-repasse-total {
+  padding-top: var(--space-1);
+  border-top: var(--border-width) solid var(--color-border-soft);
+  font-weight: 700;
+}

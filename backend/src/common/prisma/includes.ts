@@ -14,3 +14,19 @@ export const IMOVEL_COM_TOTAL_UNIDADES = {
 export const KITNET_COM_IMOVEL = {
   include: { imovel: IMOVEL_COM_TOTAL_UNIDADES },
 } as const;
+
+/**
+ * Dados da administradora necessários para resolver a taxa de uma unidade.
+ *
+ * Vem junto sempre que o líquido precisa ser calculado: a unidade pode não ter taxa
+ * própria, e nesse caso quem manda é a taxa padrão da imobiliária (ver
+ * `resolverTaxaDaUnidade`).
+ */
+export const IMOBILIARIA_PARA_TAXA = {
+  select: {
+    id: true,
+    nome: true,
+    taxaPadraoTipo: true,
+    taxaPadraoValor: true,
+  },
+} as const;

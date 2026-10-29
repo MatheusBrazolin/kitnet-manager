@@ -14,6 +14,7 @@ import { ExpandableGroupCard } from '../../components/ExpandableGroupCard/Expand
 import { CurrencyInput } from '../../components/CurrencyInput';
 import { formatDate, formatMesReferencia, formatVencimentoLabel, hojeIsoLocal } from '../../utils/dates';
 import { formatCurrency } from '../../utils/currency';
+import { calcularRepasseDaUnidade } from '../../utils/repasse';
 import { useAuth } from '../../hooks/useAuth';
 import { useToggleSet } from '../../hooks/useToggleSet';
 import './pagamentos.css';
@@ -122,6 +123,8 @@ export function Pagamentos() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [marcandoPago, setMarcandoPago] = useState<Pagamento | null>(null);
+  // Líquido efetivamente recebido. Começa no valor calculado e pode ser corrigido à mão.
+  const [valorLiquido, setValorLiquido] = useState('');
   const [dataPagamento, setDataPagamento] = useState('');
   const [formaPagamento, setFormaPagamento] = useState('');
   const [marcarPagoError, setMarcarPagoError] = useState<string | null>(null);
@@ -270,6 +273,14 @@ export function Pagamentos() {
     setMarcandoPago(pagamento);
     setDataPagamento(hojeIsoLocal());
     setFormaPagamento('');
+    // Pré-preenchido com o cálculo da taxa da unidade; o usuário ajusta se o repasse
+    // real veio diferente.
+    setValorLiquido(
+      String(
+        calcularRepasseDaUnidade(pagamento.valor, pagamento.morador.kitnet)
+          .liquido,
+      ),
+    );
     setMarcarPagoError(null);
   }
 
@@ -284,6 +295,9 @@ export function Pagamentos() {
       await api.patch(`/pagamentos/${marcandoPago.id}/marcar-pago`, {
         dataPagamento,
         formaPagamento: formaPagamento || undefined,
+        // Só envia quando difere do cálculo: assim o backend grava o snapshot pela
+        // regra da unidade no caso normal, e respeita o ajuste manual quando houver.
+        valorLiquido: liquidoFoiAjustado ? Number(valorLiquido) : undefined,
       });
       setMarcandoPago(null);
       invalidarDadosDoNegocio(queryClient);
@@ -293,6 +307,20 @@ export function Pagamentos() {
       setIsMarcandoPagoSubmitting(false);
     }
   }
+
+  // Repasse previsto para a parcela aberta no modal, pela mesma conta que o backend
+  // usará ao gravar o snapshot.
+  const repassePrevisto = marcandoPago
+    ? calcularRepasseDaUnidade(marcandoPago.valor, marcandoPago.morador.kitnet)
+    : { taxa: 0, liquido: 0 };
+  const liquidoInformado = Number(valorLiquido) || 0;
+  const liquidoFoiAjustado =
+    marcandoPago !== null && liquidoInformado !== repassePrevisto.liquido;
+  // Quando o líquido é corrigido, a taxa passa a ser a diferença — é o que de fato
+  // ficou retido, e mantém bruto = taxa + líquido.
+  const taxaEfetiva = liquidoFoiAjustado
+    ? Math.round(((marcandoPago?.valor ?? 0) - liquidoInformado) * 100) / 100
+    : repassePrevisto.taxa;
 
   async function desfazerPagamento(pagamento: Pagamento) {
     setListError(null);
@@ -730,6 +758,36 @@ export function Pagamentos() {
                 onChange={(event) => setFormaPagamento(event.target.value)}
               />
             </div>
+
+            <div className="field">
+              <label htmlFor="valorLiquido">Valor que você recebeu</label>
+              <CurrencyInput
+                id="valorLiquido"
+                required
+                value={valorLiquido}
+                onChange={setValorLiquido}
+              />
+              <dl className="pagamento-repasse">
+                <div>
+                  <dt>Aluguel</dt>
+                  <dd>{formatCurrency(marcandoPago.valor)}</dd>
+                </div>
+                <div>
+                  <dt>Taxa da imobiliária</dt>
+                  <dd>− {formatCurrency(taxaEfetiva)}</dd>
+                </div>
+                <div className="pagamento-repasse-total">
+                  <dt>Você recebe</dt>
+                  <dd>{formatCurrency(liquidoInformado)}</dd>
+                </div>
+              </dl>
+              <p className="field-static-hint">
+                {liquidoFoiAjustado
+                  ? `Ajustado: o cálculo pela taxa da unidade daria ${formatCurrency(repassePrevisto.liquido)}. Vale o valor informado.`
+                  : 'Corrija aqui se o repasse veio diferente do combinado.'}
+              </p>
+            </div>
+
             <button type="submit" className="btn btn-primary" disabled={isMarcandoPagoSubmitting}>
               {isMarcandoPagoSubmitting ? 'Salvando...' : 'Confirmar pagamento'}
             </button>

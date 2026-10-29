@@ -7,6 +7,11 @@ import { StatusBadge } from '../StatusBadge';
 import { Table } from '../Table/Table';
 import { ErrorBanner } from '../ErrorBanner/ErrorBanner';
 import { formatCurrency } from '../../utils/currency';
+import {
+  calcularRepasseDaUnidade,
+  formatTaxaLabel,
+  resolverTaxaDaUnidade,
+} from '../../utils/repasse';
 import { formatDate } from '../../utils/dates';
 import './kitnet-detail-modal.css';
 
@@ -26,6 +31,15 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
   const error = firstErrorMessage({ error: queryError, fallback: 'Não foi possível carregar os detalhes da kitnet.' });
 
   const morador = kitnet?.moradores[0];
+
+  // Taxa efetivamente aplicada a esta unidade (a própria, ou a padrão da administradora)
+  // e o que ela significa em reais sobre o aluguel atual.
+  const taxaAplicada = kitnet
+    ? resolverTaxaDaUnidade(kitnet)
+    : { taxaTipo: 'FIXA' as const, taxaValor: 0 };
+  const repasse = kitnet
+    ? calcularRepasseDaUnidade(kitnet.valor, kitnet)
+    : { taxa: 0, liquido: 0 };
 
   // O histórico já vem do backend ordenado do mais recente pro mais antigo — a variação de
   // cada linha é a diferença pro registro logo abaixo dela (o valor anterior).
@@ -55,12 +69,20 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
               <dt>Aluguel</dt>
               <dd>{formatCurrency(kitnet.valor)}</dd>
             </div>
-            {kitnet.taxaImobiliaria ? (
+            <div>
+              <dt>Administração</dt>
+              <dd>{kitnet.imobiliaria ? kitnet.imobiliaria.nome : 'Gestão direta'}</dd>
+            </div>
+            {repasse.taxa > 0 ? (
               <div>
                 <dt>Taxa da imobiliária</dt>
+                {/* `valor - taxaImobiliaria` quebraria com taxa percentual, em que o
+                    campo guarda 10 (dez por cento) e não dez reais. */}
                 <dd>
-                  {formatCurrency(kitnet.taxaImobiliaria)} · você recebe{' '}
-                  {formatCurrency(kitnet.valor - kitnet.taxaImobiliaria)}
+                  {formatTaxaLabel(taxaAplicada.taxaTipo, taxaAplicada.taxaValor, formatCurrency)}
+                  {' = '}
+                  {formatCurrency(repasse.taxa)} · você recebe{' '}
+                  {formatCurrency(repasse.liquido)}
                 </dd>
               </div>
             ) : null}

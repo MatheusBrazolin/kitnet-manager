@@ -22,6 +22,9 @@ const CHAVES_DE_NEGOCIO = [
   'kitnets',
   'kitnet',
   'imoveis',
+  // A taxa padrão da administradora entra no líquido das unidades e nos números do
+  // dashboard, então mexer nela invalida o mesmo conjunto que as demais entidades.
+  'imobiliarias',
 ] as const;
 
 export function invalidarDadosDoNegocio(queryClient: QueryClient) {

@@ -11,7 +11,11 @@ import { CreatePagamentoComplementarDto } from './dto/create-pagamento-complemen
 import { UpdatePagamentoDto } from './dto/update-pagamento.dto';
 import { MarcarPagoDto } from './dto/marcar-pago.dto';
 import { AnularPagamentoDto } from './dto/anular-pagamento.dto';
-import { KITNET_COM_IMOVEL } from '../../common/prisma/includes';
+import {
+  IMOBILIARIA_PARA_TAXA,
+  KITNET_COM_IMOVEL,
+} from '../../common/prisma/includes';
+import { calcularRepasseDaUnidade } from '../../common/repasse/repasse';
 
 type ValorHistorico = { valor: number; vigenteDesde: Date };
 
@@ -317,7 +321,15 @@ export class PagamentosService {
   async findOwnedOrThrow(userId: number, id: number) {
     const pagamento = await this.prisma.pagamento.findUnique({
       where: { id },
-      include: { morador: { include: { kitnet: true } } },
+      include: {
+        morador: {
+          // A imobiliária vem junto porque marcar como pago precisa resolver a taxa
+          // aplicável (a da unidade ou, na falta dela, a padrão da administradora).
+          include: {
+            kitnet: { include: { imobiliaria: IMOBILIARIA_PARA_TAXA } },
+          },
+        },
+      },
     });
     if (!pagamento) {
       throw new NotFoundException('Pagamento não encontrado');
@@ -389,6 +401,15 @@ export class PagamentosService {
           status: StatusPagamento.PAGO,
           dataPagamento,
           formaPagamento: dto.formaPagamento,
+          // Nasce PAGO, então precisa do snapshot como qualquer parcela paga — sem ele
+          // o lançamento sumiria da soma de líquido recebido no dashboard.
+          //
+          // Taxa zero de propósito: um complementar é um valor extra recebido
+          // diretamente (multa, taxa de limpeza, acerto com terceiro), que não passa
+          // pela administradora. Aplicar a taxa do aluguel aqui inventaria um desconto
+          // que não existiu.
+          valorTaxa: 0,
+          valorLiquido: dto.valor,
           moradorId: dto.moradorId,
           tipo: 'COMPLEMENTAR',
           origem: dto.origem,
@@ -433,8 +454,34 @@ export class PagamentosService {
     }
   }
 
+  /**
+   * Confirma que o repasse foi recebido e GRAVA quanto a imobiliária reteve e quanto
+   * sobrou, em vez de deixar para calcular na leitura.
+   *
+   * O snapshot é o ponto principal: a taxa da unidade muda com o tempo, e recalcular na
+   * exibição reescreveria o passado — um reajuste de 8% para 10% hoje faria o repasse de
+   * março do ano passado aparecer com outro número. Mesmo princípio que
+   * KitnetValorHistorico resolve para o valor do aluguel.
+   */
   async marcarPago(userId: number, id: number, dto: MarcarPagoDto) {
-    await this.findOwnedOrThrow(userId, id);
+    const pagamento = await this.findOwnedOrThrow(userId, id);
+    const { kitnet } = pagamento.morador;
+
+    const calculado = calcularRepasseDaUnidade(
+      pagamento.valor,
+      kitnet,
+      kitnet.imobiliaria,
+    );
+
+    // Líquido informado à mão vence o cálculo: o repasse real às vezes vem diferente, e
+    // o que o proprietário recebeu de fato é o dado verdadeiro. A taxa passa a ser a
+    // diferença, para bruto = taxa + líquido continuar valendo sempre.
+    let { taxa, liquido } = calculado;
+    if (dto.valorLiquido !== undefined) {
+      liquido = Math.min(dto.valorLiquido, pagamento.valor);
+      taxa = Math.round((pagamento.valor - liquido) * 100) / 100;
+    }
+
     return this.prisma.pagamento.update({
       where: { id },
       data: {
@@ -443,6 +490,8 @@ export class PagamentosService {
           ? new Date(dto.dataPagamento)
           : new Date(),
         formaPagamento: dto.formaPagamento ?? null,
+        valorTaxa: taxa,
+        valorLiquido: liquido,
       },
     });
   }
@@ -455,6 +504,10 @@ export class PagamentosService {
         status: StatusPagamento.PENDENTE,
         dataPagamento: null,
         formaPagamento: null,
+        // O snapshot só faz sentido para uma parcela paga; deixá-lo para trás faria a
+        // parcela voltar a PENDENTE ainda somando taxa/líquido no histórico.
+        valorTaxa: null,
+        valorLiquido: null,
       },
     });
   }
@@ -474,6 +527,8 @@ export class PagamentosService {
         status: StatusPagamento.ANULADO,
         dataPagamento: null,
         formaPagamento: null,
+        valorTaxa: null,
+        valorLiquido: null,
         observacao: dto.observacao,
       },
     });

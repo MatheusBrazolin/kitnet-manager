@@ -50,11 +50,15 @@ export interface Kitnet {
   id: number;
   numero: string;
   valor: number;
-  // Parte do valor do aluguel retida pela imobiliária, quando a unidade é alugada por
-  // intermediação dela. null/undefined = aluguel direto, sem imobiliária.
+  // Taxa desta unidade especificamente. null/undefined = segue a taxa padrão da
+  // imobiliária vinculada; sem imobiliária, é aluguel direto e não há taxa.
   taxaImobiliaria?: number | null;
+  // Diz se o número acima é um percentual do aluguel ou um valor fixo em reais.
+  taxaTipo: TaxaTipo;
   status: 'vaga' | 'ocupada';
   imovelId: number;
+  imobiliariaId?: number | null;
+  imobiliaria?: ImobiliariaResumo | null;
   moradores: Morador[];
   imovel?: Imovel;
 }
@@ -69,6 +73,25 @@ export interface Imovel {
   kitnets?: Kitnet[];
   // Quantas unidades o imóvel tem, independente de `kitnets` ter vindo ou não. É o que
   // permite decidir se vale mostrar o número da unidade ao lado do nome do imóvel.
+  _count?: { kitnets: number };
+}
+
+export type TaxaTipo = 'PERCENTUAL' | 'FIXA';
+
+/** O que vem embutido na unidade — o bastante para resolver a taxa e exibir o nome. */
+export type ImobiliariaResumo = Pick<
+  Imobiliaria,
+  'id' | 'nome' | 'taxaPadraoTipo' | 'taxaPadraoValor'
+>;
+
+export interface Imobiliaria {
+  id: number;
+  nome: string;
+  telefone: string;
+  contato?: string | null;
+  // Taxa aplicada às unidades desta imobiliária que não definirem uma taxa própria.
+  taxaPadraoTipo: TaxaTipo;
+  taxaPadraoValor: number;
   _count?: { kitnets: number };
 }
 
@@ -96,6 +119,11 @@ export interface Pagamento {
   tipo: TipoPagamento;
   origem: string | null;
   observacao: string | null;
+  // Snapshot do repasse, gravado ao marcar como pago e nunca recalculado depois — é o
+  // que impede que mudar a taxa hoje reescreva repasses de meses já fechados. Nulos
+  // enquanto a parcela não foi paga.
+  valorTaxa: number | null;
+  valorLiquido: number | null;
   moradorId: number;
   morador: Morador & { kitnet: Kitnet };
 }
@@ -111,6 +139,8 @@ export interface PagamentoResumo {
   tipo: TipoPagamento;
   origem: string | null;
   observacao: string | null;
+  valorTaxa: number | null;
+  valorLiquido: number | null;
 }
 
 export interface MoradorDetail extends Morador {
@@ -150,14 +180,39 @@ export interface DashboardSummary {
   totalKitnets: number;
   ocupadas: number;
   vagas: number;
+  // Projeção: quanto as unidades valem por mês e quanto disso ficaria com as
+  // administradoras se todas estivessem ocupadas e em dia.
   valorMensal: number;
   totalImobiliaria: number;
   receitaMensal: number;
+  // Realizado: o que de fato chegou ao proprietário no mês, já descontada a taxa, e
+  // quanto ficou com as administradoras no mesmo período.
+  receitaLiquidaMensal: number;
+  taxasMensal: number;
   gastoMensal: number;
   lucroLiquido: number;
   totalEmAtraso: number;
+  // Repasses ainda não recebidos, tenham vencido ou não.
+  totalPendente: number;
+  quantidadePendente: number;
   gastosPorImovel: Array<{ imovel: string; total: number }>;
-  historico: Array<{ label: string; receita: number; gasto: number }>;
+  // Uma linha por administradora; as unidades sem nenhuma aparecem como "Gestão direta".
+  porImobiliaria: Array<{
+    imobiliariaId: number | null;
+    nome: string;
+    unidades: number;
+    ocupadas: number;
+    bruto: number;
+    taxas: number;
+    liquido: number;
+  }>;
+  historico: Array<{
+    label: string;
+    receita: number;
+    gasto: number;
+    liquido: number;
+    taxa: number;
+  }>;
   proximosVencimentos: Array<{
     id: number;
     morador: string;
