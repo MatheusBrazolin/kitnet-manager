@@ -54,15 +54,9 @@
   gap: var(--space-2);
 }
 
-.auth-showcase-mark span {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: var(--color-brand);
-  color: var(--color-brand-ink);
-  display: grid;
-  place-items: center;
-  font-weight: 600;
+.auth-showcase-mark svg {
+  /* O SVG da marca já tem tile e raio próprios. */
+  flex-shrink: 0;
 }
 
 .auth-showcase-copy h1 {
@@ -165,14 +159,9 @@
   font-size: var(--text-md);
 }
 
-.auth-form-brand span {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius-sm);
-  background: var(--color-brand);
-  color: var(--color-brand-ink);
-  display: grid;
-  place-items: center;
+.auth-form-brand svg {
+  /* O SVG da marca já tem tile e raio próprios. */
+  flex-shrink: 0;
 }
 
 .auth-form h2 {

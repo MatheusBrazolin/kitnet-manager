@@ -4,6 +4,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { PasswordField } from '../../components/PasswordField/PasswordField';
 import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import './auth.css';
+import { Logo } from '../../components/Logo/Logo';
 
 export function Register() {
   const { register, user } = useAuth();
@@ -36,7 +37,7 @@ export function Register() {
     <div className="auth-page">
       <section className="auth-showcase">
         <div className="auth-showcase-mark">
-          <span>K</span> KitManager
+          <Logo /> KitManager
         </div>
         <div className="auth-showcase-copy">
           <h1>Organize seus imóveis sem limites.</h1>

@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="KitManager">
+  <!-- Marca do KitManager: um prédio com quatro unidades sob um teto só — que é
+       literalmente o produto (kitnets de um mesmo imóvel). Uma janela fica acesa:
+       a unidade ocupada, o aluguel que entra. O terracota é o --color-brand do
+       sistema de design. Para 16–32px use favicon.svg, que simplifica as janelas. -->
+  <defs>
+    <linearGradient id="kmTile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b05c2e"/>
+      <stop offset="1" stop-color="#8a3f16"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7.5" fill="url(#kmTile)"/>
+  <path d="M6 14.6 16 5.6l10 9V25a1.8 1.8 0 0 1-1.8 1.8H7.8A1.8 1.8 0 0 1 6 25z" fill="#fff"/>
+  <g fill="#8a3f16">
+    <rect x="9.5"  y="16.4" width="5.2" height="4.4" rx="1.3"/>
+    <rect x="17.3" y="16.4" width="5.2" height="4.4" rx="1.3" fill="#e8913f"/>
+    <rect x="9.5"  y="22.4" width="5.2" height="4.4" rx="1.3"/>
+    <rect x="17.3" y="22.4" width="5.2" height="4.4" rx="1.3"/>
+  </g>
+</svg>
