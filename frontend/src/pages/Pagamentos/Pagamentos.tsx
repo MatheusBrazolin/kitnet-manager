@@ -270,7 +270,7 @@ export function Pagamentos() {
       invalidarDadosDoNegocio(queryClient);
       toast.sucesso('Valor extra registrado');
     } catch (err) {
-      setComplementarError(getApiErrorMessage(err, 'Não foi possível lançar o pagamento complementar.'));
+      setComplementarError(getApiErrorMessage(err, 'Não foi possível registrar o valor.'));
     } finally {
       setIsComplementarSubmitting(false);
     }
@@ -421,7 +421,7 @@ export function Pagamentos() {
           !isViewer && (
             <div className="pagamentos-header-actions">
               <button type="button" className="btn btn-ghost" onClick={openComplementarModal} disabled={moradores.length === 0}>
-                + Complementar
+                + Outro valor
               </button>
               <button type="button" className="btn btn-primary" onClick={openModal} disabled={moradores.length === 0}>
                 + Novo pagamento
@@ -651,7 +651,7 @@ export function Pagamentos() {
                                         onClick={() => desfazerPagamento(row)}
                                         disabled={desfazendoId === row.id}
                                       >
-                                        {desfazendoId === row.id ? 'Revertendo...' : 'Reverter'}
+                                        {desfazendoId === row.id ? 'Desfazendo...' : 'Voltar para em aberto'}
                                       </button>
                                     )}
                                     {(row.status === 'PENDENTE' || row.status === 'ATRASADO') && (
@@ -664,7 +664,7 @@ export function Pagamentos() {
                                           Marcar pago
                                         </button>
                                         <button type="button" className="btn btn-ghost" onClick={() => openAnularModal(row)}>
-                                          Anular
+                                          Não vou receber
                                         </button>
                                       </>
                                     )}
@@ -731,7 +731,7 @@ export function Pagamentos() {
       )}
 
       {isComplementarModalOpen && (
-        <Modal title="Pagamento complementar" onClose={() => setIsComplementarModalOpen(false)}>
+        <Modal title="Outro valor recebido" onClose={() => setIsComplementarModalOpen(false)}>
           <form onSubmit={handleComplementarSubmit} className="field-group">
             <ErrorBanner message={complementarError} />
             <p className="field-static-hint">
@@ -885,7 +885,7 @@ export function Pagamentos() {
 
       {anulando && (
         <Modal
-          title={`Anular · ${anulando.morador.nome} · ${formatMesReferencia(anulando.mesReferencia)}`}
+          title={`Não vou receber · ${anulando.morador.nome} · ${formatMesReferencia(anulando.mesReferencia)}`}
           onClose={() => setAnulando(null)}
         >
           <form onSubmit={handleAnularSubmit} className="field-group">
@@ -904,7 +904,7 @@ export function Pagamentos() {
               />
             </div>
             <button type="submit" className="btn btn-danger" disabled={isAnularSubmitting}>
-              {isAnularSubmitting ? 'Salvando...' : 'Anular pagamento'}
+              {isAnularSubmitting ? 'Salvando...' : 'Marcar como não recebido'}
             </button>
           </form>
         </Modal>

@@ -241,4 +241,76 @@ describe('MoradoresService', () => {
       expect(prisma.kitnet.update).not.toHaveBeenCalled();
     });
   });
+
+  // Antes `kitnetId` era omitido do DTO e a tela mandava "remova e cadastre de novo" —
+  // só que remover cascateia em Pagamento e apaga o histórico financeiro inteiro do
+  // morador. Mudar um inquilino de quarto destruía o passado dele.
+  describe('mudança de unidade', () => {
+    const outraKitnet = {
+      id: 11,
+      userId: ownerId,
+      status: 'vaga',
+      valor: 1000,
+    };
+
+    it('move o morador, ocupa a unidade nova e libera a antiga', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+      prisma.kitnet.findUnique.mockResolvedValue(outraKitnet);
+      prisma.morador.update.mockResolvedValue({
+        ...morador,
+        kitnetId: outraKitnet.id,
+      });
+      prisma.morador.count.mockResolvedValue(0);
+
+      await service.update(ownerId, morador.id, { kitnetId: outraKitnet.id });
+
+      expect(prisma.kitnet.update).toHaveBeenCalledWith({
+        where: { id: outraKitnet.id },
+        data: { status: 'ocupada' },
+      });
+      expect(prisma.kitnet.update).toHaveBeenCalledWith({
+        where: { id: morador.kitnetId },
+        data: { status: 'vaga' },
+      });
+      // O ponto da mudança: nada é apagado.
+      expect(prisma.morador.delete).not.toHaveBeenCalled();
+    });
+
+    it('mantém a unidade antiga ocupada quando ainda resta alguém nela', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+      prisma.kitnet.findUnique.mockResolvedValue(outraKitnet);
+      prisma.morador.update.mockResolvedValue(morador);
+      prisma.morador.count.mockResolvedValue(1);
+
+      await service.update(ownerId, morador.id, { kitnetId: outraKitnet.id });
+
+      expect(prisma.kitnet.update).toHaveBeenCalledTimes(1);
+      expect(prisma.kitnet.update).toHaveBeenCalledWith({
+        where: { id: outraKitnet.id },
+        data: { status: 'ocupada' },
+      });
+    });
+
+    it('recusa mover para uma unidade de outra conta', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+      prisma.kitnet.findUnique.mockResolvedValue({
+        ...outraKitnet,
+        userId: 999,
+      });
+
+      await expect(
+        service.update(ownerId, morador.id, { kitnetId: outraKitnet.id }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(prisma.morador.update).not.toHaveBeenCalled();
+    });
+
+    it('editar só o nome não mexe no status de nenhuma unidade', async () => {
+      prisma.morador.findUnique.mockResolvedValue(morador);
+      prisma.morador.update.mockResolvedValue({ ...morador, nome: 'João P.' });
+
+      await service.update(ownerId, morador.id, { nome: 'João P.' });
+
+      expect(prisma.kitnet.update).not.toHaveBeenCalled();
+    });
+  });
 });

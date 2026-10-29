@@ -130,13 +130,48 @@ export class MoradoresService {
   }
 
   async update(userId: number, id: number, dto: UpdateMoradorDto) {
-    await this.findOwnedOrThrow(userId, id);
-    return this.prisma.morador.update({
-      where: { id },
-      data: {
-        ...dto,
-        dataEntrada: dto.dataEntrada ? new Date(dto.dataEntrada) : undefined,
-      },
+    const atual = await this.findOwnedOrThrow(userId, id);
+
+    const mudandoDeUnidade =
+      dto.kitnetId !== undefined && dto.kitnetId !== atual.kitnetId;
+    if (mudandoDeUnidade) {
+      await this.assertKitnetOwnership(userId, dto.kitnetId!);
+    }
+
+    // Em transação porque trocar de unidade mexe em três registros: o morador e o
+    // status das duas unidades. Se parasse no meio, a unidade antiga ficaria
+    // "ocupada" sem ninguém dentro — e é esse campo que o painel usa para contar
+    // ocupação.
+    return this.prisma.$transaction(async (tx) => {
+      const atualizado = await tx.morador.update({
+        where: { id },
+        data: {
+          ...dto,
+          dataEntrada: dto.dataEntrada ? new Date(dto.dataEntrada) : undefined,
+        },
+      });
+
+      if (mudandoDeUnidade) {
+        // O histórico de pagamentos acompanha o morador, não a unidade: as parcelas
+        // já lançadas continuam dele. É justamente isso que a troca preserva e que
+        // "remover e cadastrar de novo" destruía.
+        await tx.kitnet.update({
+          where: { id: dto.kitnetId! },
+          data: { status: 'ocupada' },
+        });
+
+        const restamNaAntiga = await tx.morador.count({
+          where: { kitnetId: atual.kitnetId, dataSaida: null },
+        });
+        if (restamNaAntiga === 0) {
+          await tx.kitnet.update({
+            where: { id: atual.kitnetId },
+            data: { status: 'vaga' },
+          });
+        }
+      }
+
+      return atualizado;
     });
   }
 

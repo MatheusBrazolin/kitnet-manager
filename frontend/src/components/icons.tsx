@@ -119,3 +119,12 @@ export function GearIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function ChartIcon({ className }: IconProps) {
+  return (
+    <svg {...BASE_PROPS} className={className}>
+      <path d="M3 3v18h18" />
+      <path d="M7 15v-4M12 15V7M17 15v-6" />
+    </svg>
+  );
+}

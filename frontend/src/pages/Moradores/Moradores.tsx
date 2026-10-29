@@ -16,7 +16,7 @@ import { UnitPicker } from '../../components/UnitPicker/UnitPicker';
 import { useConfirm } from '../../components/ConfirmDialog/ConfirmProvider';
 import { useAuth } from '../../hooks/useAuth';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
-import { formatUnidadeLabel } from '../../utils/unidade';
+import { formatUnidadeLabel, linkWhatsApp } from '../../utils/unidade';
 import { StatusBadge } from '../../components/StatusBadge';
 import './moradores.css';
 import { hojeIsoLocal } from '../../utils/dates';
@@ -119,7 +119,7 @@ export function Moradores() {
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    if (editingId === null && kitnetId === null) {
+    if (kitnetId === null) {
       setError('Selecione uma unidade.');
       return;
     }
@@ -130,6 +130,9 @@ export function Moradores() {
         await api.patch(`/moradores/${editingId}`, {
           nome,
           telefone,
+          // Mudar de unidade passou a ser possível: antes a tela mandava remover e
+          // cadastrar de novo, o que apagava todo o histórico de pagamentos.
+          kitnetId,
           dataEntrada,
           diaVencimento: Number(diaVencimento),
         });
@@ -274,13 +277,31 @@ export function Moradores() {
               // Link `tel:` porque cobrar aluguel por telefone/WhatsApp é o fluxo real
               // desse público — antes era texto puro, que obrigava a copiar à mão.
               render: (row) => (
-                <a
-                  className="lista-telefone numero"
-                  href={`tel:${row.telefone.replace(/\D/g, '')}`}
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  {row.telefone}
-                </a>
+                <span className="lista-contato">
+                  <a
+                    className="lista-telefone numero"
+                    href={`tel:${row.telefone.replace(/\D/g, '')}`}
+                    onClick={(event) => event.stopPropagation()}
+                  >
+                    {row.telefone}
+                  </a>
+                  {/* WhatsApp é o canal real de cobrança desse público. A mensagem
+                      já vai pronta para a pessoa só revisar e enviar. */}
+                  <a
+                    className="lista-whatsapp"
+                    href={linkWhatsApp(
+                      row.telefone,
+                      `Olá, ${row.nome.split(' ')[0]}! Tudo bem? Passando para falar do aluguel.`,
+                    )}
+                    target="_blank"
+                    rel="noreferrer"
+                    onClick={(event) => event.stopPropagation()}
+                    aria-label={`Falar com ${row.nome} no WhatsApp`}
+                    title="Falar no WhatsApp"
+                  >
+                    WhatsApp
+                  </a>
+                </span>
               ),
             },
             {
@@ -369,12 +390,12 @@ export function Moradores() {
             </div>
             <div className="field">
               <label htmlFor="kitnetId">Unidade</label>
-              {editingId !== null ? (
+              <UnitPicker id="kitnetId" kitnets={kitnets} value={kitnetId} onChange={setKitnetId} />
+              {editingId !== null && (
                 <p className="field-static-hint">
-                  Não é possível trocar a unidade de um morador já cadastrado — remova e cadastre de novo se precisar mudá-lo.
+                  Pode mudar de unidade à vontade: o histórico de pagamentos vai junto
+                  com o morador.
                 </p>
-              ) : (
-                <UnitPicker id="kitnetId" kitnets={kitnets} value={kitnetId} onChange={setKitnetId} />
               )}
             </div>
             <div className="field">

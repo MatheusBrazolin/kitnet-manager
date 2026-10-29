@@ -123,7 +123,11 @@ describe('RelatoriosService', () => {
     // jamais chegou à conta do proprietário.
     expect(relatorio.sobrou).toBe(2400);
 
-    expect(relatorio.porMes[1]).toMatchObject({ mes: 2, bruto: 1000, gastos: 0 });
+    expect(relatorio.porMes[1]).toMatchObject({
+      mes: 2,
+      bruto: 1000,
+      gastos: 0,
+    });
     expect(relatorio.porMes[6]).toMatchObject({
       mes: 7,
       liquido: 1800,

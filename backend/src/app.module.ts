@@ -15,6 +15,7 @@ import { MoradoresModule } from './modules/moradores/moradores.module';
 import { PagamentosModule } from './modules/pagamentos/pagamentos.module';
 import { GastosModule } from './modules/gastos/gastos.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { RelatoriosModule } from './modules/relatorios/relatorios.module';
 import { MembrosModule } from './modules/membros/membros.module';
 import { PerfilModule } from './modules/perfil/perfil.module';
 import { HealthModule } from './modules/health/health.module';
@@ -53,6 +54,7 @@ import { HealthModule } from './modules/health/health.module';
     PagamentosModule,
     GastosModule,
     DashboardModule,
+    RelatoriosModule,
     MembrosModule,
     PerfilModule,
     HealthModule,

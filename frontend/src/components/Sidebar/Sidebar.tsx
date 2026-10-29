@@ -4,6 +4,7 @@ import {
   BuildingIcon,
   GridIcon,
   HomeIcon,
+  ChartIcon,
   GearIcon,
   LogoutIcon,
   UserPlusIcon,
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { to: '/pagamentos', label: 'Pagamentos', icon: WalletIcon },
   { to: '/gastos', label: 'Gastos', icon: WrenchIcon },
   { to: '/imobiliarias', label: 'Imobiliárias', icon: GridIcon },
+  { to: '/relatorios', label: 'Relatórios', icon: ChartIcon },
 ];
 
 export function Sidebar() {
