@@ -13,7 +13,7 @@ import { MarcarPagoDto } from './dto/marcar-pago.dto';
 import { AnularPagamentoDto } from './dto/anular-pagamento.dto';
 import {
   IMOBILIARIA_PARA_TAXA,
-  KITNET_COM_IMOVEL,
+  KITNET_COM_IMOVEL_E_IMOBILIARIA,
 } from '../../common/prisma/includes';
 import { calcularRepasseDaUnidade } from '../../common/repasse/repasse';
 
@@ -270,7 +270,9 @@ export class PagamentosService {
     const pagamentos = await this.prisma.pagamento.findMany({
       where: { morador: { kitnet: { userId } } },
       include: {
-        morador: { include: { kitnet: KITNET_COM_IMOVEL } },
+        // Com a imobiliária: a tela calcula o líquido de cada parcela, e sem ela
+        // a taxa herdada da administradora virava zero (ver o include).
+        morador: { include: { kitnet: KITNET_COM_IMOVEL_E_IMOBILIARIA } },
       },
       orderBy: [{ mesReferencia: 'desc' }, { vencimento: 'asc' }],
     });
