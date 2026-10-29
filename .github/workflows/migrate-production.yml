@@ -1,0 +1,72 @@
+name: Migrar banco de produção
+
+# A Vercel faz deploy do código a partir do master, mas não roda
+# `prisma migrate deploy` — o schema do banco não acompanhava, e a correção era
+# "lembrar de rodar à mão antes de cada deploy com schema novo" (ver README).
+# Depender de memória para isso significa que, em algum deploy, o código novo
+# vai conversar com um banco velho: coluna que não existe, erro 500 em produção.
+#
+# Então roda aqui, junto do push no master. Antes do deploy terminar na Vercel,
+# o banco já está com as migrations aplicadas.
+#
+# Precisa do secret DATABASE_URL_PRODUCTION no repositório
+# (Settings -> Secrets and variables -> Actions). Sem ele, o job avisa e para,
+# em vez de falhar com um erro de conexão confuso.
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'backend/prisma/migrations/**'
+      - 'backend/prisma/schema.prisma'
+      - '.github/workflows/migrate-production.yml'
+  # Permite rodar à mão pelo painel do Actions, útil para aplicar um backlog de
+  # migrations sem precisar de um commit novo.
+  workflow_dispatch:
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    # Um deploy por vez: duas execuções simultâneas aplicando migrations no
+    # mesmo banco é receita para lock e estado pela metade.
+    concurrency:
+      group: migrate-production
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Confere se o secret existe
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Falta o secret DATABASE_URL_PRODUCTION."
+            echo "Crie em Settings -> Secrets and variables -> Actions."
+            echo "Use a connection string do Supabase; em serverless, prefira a do pooler."
+            exit 1
+          fi
+
+      - run: npm ci
+        working-directory: backend
+
+      - name: Mostra o que falta aplicar
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
+        # `migrate status` sai com código != 0 quando há migration pendente, que
+        # é exatamente o caso normal aqui — por isso o `|| true`. Serve só para
+        # deixar no log o antes e o depois.
+        run: npx prisma migrate status || true
+        working-directory: backend
+
+      - name: Aplica as migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL_PRODUCTION }}
+        run: npx prisma migrate deploy
+        working-directory: backend

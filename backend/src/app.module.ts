@@ -19,10 +19,11 @@ import { RelatoriosModule } from './modules/relatorios/relatorios.module';
 import { MembrosModule } from './modules/membros/membros.module';
 import { PerfilModule } from './modules/perfil/perfil.module';
 import { HealthModule } from './modules/health/health.module';
+import { validarEnv } from './config/env.validation';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate: validarEnv }),
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.LOG_LEVEL ?? 'info',

@@ -173,11 +173,29 @@ Não precisa configurar `VITE_API_URL` nem `CORS_ORIGIN` em produção — como 
 
 Pra rodar os dois serviços localmente do jeito que a Vercel roda em produção: `vercel dev` (requer Vercel CLI ≥ 48.4.0).
 
-**Migrações:** o Vercel não roda `prisma migrate deploy` sozinho. Rode localmente antes de cada deploy com schema novo:
+**Migrações:** o Vercel não roda `prisma migrate deploy` sozinho. Isso é automatizado pelo workflow
+[`migrate-production.yml`](.github/workflows/migrate-production.yml), que roda a cada push no `master`
+que toque `backend/prisma/` — e também pode ser disparado à mão pelo painel do Actions.
+
+Para funcionar, ele precisa do secret **`DATABASE_URL_PRODUCTION`** em
+*Settings → Secrets and variables → Actions*. Sem o secret, o job para com um aviso em vez de
+falhar com erro de conexão confuso.
+
+Se precisar aplicar à mão (ex.: antes de configurar o secret):
 ```bash
 cd backend
 DATABASE_URL="<url-de-produção>" npx prisma migrate deploy
 ```
+
+**Variáveis obrigatórias:** `DATABASE_URL` e `JWT_SECRET` são conferidas no boot
+([`env.validation.ts`](backend/src/config/env.validation.ts)). Faltando alguma, a API não sobe e o log
+diz exatamente qual é e onde arrumar — em vez de morrer com um stack trace de dentro do `passport-jwt`.
+Na Vercel, confira que estão marcadas para o ambiente **Production**.
+
+**Diagnóstico de pane:** `GET /api/health` responde mesmo com o banco fora (o Prisma conecta
+preguiçosamente, na primeira query). `200` com `database: "up"` quer dizer tudo certo; `503` com
+`database: "down"` e uma `causa` quer dizer que a aplicação subiu mas o banco não respondeu. Se nem
+essa rota responder, o problema é anterior: a função não subiu.
 
 ### Limitação a saber
 

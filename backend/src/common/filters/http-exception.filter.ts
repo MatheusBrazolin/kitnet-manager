@@ -14,6 +14,9 @@ interface ErrorResponseBody {
   statusCode: number;
   message: string | string[];
   error: string;
+  // Campos extras que o próprio controller colocou no corpo da exceção. Ver
+  // o comentário em `resolve`.
+  [extra: string]: unknown;
 }
 
 // Filtro global: padroniza toda resposta de erro no formato
@@ -67,7 +70,17 @@ export class HttpExceptionFilter implements ExceptionFilter {
       const error =
         (responseObject.error as string | undefined) ?? exception.name;
 
-      return { statusCode, body: { statusCode, message, error } };
+      // Os três campos canônicos são recalculados acima; o resto do objeto é
+      // coisa que quem lançou escolheu expor e segue adiante. É o que mantém o
+      // `/health` útil: ele responde 503 com `database` e `causa`, e sem isto o
+      // filtro achatava tudo para "Http Exception" — justamente durante uma
+      // pane, que é quando esses campos valem alguma coisa.
+      const extras = { ...responseObject };
+      delete extras.statusCode;
+      delete extras.message;
+      delete extras.error;
+
+      return { statusCode, body: { statusCode, message, error, ...extras } };
     }
 
     // Erros conhecidos do Prisma são falha de uso, não bug: virar 500 aqui escondia a
