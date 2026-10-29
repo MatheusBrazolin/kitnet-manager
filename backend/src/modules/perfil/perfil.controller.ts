@@ -1,4 +1,5 @@
 import { Body, Controller, Patch, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import {
   CurrentUser,
@@ -29,6 +30,11 @@ export class PerfilController {
     return this.perfilService.update(user.id, dto);
   }
 
+  // 5/min como no login, e não os 60/min do teto global: esta rota é um oráculo de
+  // `senhaAtual`. Quem já tem um token (sessão deixada aberta, aparelho emprestado)
+  // teria ~86 mil tentativas por dia para adivinhar a senha e então trocá-la,
+  // assumindo a conta.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Patch('senha')
   updateSenha(
     @CurrentUser() user: AuthenticatedUser,

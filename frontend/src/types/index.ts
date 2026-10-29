@@ -224,3 +224,48 @@ export interface DashboardSummary {
     valor: number;
   }>;
 }
+
+/** Um mês do relatório anual — os 12 vêm sempre, zerados quando não houve movimento. */
+export interface RelatorioMes {
+  /** 1 a 12. */
+  mes: number;
+  label: string;
+  bruto: number;
+  taxas: number;
+  liquido: number;
+  gastos: number;
+}
+
+export interface RelatorioImovel {
+  imovelId: number;
+  nome: string;
+  bruto: number;
+  taxas: number;
+  liquido: number;
+  gastos: number;
+}
+
+export interface RelatorioImobiliaria {
+  /** Nulo na linha de "Gestão direta" — unidades alugadas sem administradora. */
+  imobiliariaId: number | null;
+  nome: string;
+  bruto: number;
+  taxas: number;
+  liquido: number;
+}
+
+/** O ano fechado: o recorte que o proprietário leva para a declaração de imposto. */
+export interface RelatorioAnual {
+  ano: number;
+  /** Anos com algum pagamento ou gasto — o seletor não oferece ano vazio. */
+  anosDisponiveis: number[];
+  bruto: number;
+  taxas: number;
+  liquido: number;
+  gastos: number;
+  /** Líquido menos gastos. */
+  sobrou: number;
+  porMes: RelatorioMes[];
+  porImovel: RelatorioImovel[];
+  porImobiliaria: RelatorioImobiliaria[];
+}

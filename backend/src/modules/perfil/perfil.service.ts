@@ -31,7 +31,27 @@ export class PerfilService {
     userId: number,
     dto: UpdatePerfilDto,
   ): Promise<AuthenticatedUser> {
-    if (dto.email !== undefined) {
+    const atual = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!atual) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+
+    const trocandoEmail = dto.email !== undefined && dto.email !== atual.email;
+
+    if (trocandoEmail) {
+      // O e-mail é o login e o único caminho de recuperação da conta. Como ainda não
+      // há confirmação por link, a senha atual é a prova de identidade — sem ela, um
+      // token vazado trocaria o e-mail e a pessoa perderia a conta em silêncio.
+      if (!dto.senhaAtual) {
+        throw new BadRequestException(
+          'Para trocar o e-mail, confirme sua senha atual.',
+        );
+      }
+      const senhaConfere = await bcrypt.compare(dto.senhaAtual, atual.password);
+      if (!senhaConfere) {
+        throw new UnauthorizedException('Senha atual incorreta.');
+      }
+
       const existente = await this.prisma.user.findUnique({
         where: { email: dto.email },
       });
@@ -78,10 +98,18 @@ export class PerfilService {
     const hash = await bcrypt.hash(dto.novaSenha, SALT_ROUNDS);
     await this.prisma.user.update({
       where: { id: userId },
-      data: { password: hash },
+      data: {
+        password: hash,
+        // Carimbo lido pela JwtStrategy: todo token emitido antes deste instante
+        // deixa de valer, derrubando sessões abertas em outros aparelhos.
+        passwordChangedAt: new Date(),
+      },
     });
 
-    return { mensagem: 'Senha alterada com sucesso.' };
+    return {
+      mensagem:
+        'Senha alterada. As sessões abertas em outros aparelhos foram encerradas.',
+    };
   }
 
   /** Mesmo shape devolvido por GET /auth/me (ver jwt.strategy.ts) — e sem `password`. */

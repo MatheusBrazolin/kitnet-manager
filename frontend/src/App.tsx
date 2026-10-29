@@ -13,6 +13,9 @@ const Moradores = lazy(() => import('./pages/Moradores/Moradores').then((m) => (
 const Pagamentos = lazy(() => import('./pages/Pagamentos/Pagamentos').then((m) => ({ default: m.Pagamentos })));
 const Gastos = lazy(() => import('./pages/Gastos/Gastos').then((m) => ({ default: m.Gastos })));
 const Equipe = lazy(() => import('./pages/Equipe/Equipe').then((m) => ({ default: m.Equipe })));
+const Relatorios = lazy(() =>
+  import('./pages/Relatorios/Relatorios').then((m) => ({ default: m.Relatorios })),
+);
 const NaoEncontrado = lazy(() =>
   import('./pages/NaoEncontrado/NaoEncontrado').then((m) => ({ default: m.NaoEncontrado })),
 );
@@ -87,6 +90,14 @@ function App() {
           element={
             <Suspense fallback={<RouteFallback />}>
               <Imobiliarias />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/relatorios"
+          element={
+            <Suspense fallback={<RouteFallback />}>
+              <Relatorios />
             </Suspense>
           }
         />

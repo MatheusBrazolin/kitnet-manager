@@ -456,7 +456,7 @@ export function Imoveis() {
                         return taxa > 0 ? (
                           <span className="imovel-valor-com-imobiliaria">
                             {formatCurrency(row.valor)}
-                            <small>líq. {formatCurrency(liquido)}</small>
+                            <small>você recebe {formatCurrency(liquido)}</small>
                           </span>
                         ) : (
                           formatCurrency(row.valor)

@@ -52,13 +52,18 @@ enum TipoPagamento {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  plano     Plano    @default(FREE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                Int       @id @default(autoincrement())
+  name              String
+  email             String    @unique
+  password          String
+  // Quando a senha foi trocada pela última vez. O JWT é stateless e vale 7 dias, então
+  // sem esta marca um token roubado continuava funcionando mesmo depois de a vítima
+  // perceber o vazamento e trocar a senha. A JwtStrategy recusa qualquer token emitido
+  // antes desta data.
+  passwordChangedAt DateTime?
+  plano             Plano     @default(FREE)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   kitnets      Kitnet[]
   imoveis      Imovel[]

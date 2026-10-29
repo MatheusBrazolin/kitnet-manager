@@ -519,3 +519,23 @@ a {
   min-width: 0;
   flex: 1 1 260px;
 }
+
+/* Telefone e WhatsApp lado a lado na linha do morador. */
+.lista-contato {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.lista-whatsapp {
+  font-size: var(--text-sm);
+  color: var(--color-positive);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.lista-whatsapp:hover {
+  text-decoration: underline;
+}

@@ -156,3 +156,9 @@
 .notification-bell-item-valor small {
   color: var(--color-ink-muted);
 }
+
+/* Atalho para o caso comum: a imobiliária avisa o mês inteiro de uma vez. */
+.notification-bell-confirmar-todos {
+  width: 100%;
+  margin-bottom: var(--space-2);
+}
