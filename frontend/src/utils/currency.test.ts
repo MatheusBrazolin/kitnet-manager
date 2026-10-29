@@ -36,3 +36,26 @@ describe('formatCompactCurrency', () => {
     expect(formatCompactCurrency(15500)).not.toContain(NON_BREAKING_SPACE);
   });
 });
+
+// Um campo que o backend ainda não devolve, um null de registro antigo ou uma conta
+// que deu NaN apareciam como "R$ NaN" na tela — indistinguível, para quem usa, de um
+// bug no próprio saldo.
+describe('valores ausentes ou inválidos', () => {
+  it.each([
+    [undefined, 'R$ 0,00'],
+    [null, 'R$ 0,00'],
+    [NaN, 'R$ 0,00'],
+    [Infinity, 'R$ 0,00'],
+  ])('formata %s como %s em vez de NaN', (entrada, esperado) => {
+    expect(formatCurrency(entrada as number)).toBe(esperado);
+  });
+
+  // Sem fixar a string exata: a notação compacta do Intl varia com a versão do ICU
+  // (o mesmo zero sai como "R$ 0" aqui e "R$ 0,0" no runner do CI). O que precisa
+  // valer é a ausência de NaN, não a grafia.
+  it('o formato compacto também não produz NaN', () => {
+    const formatado = formatCompactCurrency(undefined as unknown as number);
+    expect(formatado).not.toContain('NaN');
+    expect(formatado).toMatch(/^R\$ 0/);
+  });
+});

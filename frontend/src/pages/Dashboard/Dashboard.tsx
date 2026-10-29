@@ -46,7 +46,10 @@ export function Dashboard() {
   const error = queryError
     ? getApiErrorMessage(queryError, 'Não foi possível carregar o painel.')
     : null;
-  const isEmpty = summary?.totalKitnets === 0;
+  // O onboarding durava só até a primeira unidade ser cadastrada (`totalKitnets === 0`),
+  // e sumia levando junto o passo 3 — justamente o que faz o painel ganhar números.
+  // Agora ele fica até existir o primeiro morador.
+  const configurando = summary !== undefined && summary.ocupadas === 0;
   const mesAtual = MESES[new Date().getMonth()];
   const primeiroNome = user?.name.split(' ')[0] ?? '';
 
@@ -66,14 +69,17 @@ export function Dashboard() {
         </div>
       )}
 
-      {summary && isEmpty && (
+      {summary && configurando && (
         <>
           <h1 className="dashboard-saudacao">Olá, {primeiroNome}</h1>
-          <OnboardingEmptyState />
+          <OnboardingEmptyState
+            totalImoveis={summary.totalImoveis}
+            totalUnidades={summary.totalKitnets}
+          />
         </>
       )}
 
-      {summary && !isEmpty && (
+      {summary && !configurando && (
         <>
           {/*
             Uma pergunta, uma resposta. Antes havia oito cards idênticos e o número que

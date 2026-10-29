@@ -55,7 +55,7 @@ export class DashboardService {
   ) {}
 
   async getSummary(userId: number) {
-    const [, kitnets] = await Promise.all([
+    const [, kitnets, totalImoveis] = await Promise.all([
       this.pagamentosService.ensurePagamentosParaConta(userId),
       // A imobiliária entra aqui porque a projeção de taxa precisa dela: uma unidade
       // sem taxa própria segue a taxa padrão da administradora, e um percentual só pode
@@ -70,6 +70,9 @@ export class DashboardService {
           imobiliaria: IMOBILIARIA_PARA_TAXA,
         },
       }),
+      // Usado só pelo passo-a-passo de boas-vindas, para saber se o primeiro imóvel
+      // já existe mesmo quando ainda não há nenhuma unidade dentro dele.
+      this.prisma.imovel.count({ where: { userId } }),
     ]);
 
     const totalKitnets = kitnets.length;
@@ -207,6 +210,7 @@ export class DashboardService {
     );
 
     return {
+      totalImoveis,
       totalKitnets,
       ocupadas,
       vagas: totalKitnets - ocupadas,

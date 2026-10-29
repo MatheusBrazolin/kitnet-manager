@@ -146,3 +146,13 @@
   font-weight: 500;
   color: var(--color-brand-strong);
 }
+
+/* O que de fato vai cair na conta, que é o número gravado ao confirmar. O aluguel
+   cheio aparece ao lado só como referência, menor. */
+.notification-bell-item-valor {
+  font-size: var(--text-sm);
+}
+
+.notification-bell-item-valor small {
+  color: var(--color-ink-muted);
+}

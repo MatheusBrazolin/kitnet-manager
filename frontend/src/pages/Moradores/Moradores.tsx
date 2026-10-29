@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import { firstErrorMessage } from '../../utils/queryError';
@@ -212,7 +213,12 @@ export function Moradores() {
       />
 
       {!isLoadingKitnets && kitnets.length === 0 && (
-        <p className="form-error">Cadastre um imóvel e uma unidade antes de adicionar moradores.</p>
+        <div className="pre-requisito">
+          <p>Para cadastrar um morador, primeiro crie o imóvel e as unidades dele.</p>
+          <Link to="/imoveis" className="btn btn-ghost btn-sm">
+            Ir para Imóveis
+          </Link>
+        </div>
       )}
       <ErrorBanner message={displayedError} />
 

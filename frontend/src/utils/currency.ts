@@ -15,10 +15,22 @@ function stripNonBreakingSpace(value: string): string {
   return value.split(NON_BREAKING_SPACE).join(' ');
 }
 
-export function formatCurrency(value: number): string {
-  return stripNonBreakingSpace(currencyFormatter.format(value));
+/**
+ * Um valor ausente ou inválido vira R$ 0,00, nunca "R$ NaN".
+ *
+ * Num app de dinheiro isso importa mais que a média: um campo novo que o backend
+ * ainda não devolve, um `null` vindo de registro antigo ou uma conta que deu NaN
+ * apareciam na tela como "R$ NaN" — o usuário não distingue isso de um bug grave
+ * no saldo dele, e a tela inteira perde a credibilidade por um campo só.
+ */
+function numeroSeguro(value: number | null | undefined): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
 }
 
-export function formatCompactCurrency(value: number): string {
-  return stripNonBreakingSpace(compactCurrencyFormatter.format(value));
+export function formatCurrency(value: number | null | undefined): string {
+  return stripNonBreakingSpace(currencyFormatter.format(numeroSeguro(value)));
+}
+
+export function formatCompactCurrency(value: number | null | undefined): string {
+  return stripNonBreakingSpace(compactCurrencyFormatter.format(numeroSeguro(value)));
 }

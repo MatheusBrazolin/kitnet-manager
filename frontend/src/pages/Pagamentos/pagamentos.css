@@ -154,3 +154,13 @@
   border-top: var(--border-width) solid var(--color-border);
   font-weight: 700;
 }
+
+/* Valor de uma parcela paga: o líquido em destaque e, abaixo, de onde ele veio.
+   Sem a segunda linha o número não bate com o bruto que a pessoa combinou com o
+   morador, e isso gera dúvida justamente onde ela precisa confiar. */
+.payment-valor {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.1rem;
+}

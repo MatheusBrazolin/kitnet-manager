@@ -394,6 +394,14 @@ a {
   .imovel-card-edit-menu button {
     min-height: 44px;
   }
+
+  /* Os botões de ação das listas (Editar / Marcar pago / Registrar saída) são os
+     mais tocados do app e ficavam em ~36px — abaixo do mínimo, e vêm três lado a
+     lado no rodapé do cartão. */
+  .table-card-actions .btn,
+  .table-row-actions .btn {
+    min-height: 44px;
+  }
 }
 
 /**
@@ -486,4 +494,28 @@ a {
     min-width: 0;
     width: 100%;
   }
+}
+
+/* Aviso de pré-requisito com saída.
+   Eram frases soltas em vermelho ("Cadastre um imóvel antes...") que diziam o que
+   faltava e deixavam a pessoa parada: o botão da tela estava desabilitado e não
+   havia nada clicável. O tom também não é de erro — nada deu errado, só falta um
+   passo anterior. */
+.pre-requisito {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-warning-soft);
+  color: var(--color-warning-ink);
+  font-size: var(--text-sm);
+}
+
+.pre-requisito p {
+  min-width: 0;
+  flex: 1 1 260px;
 }

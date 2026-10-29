@@ -24,6 +24,7 @@ const ALERTA: PagamentoAlerta = {
   imovel: 'Kitnet Central',
   kitnet: '43',
   valor: 1400,
+  valorLiquido: 1260,
   vencimento: '2026-09-21T00:00:00.000Z',
   venceHoje: true,
 };
@@ -65,6 +66,18 @@ describe('NotificationBell', () => {
 
     await waitFor(() => expect(patchSpy).toHaveBeenCalledTimes(1));
     expect(patchSpy).toHaveBeenCalledWith('/pagamentos/77/marcar-pago', {});
+  });
+
+  // Confirmar pelo sino grava o LÍQUIDO calculado pela taxa da unidade. Antes o alerta
+  // exibia só o aluguel cheio, então a pessoa confirmava um número e outro era salvo.
+  it('mostra o valor que vai cair na conta, com o aluguel cheio como referência', async () => {
+    vi.spyOn(api, 'get').mockResolvedValue({ data: [ALERTA] });
+
+    renderBell();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Notificações de pagamento' }));
+    expect(await screen.findByText('R$ 1.260,00')).toBeInTheDocument();
+    expect(screen.getByText(/de R\$ 1\.400,00/)).toBeInTheDocument();
   });
 
   it('mostra a mensagem de erro da API quando a confirmação falha', async () => {

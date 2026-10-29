@@ -299,7 +299,18 @@ export class PagamentosService {
         morador: { kitnet: { userId } },
       },
       include: {
-        morador: { include: { kitnet: KITNET_COM_IMOVEL } },
+        morador: {
+          include: {
+            kitnet: {
+              include: {
+                imovel: true,
+                // A imobiliária entra para o alerta poder mostrar quanto de fato vai
+                // cair na conta, e não só o aluguel cheio.
+                imobiliaria: IMOBILIARIA_PARA_TAXA,
+              },
+            },
+          },
+        },
       },
       orderBy: { vencimento: 'asc' },
     });
@@ -307,6 +318,15 @@ export class PagamentosService {
     return pendentes.map((pagamento) => ({
       id: pagamento.id,
       valor: pagamento.valor,
+      // Quanto sobra depois da taxa da administradora. Confirmar pelo sino grava
+      // exatamente este número (ver `marcarPago`), então ele precisa estar à vista —
+      // antes o alerta mostrava só o aluguel cheio e a pessoa confirmava um valor
+      // diferente do que seria registrado.
+      valorLiquido: calcularRepasseDaUnidade(
+        pagamento.valor,
+        pagamento.morador.kitnet,
+        pagamento.morador.kitnet.imobiliaria,
+      ).liquido,
       vencimento: pagamento.vencimento,
       morador: pagamento.morador.nome,
       kitnet: pagamento.morador.kitnet.numero,
