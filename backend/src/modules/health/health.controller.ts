@@ -1,10 +1,13 @@
 import {
   Controller,
   Get,
+  HttpCode,
   HttpException,
   HttpStatus,
   Logger,
+  Post,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { PrismaService } from '../../database/prisma.service';
 
 /**
@@ -91,5 +94,34 @@ export class HealthController {
         HttpStatus.SERVICE_UNAVAILABLE,
       );
     }
+  }
+  /**
+   * Escrita periódica para o banco não ser pausado por inatividade.
+   *
+   * Rota separada do `GET /health` de propósito: healthcheck é leitura, e um GET que
+   * escreve surpreende quem o chama — inclusive monitoradores externos, que costumam
+   * bater de minuto em minuto.
+   *
+   * Sobrescreve sempre a mesma linha (`id: 1`), então a tabela nunca cresce e não há
+   * registro fictício para limpar depois. Chamada pelo workflow
+   * `manter-banco-ativo.yml`.
+   *
+   * Sem autenticação porque o agendador do GitHub não tem sessão; o dano possível é
+   * reescrever um carimbo de data numa tabela que nenhuma tela lê. O throttle global
+   * (60/min) já limita o abuso.
+   */
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @HttpCode(HttpStatus.OK)
+  @Post('atividade')
+  async registrarAtividade() {
+    // Data explícita nos dois lados: é o que garante que uma escrita de verdade vá
+    // ao banco. Ver o comentário em `AtividadeBanco` no schema.
+    const agora = new Date();
+    const marca = await this.prisma.atividadeBanco.upsert({
+      where: { id: 1 },
+      create: { id: 1, atualizadoEm: agora },
+      update: { atualizadoEm: agora },
+    });
+    return { atualizadoEm: marca.atualizadoEm };
   }
 }

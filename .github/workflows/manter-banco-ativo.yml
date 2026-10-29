@@ -5,8 +5,14 @@ name: Manter banco ativo
 # e nada na interface explica o motivo. Já aconteceu, e custou uma tarde de investigação
 # até chegar no painel do Supabase e ver "Project is paused".
 #
-# Este workflow bate no /api/health, que executa um `SELECT 1`. Isso conta como
-# atividade e segura a pausa.
+# Este workflow grava no banco: chama POST /api/health/atividade, que sobrescreve o
+# carimbo de uma tabela de uma linha só (`AtividadeBanco`). Escrita, e não apenas
+# leitura, porque é o sinal de atividade mais forte — e o Supabase não documenta
+# exatamente o que conta.
+#
+# Tabela dedicada em vez de inserir e apagar um registro fictício em `Morador` ou
+# `Pagamento`: se o DELETE falhasse uma vez, sobraria um morador fantasma nos
+# relatórios de dinheiro e ninguém notaria até conferir com o contador.
 #
 # Segunda e quinta, não semanal: o cron do GitHub Actions é "best effort" e atrasa em
 # horário de pico, então uma execução perdida não pode chegar perto dos 7 dias. Assim o
@@ -28,21 +34,30 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Acorda o banco pelo healthcheck
+      - name: Grava a marca de atividade
         run: |
-          echo "Consultando $URL/api/health"
+          echo "Gravando em $URL/api/health/atividade"
 
           # --max-time cobre o cold start da função serverless, que é lento quando
           # ninguém acessa há dias — justamente o caso aqui.
-          corpo=$(curl -s --max-time 60 "$URL/api/health" || true)
+          corpo=$(curl -s --max-time 60 -X POST "$URL/api/health/atividade" || true)
           echo "Resposta: $corpo"
 
-          if echo "$corpo" | grep -q '"database":"up"'; then
-            echo "Banco respondeu. Nada a fazer."
+          if echo "$corpo" | grep -q 'atualizadoEm'; then
+            echo "Escrita confirmada. O banco registrou atividade."
             exit 0
           fi
 
           # Falhar aqui é de propósito: o GitHub manda e-mail quando um job falha, e é
           # assim que você fica sabendo ANTES de tentar usar o app e não conseguir.
-          echo "::error::O banco não respondeu. Veja se o projeto no Supabase foi pausado: https://supabase.com/dashboard"
+          echo "::error::A escrita não foi confirmada. Veja se o projeto no Supabase foi pausado: https://supabase.com/dashboard"
           exit 1
+
+      - name: Confere a saúde geral
+        run: |
+          corpo=$(curl -s --max-time 60 "$URL/api/health" || true)
+          echo "Resposta: $corpo"
+          echo "$corpo" | grep -q '"database":"up"' || {
+            echo "::error::O healthcheck não reportou o banco no ar."
+            exit 1
+          }
