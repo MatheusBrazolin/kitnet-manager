@@ -96,6 +96,9 @@ jobs:
       - name: Typecheck
         run: npm run typecheck
 
+      - name: Contraste dos botões coloridos
+        run: npm run verificar:contraste
+
       - name: Testes
         run: npm test -- --run
 

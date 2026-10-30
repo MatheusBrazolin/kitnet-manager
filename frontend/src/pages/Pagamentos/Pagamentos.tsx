@@ -658,12 +658,16 @@ export function Pagamentos() {
                                       <>
                                         <button
                                           type="button"
-                                          className="btn btn-ghost"
+                                          className="btn btn-confirmar"
                                           onClick={() => openMarcarPagoModal(row)}
                                         >
                                           Marcar pago
                                         </button>
-                                        <button type="button" className="btn btn-ghost" onClick={() => openAnularModal(row)}>
+                                        <button
+                                          type="button"
+                                          className="btn btn-recusar"
+                                          onClick={() => openAnularModal(row)}
+                                        >
                                           Não vou receber
                                         </button>
                                       </>

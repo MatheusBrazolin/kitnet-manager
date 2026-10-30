@@ -382,6 +382,11 @@ export function Imoveis() {
                 }
               >
                 {!isViewer && (
+                  /* As duas ações do imóvel na mesma linha, uma em cada ponta.
+                     Antes eram dois blocos empilhados: o botão à esquerda e, numa
+                     linha só para ele, o lápis encostado à direita — um ícone solto
+                     entre o botão e o primeiro cartão de unidade, sem nada por perto
+                     que dissesse o que ele editava. */
                   <div className="imovel-card-acoes">
                     {/* Fora do menu: adicionar unidade é a ação fundadora do produto e
                         estava a três cliques de distância, escondida atrás de um ícone
@@ -393,11 +398,8 @@ export function Imoveis() {
                     >
                       + Adicionar unidades
                     </button>
-                  </div>
-                )}
 
-                {!isViewer && (
-                  <div className="imovel-card-edit" ref={menuImovelId === imovel.id ? menuRef : undefined}>
+                    <div className="imovel-card-edit" ref={menuImovelId === imovel.id ? menuRef : undefined}>
                     <button
                       type="button"
                       className="imovel-card-edit-trigger"
@@ -434,6 +436,7 @@ export function Imoveis() {
                         </button>
                       </div>
                     )}
+                    </div>
                   </div>
                 )}
 
