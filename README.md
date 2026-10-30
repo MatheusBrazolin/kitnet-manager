@@ -181,6 +181,15 @@ Para funcionar, ele precisa do secret **`DATABASE_URL_PRODUCTION`** em
 *Settings → Secrets and variables → Actions*. Sem o secret, o job para com um aviso em vez de
 falhar com erro de conexão confuso.
 
+> **Use a conexão direta (porta 5432), não a do pooler.** Este secret não é a mesma string que a
+> aplicação usa: a Vercel roda em serverless e precisa do pooler de transação (6543), enquanto o
+> `migrate deploy` é um processo só, de vida longa, que toma um advisory lock e usa prepared
+> statements — dois recursos que o pgbouncer em modo transação não suporta. Com a string do
+> pooler, a migração falha no meio.
+>
+> No painel do Supabase: *Project Settings → Database → Connection string → **Direct connection***,
+> trocando `[YOUR-PASSWORD]` pela senha do banco.
+
 Se precisar aplicar à mão (ex.: antes de configurar o secret):
 ```bash
 cd backend

@@ -12,6 +12,13 @@ name: Migrar banco de produção
 # Precisa do secret DATABASE_URL_PRODUCTION no repositório
 # (Settings -> Secrets and variables -> Actions). Sem ele, o job avisa e para,
 # em vez de falhar com um erro de conexão confuso.
+#
+# Esse secret NÃO é a mesma string que a aplicação usa. A Vercel roda em
+# serverless e precisa do pooler de transação (porta 6543), que abre e fecha
+# conexão a cada requisição. Aqui é o oposto: um processo só, de vida longa,
+# rodando `migrate deploy` — que toma um advisory lock e usa prepared
+# statements, dois recursos que o pgbouncer em modo transação não suporta. Com
+# a string do pooler, a migração falha no meio. Use a conexão direta (5432).
 
 on:
   push:
@@ -49,7 +56,9 @@ jobs:
           if [ -z "$DATABASE_URL" ]; then
             echo "::error::Falta o secret DATABASE_URL_PRODUCTION."
             echo "Crie em Settings -> Secrets and variables -> Actions."
-            echo "Use a connection string do Supabase; em serverless, prefira a do pooler."
+            echo "Use a connection DIRETA do Supabase (porta 5432), não a do pooler de transação."
+            echo "Migração usa advisory lock e prepared statements, que o pgbouncer em modo"
+            echo "transação (porta 6543) não suporta — o deploy falha no meio."
             exit 1
           fi
 
