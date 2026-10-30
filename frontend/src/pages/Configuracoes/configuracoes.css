@@ -4,8 +4,137 @@
   gap: var(--space-4);
   padding-bottom: var(--space-8);
   /* Formulários de conta não ganham nada em ficar largos — uma linha de 1200px
-     de largura para o campo "Nome" é mais difícil de ler, não mais fácil. */
-  max-width: 680px;
+     de largura para o campo "Nome" é mais difícil de ler, não mais fácil. Antes
+     isso se resolvia estreitando a página inteira em 680px, o que deixava metade
+     de um monitor de 1440px vazia. Agora o limite é maior e quem segura a largura
+     dos campos é a grade de duas colunas abaixo: o campo continua com ~500px, e
+     a tela deixa de parecer inacabada. */
+  max-width: 1100px;
+}
+
+/* ---- Quem você é ---------------------------------------------------------- */
+.config-identidade {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  background: var(--color-surface);
+  border: var(--border-width) solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.config-identidade-dados {
+  min-width: 0;
+}
+
+.config-identidade-dados h2 {
+  font-size: var(--text-xl);
+  letter-spacing: -0.02em;
+  /* Nome longo encurta com reticências em vez de empurrar os selos para fora. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.config-identidade-email {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  margin-top: 0.1rem;
+}
+
+.config-selos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.config-selo {
+  font-size: var(--text-xs);
+  padding: 0.2rem var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--color-surface-sunken);
+  color: var(--color-ink-muted);
+  white-space: nowrap;
+}
+
+.config-selo-discreto {
+  background: transparent;
+  border: var(--border-width) solid var(--color-border-strong);
+}
+
+/* ---- Duas colunas --------------------------------------------------------- */
+.config-grade {
+  display: grid;
+  /* `auto-fit` com mínimo de 28rem: vira uma coluna sozinho em tela estreita, sem
+     media query e sem escolher um breakpoint arbitrário.
+     O `min(28rem, 100%)` não é enfeite: `minmax(28rem, 1fr)` puro impõe 448px de
+     largura mínima à coluna, então num celular de 375px os cards vazavam para fora
+     da tela — a página inteira ganhava rolagem horizontal. */
+  grid-template-columns: repeat(auto-fit, minmax(min(28rem, 100%), 1fr));
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.config-coluna {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* ---- Rótulo de subgrupo dentro de um card --------------------------------- */
+.config-subtitulo-campo {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-ink-muted);
+  margin-bottom: var(--space-3);
+}
+
+.config-subtitulo-espacado {
+  margin-top: var(--space-5);
+}
+
+/* ---- Cor do avatar -------------------------------------------------------- */
+.avatar-cores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.avatar-cor {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  /* O anel fica FORA do círculo, com box-shadow, para a cor escolhida não encolher
+     ao ser selecionada — borda por dentro comeria 4px do tom. */
+  cursor: pointer;
+  padding: 0;
+  transition: box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.avatar-cor-ativa {
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-ink);
+}
+
+.avatar-cor:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 4px var(--color-border-focus);
+}
+
+@media (max-width: 640px) {
+  .config-identidade {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+  }
 }
 
 .configuracoes-acoes {
@@ -188,4 +317,43 @@
   .configuracoes-acoes .btn {
     width: 100%;
   }
+}
+
+/* ---- Foto de perfil ------------------------------------------------------- */
+.config-foto {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+}
+
+/* Escondido sem `display: none`: o input precisa continuar focável e clicável por
+   programa, e `display: none` o tira da árvore de acessibilidade junto. */
+.config-foto-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.config-foto-acoes {
+  display: flex;
+  gap: var(--space-1);
+}
+
+/* Sob o avatar a fileira de 8 tons precisa caber em duas linhas de 4, senão o
+   painel de identidade fica mais alto que o conteúdo ao lado. */
+.config-foto .avatar-cores {
+  display: grid;
+  grid-template-columns: repeat(4, auto);
+  gap: var(--space-2);
+  justify-content: center;
+  margin-bottom: 0;
+}
+
+.config-foto .avatar-cor {
+  width: 1.5rem;
+  height: 1.5rem;
 }

@@ -102,6 +102,13 @@ model User {
   name              String
   email             String    @unique
   password          String
+  // Contato do próprio usuário, opcional. Não é usado pelo sistema para nada — existe
+  // para quem divide a conta com um cônjuge ou um gerente saber a quem recorrer.
+  telefone          String?
+  // Cor do avatar de iniciais, escolhida nas configurações. Guardada como o NOME do
+  // tom (ex. "terracota"), não como hexadecimal: assim trocar a paleta do app atualiza
+  // os avatares de todo mundo, em vez de congelar a cor de 2026 no banco.
+  avatarCor         String?
   // Quando a senha foi trocada pela última vez. O JWT é stateless e vale 7 dias, então
   // sem esta marca um token roubado continuava funcionando mesmo depois de a vítima
   // perceber o vazamento e trocar a senha. A JwtStrategy recusa qualquer token emitido
@@ -116,10 +123,36 @@ model User {
   imobiliarias Imobiliaria[]
 
   // Pessoas com acesso à minha conta (eu sou o "dono" dos dados).
+  foto              UsuarioFoto?
   membros           Membro[]           @relation("MembrosDaConta")
   // Minha própria filiação, caso eu seja membro da conta de outra pessoa.
   filiacao          Membro?            @relation("FiliacaoDoUsuario")
   tokensRecuperacao TokenRecuperacao[]
+}
+
+/**
+ * Foto de perfil, numa tabela à parte e não numa coluna de `User`.
+ *
+ * `JwtStrategy` carrega o usuário a cada requisição autenticada. Com os bytes da
+ * imagem na mesma linha, todo request do app arrastaria ~20 KB de binário do banco
+ * para descartá-los em seguida — numa conexão serverless isso é caro e constante.
+ * Separada, a foto só é lida por quem pede a foto.
+ *
+ * Guardada no Postgres, e não num bucket de objetos: evita uma dependência nova de
+ * infraestrutura (credencial, bucket, URL assinada) para um arquivo de ~20 KB por
+ * usuário, já que o navegador redimensiona para 256x256 WebP antes de enviar. Se um
+ * dia houver volume que justifique CDN, trocar o armazenamento é mudança contida —
+ * as rotas e o contrato com a tela continuam os mesmos.
+ */
+model UsuarioFoto {
+  userId Int  @id
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dados Bytes
+  /** MIME conferido no servidor pelos bytes do arquivo, não pelo que o cliente diz. */
+  tipo  String
+
+  atualizadaEm DateTime @updatedAt
 }
 
 model Membro {

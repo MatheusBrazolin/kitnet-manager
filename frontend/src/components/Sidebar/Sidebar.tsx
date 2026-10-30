@@ -20,6 +20,8 @@ import { Modal } from '../Modal/Modal';
 import { NotificationBell } from '../NotificationBell/NotificationBell';
 import { PAPEL_LABEL } from '../../utils/papel';
 import './sidebar.css';
+import { Avatar } from '../Avatar/Avatar';
+import { useFotoDePerfil } from '../../hooks/useFotoDePerfil';
 
 interface ItemNav {
   to: string;
@@ -55,6 +57,7 @@ const NAV_ITEMS: ItemNav[] = [...NAV_PRINCIPAIS, ...NAV_SECUNDARIOS];
 
 export function Sidebar() {
   const { user, logout } = useAuth();
+  const foto = useFotoDePerfil();
   const [menuAberto, setMenuAberto] = useState(false);
   const equipe: ItemNav = {
     to: '/equipe',
@@ -118,9 +121,12 @@ export function Sidebar() {
               `sidebar-user${isActive ? ' sidebar-user-active' : ''}`
             }
           >
-            <div className="sidebar-avatar">
-              {user?.name.charAt(0).toUpperCase()}
-            </div>
+            <Avatar
+              nome={user?.name ?? ''}
+              cor={user?.avatarCor}
+              foto={foto}
+              tamanho="sm"
+            />
             <div className="sidebar-user-info">
               <span className="sidebar-user-name" title={user?.name}>
                 {user?.name}

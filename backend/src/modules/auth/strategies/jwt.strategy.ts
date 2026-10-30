@@ -61,6 +61,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       contaId: conta.contaId,
       papel: conta.papel,
       donoNome: conta.donoNome,
+      telefone: user.telefone,
+      avatarCor: user.avatarCor,
+      createdAt: user.createdAt,
+      fotoAtualizadaEm: user.foto?.atualizadaEm ?? null,
     };
   }
 }

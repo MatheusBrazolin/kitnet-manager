@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
@@ -11,8 +11,13 @@ import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { PasswordField } from '../../components/PasswordField/PasswordField';
 import { PAPEL_LABEL } from '../../utils/papel';
 import { limparCacheDeDados } from '../../services/invalidate';
+import { Avatar } from '../../components/Avatar/Avatar';
+import { TelefoneInput } from '../../components/TelefoneInput';
+import { AVATAR_CORES, corDoAvatar } from '../../utils/avatar';
+import { ImagemInvalida, prepararFoto } from '../../utils/imagem';
+import { useFotoDePerfil } from '../../hooks/useFotoDePerfil';
 import { useConfirm } from '../../components/ConfirmDialog/confirm-context';
-import { hojeIsoLocal } from '../../utils/dates';
+import { formatDate, hojeIsoLocal } from '../../utils/dates';
 import './configuracoes.css';
 
 const TEMAS: Array<{ valor: Tema; rotulo: string; descricao: string }> = [
@@ -30,6 +35,8 @@ export function Configuracoes() {
 
   const [nome, setNome] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
+  const [telefone, setTelefone] = useState(user?.telefone ?? '');
+  const [avatarCor, setAvatarCor] = useState(user?.avatarCor ?? '');
   const [senhaParaEmail, setSenhaParaEmail] = useState('');
   const [perfilError, setPerfilError] = useState<string | null>(null);
   const [isSalvandoPerfil, setIsSalvandoPerfil] = useState(false);
@@ -49,7 +56,16 @@ export function Configuracoes() {
 
   const nomeMudou = nome !== (user?.name ?? '');
   const emailMudou = email !== (user?.email ?? '');
-  const perfilMudou = nomeMudou || emailMudou;
+  const telefoneMudou = telefone !== (user?.telefone ?? '');
+  // A cor NÃO entra aqui: ela se aplica no clique, junto do avatar, e não espera
+  // um botão "Salvar" que fica noutro cartão, longe de onde se escolheu.
+  const perfilMudou = nomeMudou || emailMudou || telefoneMudou;
+  const corAtual = corDoAvatar(nome || user?.name || '', avatarCor);
+
+  const foto = useFotoDePerfil();
+  const seletorDeFoto = useRef<HTMLInputElement>(null);
+  const [fotoError, setFotoError] = useState<string | null>(null);
+  const [isEnviandoFoto, setIsEnviandoFoto] = useState(false);
 
   async function salvarPerfil(event: FormEvent) {
     event.preventDefault();
@@ -59,6 +75,7 @@ export function Configuracoes() {
       await api.patch('/perfil', {
         name: nome,
         email,
+        telefone,
         // Só vai quando o e-mail muda; o backend exige a senha nesse caso.
         senhaAtual: emailMudou ? senhaParaEmail : undefined,
       });
@@ -87,6 +104,79 @@ export function Configuracoes() {
       setSenhaError(getApiErrorMessage(err, 'Não foi possível alterar a senha.'));
     } finally {
       setIsSalvandoSenha(false);
+    }
+  }
+
+  /**
+   * Redimensiona no navegador e envia.
+   *
+   * O corte para 256x256 acontece aqui e não no servidor: evita subir 4 MB de foto
+   * de celular por conexão móvel e dispensa uma biblioteca de imagem no backend.
+   * O servidor ainda confere tamanho e assinatura do arquivo — o cliente prepara,
+   * mas quem decide o que é aceitável é a API.
+   */
+  async function enviarFoto(event: ChangeEvent<HTMLInputElement>) {
+    const arquivo = event.target.files?.[0];
+    // Permite reescolher o MESMO arquivo depois de um erro: sem limpar, o input não
+    // dispara change de novo para um valor idêntico.
+    event.target.value = '';
+    if (!arquivo) {
+      return;
+    }
+
+    setFotoError(null);
+    setIsEnviandoFoto(true);
+    try {
+      const preparada = await prepararFoto(arquivo);
+      const corpo = new FormData();
+      corpo.append('foto', preparada, 'foto.webp');
+      await api.post('/perfil/foto', corpo);
+      // A chave do cache da foto vem de `fotoAtualizadaEm` na sessão, então é a
+      // sessão que precisa ser recarregada para a imagem nova aparecer.
+      await recarregarSessao();
+      toast.sucesso('Foto atualizada');
+    } catch (err) {
+      setFotoError(
+        err instanceof ImagemInvalida
+          ? err.message
+          : getApiErrorMessage(err, 'Não foi possível enviar a foto.'),
+      );
+    } finally {
+      setIsEnviandoFoto(false);
+    }
+  }
+
+  /**
+   * Aplica a cor no clique, como o tema — e não ao salvar o formulário.
+   *
+   * É preferência trivial e reversível, e o seletor fica ao lado do avatar: exigir
+   * um "Salvar" que vive em outro cartão deixaria a escolha aparentemente sem efeito.
+   * A sessão é recarregada porque é dela que a barra lateral lê a cor.
+   */
+  async function escolherCor(nomeDaCor: string) {
+    const anterior = avatarCor;
+    setAvatarCor(nomeDaCor);
+    try {
+      await api.patch('/perfil', { avatarCor: nomeDaCor });
+      await recarregarSessao();
+    } catch (err) {
+      // Desfaz a prévia: deixar a cor nova na tela sugeriria que foi salva.
+      setAvatarCor(anterior);
+      setFotoError(getApiErrorMessage(err, 'Não foi possível trocar a cor.'));
+    }
+  }
+
+  async function removerFoto() {
+    setFotoError(null);
+    setIsEnviandoFoto(true);
+    try {
+      await api.delete('/perfil/foto');
+      await recarregarSessao();
+      toast.sucesso('Foto removida');
+    } catch (err) {
+      setFotoError(getApiErrorMessage(err, 'Não foi possível remover a foto.'));
+    } finally {
+      setIsEnviandoFoto(false);
     }
   }
 
@@ -156,6 +246,98 @@ export function Configuracoes() {
     <div className="configuracoes">
       <Header title="Configurações" subtitle="Seus dados, sua senha e a aparência do app." />
 
+      {/* Quem você é, antes dos formulários que mudam isso. O avatar é a prévia ao
+          vivo do seletor de cor mais abaixo: mudar o tom aqui se vê na hora. */}
+      <section className="config-identidade">
+        <div className="config-foto">
+          <Avatar
+            nome={nome || user?.name || ''}
+            cor={avatarCor}
+            foto={foto}
+            tamanho="lg"
+          />
+          {/* O input de arquivo é escondido e acionado pelo botão: o controle nativo
+              tem texto em inglês, largura imprevisível e não combina com nada. */}
+          <input
+            ref={seletorDeFoto}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="config-foto-input"
+            onChange={enviarFoto}
+            aria-label="Escolher foto de perfil"
+          />
+          {/* A cor só aparece quando não há foto: com uma foto no lugar, escolher
+              o fundo das iniciais seria decidir algo que ninguém vê. */}
+          {!foto && (
+            <div
+              className="avatar-cores"
+              role="radiogroup"
+              aria-label="Cor do fundo das suas iniciais"
+            >
+              {AVATAR_CORES.map((opcao) => (
+                <button
+                  key={opcao.nome}
+                  type="button"
+                  role="radio"
+                  aria-checked={corAtual.nome === opcao.nome}
+                  aria-label={opcao.rotulo}
+                  title={opcao.rotulo}
+                  className={`avatar-cor${corAtual.nome === opcao.nome ? ' avatar-cor-ativa' : ''}`}
+                  style={{ background: opcao.fundo }}
+                  onClick={() => void escolherCor(opcao.nome)}
+                />
+              ))}
+            </div>
+          )}
+
+          <div className="config-foto-acoes">
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm"
+              onClick={() => seletorDeFoto.current?.click()}
+              disabled={isEnviandoFoto}
+            >
+              {isEnviandoFoto ? 'Enviando...' : foto ? 'Trocar foto' : 'Pôr foto'}
+            </button>
+            {foto && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-perigo"
+                onClick={removerFoto}
+                disabled={isEnviandoFoto}
+              >
+                Remover
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="config-identidade-dados">
+          <h2>{nome || user?.name}</h2>
+          <p className="config-identidade-email">{user?.email}</p>
+          {fotoError && (
+            <p className="field-erro" role="alert">
+              {fotoError}
+            </p>
+          )}
+          <div className="config-selos">
+            <span className="config-selo">
+              {user ? PAPEL_LABEL[user.papel] : '—'}
+            </span>
+            <span className="config-selo">
+              Plano {user?.plano === 'PRO' ? 'Pro' : 'gratuito'}
+            </span>
+            {user?.createdAt && (
+              <span className="config-selo config-selo-discreto">
+                Por aqui desde {formatDate(user.createdAt)}
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="config-grade">
+        <div className="config-coluna">
       <Card title="Seus dados" subtitle="Como você aparece no KitManager">
         <form onSubmit={salvarPerfil} className="field-group">
           <ErrorBanner message={perfilError} />
@@ -181,6 +363,19 @@ export function Configuracoes() {
               required
             />
             <p className="field-static-hint">É com ele que você entra na sua conta.</p>
+          </div>
+
+          <div className="field">
+            <label htmlFor="perfilTelefone">Telefone</label>
+            <TelefoneInput
+              id="perfilTelefone"
+              value={telefone}
+              onChange={setTelefone}
+            />
+            <p className="field-static-hint">
+              Opcional. O sistema não usa para nada — serve para quem divide a conta
+              com você saber a quem recorrer.
+            </p>
           </div>
 
           {/* A senha só é pedida quando o e-mail muda. O e-mail é o login e o único
@@ -247,6 +442,9 @@ export function Configuracoes() {
         </form>
       </Card>
 
+        </div>
+
+        <div className="config-coluna">
       <Card title="Aparência" subtitle="Vale só neste aparelho">
         <div className="tema-opcoes" role="radiogroup" aria-label="Tema do aplicativo">
           {TEMAS.map((opcao) => (
@@ -264,6 +462,7 @@ export function Configuracoes() {
             </button>
           ))}
         </div>
+
       </Card>
 
       <Card title="Conta" subtitle="Informações do seu acesso">
@@ -370,6 +569,8 @@ export function Configuracoes() {
           <Link to="/privacidade">Política de privacidade</Link>
         </p>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }
