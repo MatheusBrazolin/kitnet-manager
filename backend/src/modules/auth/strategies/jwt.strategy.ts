@@ -64,6 +64,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       telefone: user.telefone,
       avatarCor: user.avatarCor,
       createdAt: user.createdAt,
+      fotoAtualizadaEm: user.foto?.atualizadaEm ?? null,
     };
   }
 }

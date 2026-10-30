@@ -30,3 +30,9 @@
   height: 4.5rem;
   font-size: var(--text-xl);
 }
+
+/* `cover` para a foto não deformar — ela já vem quadrada do recorte, mas um dia
+   pode vir de outra origem. */
+.avatar-foto {
+  object-fit: cover;
+}
