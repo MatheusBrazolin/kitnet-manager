@@ -58,7 +58,33 @@ describe('JwtStrategy', () => {
       contaId: 5,
       papel: 'GERENTE',
       donoNome: 'Dona Conta',
+      telefone: undefined,
+      avatarCor: undefined,
+      createdAt: undefined,
+      fotoAtualizadaEm: null,
     });
+  });
+
+  // A data da foto é chave de cache na tela: trocar a foto muda a data, e o avatar
+  // antigo deixa de ser reaproveitado sozinho.
+  it('informa quando a foto foi enviada, sem carregar os bytes dela', async () => {
+    const enviadaEm = new Date('2026-10-30T10:00:00Z');
+    usersService.findById.mockResolvedValue({
+      id: 1,
+      name: 'Maria',
+      email: 'maria@example.com',
+      plano: 'FREE',
+      foto: { atualizadaEm: enviadaEm },
+    });
+    contaService.resolve.mockResolvedValue({ contaId: 1, papel: 'OWNER' });
+
+    const result = await strategy.validate({
+      sub: 1,
+      email: 'maria@example.com',
+    });
+
+    expect(result.fotoAtualizadaEm).toEqual(enviadaEm);
+    expect(result).not.toHaveProperty('foto');
   });
 
   // Trocar a senha precisa derrubar as sessões abertas em outros aparelhos. O JWT é

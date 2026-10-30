@@ -15,6 +15,13 @@ export interface AuthenticatedUser {
   avatarCor?: string | null;
   /** Quando a conta foi criada — a tela mostra como "membro desde". */
   createdAt?: Date;
+  /**
+   * Quando a foto foi enviada, ou `null` se não há foto.
+   *
+   * A data, e não um booleano: ela também serve de chave de cache na tela — trocar
+   * a foto muda a data, e o avatar antigo deixa de ser reaproveitado sozinho.
+   */
+  fotoAtualizadaEm?: Date | null;
 }
 
 export const CurrentUser = createParamDecorator(

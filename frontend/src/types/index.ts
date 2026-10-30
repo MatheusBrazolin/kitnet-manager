@@ -22,6 +22,8 @@ export interface User {
   avatarCor?: string | null;
   /** Quando a conta foi criada — a tela mostra como "na sua conta desde". */
   createdAt?: string;
+  /** Quando a foto foi enviada, ou null se não há foto. Serve de chave de cache. */
+  fotoAtualizadaEm?: string | null;
 }
 
 export interface Membro {

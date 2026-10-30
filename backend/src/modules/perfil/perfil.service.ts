@@ -12,6 +12,7 @@ import type { AuthenticatedUser } from '../../common/decorators/current-user.dec
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { UpdateSenhaDto } from './dto/update-senha.dto';
 import { ApagarContaDto } from './dto/apagar-conta.dto';
+import { tipoDaImagem, TAMANHO_MAXIMO_FOTO, type ArquivoEnviado } from './foto';
 
 // Mesmo custo usado no cadastro (auth.service.ts). Precisa bater: o hash gravado aqui é
 // conferido pelo mesmo bcrypt.compare do login.
@@ -204,6 +205,63 @@ export class PerfilService {
     await this.prisma.user.delete({ where: { id: userId } });
 
     return { mensagem: 'Conta apagada. Sentiremos sua falta.' };
+  }
+
+  /**
+   * Grava a foto de perfil.
+   *
+   * O tipo é decidido pelos bytes do arquivo, nunca pelo `mimetype` que o cliente
+   * mandou — esse é um palpite que o próprio remetente escolhe. Um arquivo que não
+   * tenha assinatura de JPEG, PNG ou WebP é recusado, mesmo que se anuncie como
+   * imagem.
+   */
+  async salvarFoto(userId: number, arquivo?: ArquivoEnviado) {
+    if (!arquivo?.buffer?.length) {
+      throw new BadRequestException('Nenhuma imagem foi enviada.');
+    }
+    if (arquivo.buffer.length > TAMANHO_MAXIMO_FOTO) {
+      throw new BadRequestException(
+        'A imagem é grande demais. O limite é 512 KB.',
+      );
+    }
+
+    const tipo = tipoDaImagem(arquivo.buffer);
+    if (!tipo) {
+      throw new BadRequestException(
+        'Formato não aceito. Envie uma imagem JPEG, PNG ou WebP.',
+      );
+    }
+
+    // O `Bytes` do Prisma é um Uint8Array comum; o Buffer do Node tem um tipo de
+    // ArrayBuffer mais largo e não casa direto.
+    const dados = new Uint8Array(arquivo.buffer);
+
+    const foto = await this.prisma.usuarioFoto.upsert({
+      where: { userId },
+      create: { userId, dados, tipo },
+      update: { dados, tipo },
+    });
+
+    return { atualizadaEm: foto.atualizadaEm };
+  }
+
+  async lerFoto(userId: number) {
+    const foto = await this.prisma.usuarioFoto.findUnique({
+      where: { userId },
+    });
+    if (!foto) {
+      throw new NotFoundException('Este usuário não tem foto.');
+    }
+    return foto;
+  }
+
+  /**
+   * Remove a foto. Apagar o que já não existe não é erro: a tela que pede isso é a
+   * mesma que acabou de remover, e um 404 depois de um clique duplo só assustaria.
+   */
+  async removerFoto(userId: number) {
+    await this.prisma.usuarioFoto.deleteMany({ where: { userId } });
+    return { mensagem: 'Foto removida.' };
   }
 
   /** Mesmo shape devolvido por GET /auth/me (ver jwt.strategy.ts) — e sem `password`. */

@@ -123,10 +123,36 @@ model User {
   imobiliarias Imobiliaria[]
 
   // Pessoas com acesso à minha conta (eu sou o "dono" dos dados).
+  foto              UsuarioFoto?
   membros           Membro[]           @relation("MembrosDaConta")
   // Minha própria filiação, caso eu seja membro da conta de outra pessoa.
   filiacao          Membro?            @relation("FiliacaoDoUsuario")
   tokensRecuperacao TokenRecuperacao[]
+}
+
+/**
+ * Foto de perfil, numa tabela à parte e não numa coluna de `User`.
+ *
+ * `JwtStrategy` carrega o usuário a cada requisição autenticada. Com os bytes da
+ * imagem na mesma linha, todo request do app arrastaria ~20 KB de binário do banco
+ * para descartá-los em seguida — numa conexão serverless isso é caro e constante.
+ * Separada, a foto só é lida por quem pede a foto.
+ *
+ * Guardada no Postgres, e não num bucket de objetos: evita uma dependência nova de
+ * infraestrutura (credencial, bucket, URL assinada) para um arquivo de ~20 KB por
+ * usuário, já que o navegador redimensiona para 256x256 WebP antes de enviar. Se um
+ * dia houver volume que justifique CDN, trocar o armazenamento é mudança contida —
+ * as rotas e o contrato com a tela continuam os mesmos.
+ */
+model UsuarioFoto {
+  userId Int  @id
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dados Bytes
+  /** MIME conferido no servidor pelos bytes do arquivo, não pelo que o cliente diz. */
+  tipo  String
+
+  atualizadaEm DateTime @updatedAt
 }
 
 model Membro {
