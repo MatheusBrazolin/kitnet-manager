@@ -24,7 +24,10 @@ function exigirBancoLocal(url: string | undefined) {
     throw new Error('DATABASE_URL não está definida — nada a fazer.');
   }
 
-  const host = new URL(url).hostname;
+  // `URL.hostname` devolve endereço IPv6 entre colchetes (`[::1]`), e ainda normaliza
+  // a forma longa: `[0:0:0:0:0:0:0:1]` também vira `[::1]`. Sem tirar os colchetes, a
+  // allowlist nunca casa e o script recusa um banco local legítimo.
+  const host = new URL(url).hostname.replace(/^\[(.+)\]$/, '$1');
   if (!HOSTS_PERMITIDOS.has(host)) {
     throw new Error(
       `Recusando rodar: DATABASE_URL aponta para "${host}", que não é um banco local. ` +
