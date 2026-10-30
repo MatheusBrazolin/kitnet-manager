@@ -181,3 +181,62 @@ describe('HealthController: integrações configuradas', () => {
     expect(serializado).not.toContain('abc123');
   });
 });
+
+describe('HealthController: string de conexão malformada', () => {
+  // O caso que apareceu numa troca de senha em produção: a URL quebrada não produz
+  // erro de credencial nem de rede, cai no ramo genérico, e a resposta mandava "veja
+  // o log do servidor" — num plano sem retenção de log de erro, não há o que ver.
+  it('reconhece P1013 e diz o que costuma estar errado na URL', async () => {
+    const corpo = await corpoDoErro(
+      controllerQueFalhaCom(
+        erroPrisma('P1013', 'The provided database string is invalid.'),
+      ),
+    );
+
+    expect(corpo.causa).toBe('string-invalida');
+    expect(corpo.dica).toMatch(/postgresql:\/\//);
+    expect(corpo.dica).toMatch(/percent-encoded/);
+  });
+
+  it('reconhece a mensagem de parse mesmo sem o código', async () => {
+    const corpo = await corpoDoErro(
+      controllerQueFalhaCom(new Error('error parsing connection string')),
+    );
+
+    expect(corpo.causa).toBe('string-invalida');
+  });
+
+  it('reconhece host inalcançável por rede (o caso do IPv6 da conexão direta)', async () => {
+    const corpo = await corpoDoErro(
+      controllerQueFalhaCom(new Error('connect ENETUNREACH 2600:1f18::1:5432')),
+    );
+
+    expect(corpo.causa).toBe('rede');
+    expect(corpo.dica).toMatch(/pooler/);
+  });
+
+  // Sem o código, a resposta de um caso não reconhecido não serve para nada.
+  it('devolve o código do Prisma mesmo quando não sabe classificar', async () => {
+    const corpo = await corpoDoErro(
+      controllerQueFalhaCom(erroPrisma('P9999', 'algo novo')),
+    );
+
+    expect(corpo.codigoPrisma).toBe('P9999');
+  });
+
+  it('continua sem vazar host nem porta nessas respostas novas', async () => {
+    const corpo = await corpoDoErro(
+      controllerQueFalhaCom(
+        erroPrisma(
+          'P1013',
+          'invalid: postgresql://postgres:segredo@db.exemplo.supabase.co:5432/postgres',
+        ),
+      ),
+    );
+
+    const texto = JSON.stringify(corpo);
+    expect(texto).not.toContain('db.exemplo.supabase.co');
+    expect(texto).not.toContain('segredo');
+    expect(texto).not.toContain('5432');
+  });
+});
