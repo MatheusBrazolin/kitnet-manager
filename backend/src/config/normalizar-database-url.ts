@@ -39,7 +39,11 @@ export function normalizarDatabaseUrl(bruto: string): string {
   while (mudou) {
     mudou = false;
     for (const [abre, fecha] of ENVOLTORIOS) {
-      if (valor.length >= 2 && valor.startsWith(abre) && valor.endsWith(fecha)) {
+      if (
+        valor.length >= 2 &&
+        valor.startsWith(abre) &&
+        valor.endsWith(fecha)
+      ) {
         valor = valor.slice(1, -1).trim();
         mudou = true;
       }
