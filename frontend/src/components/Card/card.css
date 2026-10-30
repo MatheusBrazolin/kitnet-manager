@@ -53,7 +53,10 @@
 
 .hero-stat-main {
   min-width: 0;
-  flex: 1 1 280px;
+  /* Cresce o dobro da barra de progresso ao lado. Com `1 1` nos dois, a coluna
+     do número parava em ~330px numa tela de 1280 — estreita demais para um valor
+     de cinco dígitos no tamanho hero, que então quebrava em duas linhas. */
+  flex: 2 1 320px;
 }
 
 .hero-stat-label {
@@ -67,7 +70,18 @@
   letter-spacing: -0.035em;
   line-height: 1.05;
   margin-top: var(--space-2);
-  overflow-wrap: break-word;
+  /* Um valor em dinheiro nunca quebra. `Intl` já separa "R$" dos dígitos com
+     espaço inteiriço justamente para isso, mas `overflow-wrap: break-word`
+     ignorava o espaço inteiriço e partia assim mesmo — "R$" numa linha e
+     "45.594,00" na outra, que se lê como dois números em vez de um. */
+  overflow-wrap: normal;
+}
+
+/* Valores com mais dígitos (centenas de milhares, milhões) num corpo menor — continua
+   sendo o maior número da tela, só que inteiro em vez de partido ao meio. */
+.hero-stat-value-longo {
+  font-size: clamp(1.875rem, 1.4rem + 2vw, 2.75rem);
+  letter-spacing: -0.03em;
 }
 
 .hero-stat-hint {
@@ -150,10 +164,14 @@
 }
 
 .stat-card-value {
-  font-size: var(--text-xl);
+  /* Encolhe nas telas estreitas em vez de quebrar. No celular são dois cartões
+     lado a lado, com ~128px úteis cada: em 22px fixos, "R$ 44.333,50" não cabia
+     e partia depois do "R$". */
+  font-size: clamp(1.0625rem, 0.75rem + 1.6vw, 1.375rem);
   font-weight: 600;
   letter-spacing: -0.02em;
-  overflow-wrap: break-word;
+  /* Mesmo motivo do `.hero-stat-value`: dinheiro não se parte ao meio. */
+  overflow-wrap: normal;
 }
 
 .stat-card-hint {

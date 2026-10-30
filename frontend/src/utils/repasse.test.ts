@@ -109,7 +109,7 @@ describe('formatTaxaLabel', () => {
   });
 
   it('mostra valor fixo como moeda', () => {
-    expect(formatTaxaLabel('FIXA', 100, formatCurrency)).toBe('R$ 100,00');
+    expect(formatTaxaLabel('FIXA', 100, formatCurrency)).toBe('R$\u00A0100,00');
   });
 
   it('não arrasta casas decimais desnecessárias no percentual', () => {

@@ -228,8 +228,50 @@ a {
 .table-row-actions {
   display: flex;
   justify-content: flex-end;
+  /* No cartão do celular as ações PODEM quebrar: há largura para duas por linha e
+     nenhuma coluna para respeitar. Quem não pode quebrar é a linha da tabela, logo
+     abaixo. */
   flex-wrap: wrap;
   gap: var(--space-1);
+}
+
+/*
+ * Na tabela (só no desktop — no celular o mesmo componente vira cartões), as ações
+ * ficam em linha, sem quebrar.
+ *
+ * Com quebra, uma linha de pagamento em aberto tem três ações — "Editar", "Marcar pago"
+ * e "Não vou receber" — que somam ~340px numa célula de ~260px. A terceira caía sozinha
+ * numa segunda linha, mais larga que as duas de cima e encostada à direita: três
+ * botões, duas linhas, nenhuma borda alinhada com a outra. Repetido em dezenas de
+ * linhas, é o que fazia a tabela parecer torta.
+ */
+.table td .table-row-actions {
+  flex-wrap: nowrap;
+}
+
+/*
+ * E num corpo menor que os botões da página, senão não cabem: no tamanho normal os três
+ * passavam 67px da largura da tabela, o que trocava a quebra feia por scroll horizontal
+ * com "Não vou receber" cortado na borda. A altura de toque de 44px continua garantida
+ * no celular pela regra de `pointer: coarse` mais abaixo — que vale para os cartões,
+ * não para esta tabela.
+ */
+.table td .table-row-actions .btn {
+  font-size: var(--text-sm);
+  padding: var(--space-2);
+}
+
+/*
+ * A coluna de ações pede exatamente a largura dos botões, e as colunas de texto ficam
+ * com o resto. `width: 1%` com `table-layout: auto` é o jeito de dizer "o mínimo que
+ * couber" — sem isso a tabela divide a largura por igual e aperta justamente a coluna
+ * que não pode encolher. O respiro lateral é menor que o das colunas de texto: os
+ * botões já têm o seu próprio.
+ */
+.table td:has(.table-row-actions) {
+  width: 1%;
+  white-space: nowrap;
+  padding-inline: var(--space-2);
 }
 
 /* ---- Pagamentos: célula de morador -------------------------------------- */

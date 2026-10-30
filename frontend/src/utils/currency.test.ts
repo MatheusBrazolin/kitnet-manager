@@ -1,39 +1,50 @@
 import { describe, expect, it } from 'vitest';
 import { formatCompactCurrency, formatCurrency } from './currency';
 
-const NON_BREAKING_SPACE = ' ';
+/**
+ * O espaço entre "R$" e o número é inteiriço (U+00A0), vindo do próprio Intl.
+ *
+ * Estes testes exigiam o contrário: que ele virasse espaço comum, "porque quebra o
+ * layout em cards estreitos". O efeito disso era "R$" numa linha e "1.200,00" na outra
+ * — que se lê como dois números, e numa coluna de valores o olho perde qual cifrão
+ * pertence a qual quantia. Aperto em tela estreita se resolve no container (coluna mais
+ * larga, fonte que encolhe), não partindo o valor ao meio.
+ */
+const ESPACO_INTEIRICO = '\u00A0';
+
+/** Troca os espaços inteiriços por comuns, só para a asserção ficar legível. */
+const legivel = (valor: string) => valor.replace(/\u00A0/g, ' ');
 
 describe('formatCurrency', () => {
   it('formats a whole number as BRL with two decimal places', () => {
-    expect(formatCurrency(1400)).toBe('R$ 1.400,00');
+    expect(legivel(formatCurrency(1400))).toBe('R$ 1.400,00');
   });
 
   it('formats a decimal value', () => {
-    expect(formatCurrency(168.45)).toBe('R$ 168,45');
+    expect(legivel(formatCurrency(168.45))).toBe('R$ 168,45');
   });
 
   it('formats zero', () => {
-    expect(formatCurrency(0)).toBe('R$ 0,00');
+    expect(legivel(formatCurrency(0))).toBe('R$ 0,00');
   });
 
   it('formats a negative value', () => {
-    expect(formatCurrency(-150)).toBe('-R$ 150,00');
+    expect(legivel(formatCurrency(-150))).toBe('-R$ 150,00');
   });
 
-  it('never contains a non-breaking space between "R$" and the number', () => {
-    // O Intl.NumberFormat pt-BR insere U+00A0 (nbsp) por padrão — isso quebra o layout em
-    // cards estreitos, então formatCurrency troca por um espaço normal.
-    expect(formatCurrency(1400)).not.toContain(NON_BREAKING_SPACE);
+  it('separa "R$" do número com espaço inteiriço, para o valor nunca quebrar em duas linhas', () => {
+    expect(formatCurrency(1400)).toContain(ESPACO_INTEIRICO);
+    expect(formatCurrency(1400)).not.toMatch(/R\$ \d/);
   });
 });
 
 describe('formatCompactCurrency', () => {
   it('formats large values compactly', () => {
-    expect(formatCompactCurrency(15500)).toBe('R$ 15,5 mil');
+    expect(legivel(formatCompactCurrency(15500))).toBe('R$ 15,5 mil');
   });
 
-  it('never contains a non-breaking space', () => {
-    expect(formatCompactCurrency(15500)).not.toContain(NON_BREAKING_SPACE);
+  it('também usa espaço inteiriço', () => {
+    expect(formatCompactCurrency(15500)).toContain(ESPACO_INTEIRICO);
   });
 });
 
@@ -42,10 +53,10 @@ describe('formatCompactCurrency', () => {
 // bug no próprio saldo.
 describe('valores ausentes ou inválidos', () => {
   it.each([
-    [undefined, 'R$ 0,00'],
-    [null, 'R$ 0,00'],
-    [NaN, 'R$ 0,00'],
-    [Infinity, 'R$ 0,00'],
+    [undefined, `R$${ESPACO_INTEIRICO}0,00`],
+    [null, `R$${ESPACO_INTEIRICO}0,00`],
+    [NaN, `R$${ESPACO_INTEIRICO}0,00`],
+    [Infinity, `R$${ESPACO_INTEIRICO}0,00`],
   ])('formata %s como %s em vez de NaN', (entrada, esperado) => {
     expect(formatCurrency(entrada as number)).toBe(esperado);
   });
@@ -56,6 +67,6 @@ describe('valores ausentes ou inválidos', () => {
   it('o formato compacto também não produz NaN', () => {
     const formatado = formatCompactCurrency(undefined as unknown as number);
     expect(formatado).not.toContain('NaN');
-    expect(formatado).toMatch(/^R\$ 0/);
+    expect(formatado).toMatch(/^R\$\u00A00/);
   });
 });
