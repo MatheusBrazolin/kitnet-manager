@@ -1,5 +1,15 @@
 import './common/observability/instrument';
 import { createApp } from './app';
+import { normalizarDatabaseUrlNoAmbiente } from './config/normalizar-database-url';
+
+// Antes de qualquer módulo subir: o Prisma lê process.env.DATABASE_URL na
+// construção do client, então a limpeza precisa acontecer antes disso.
+if (normalizarDatabaseUrlNoAmbiente()) {
+  // Sem o valor, que contém a senha — só o aviso de que havia lixo em volta.
+  console.warn(
+    '[config] DATABASE_URL tinha espaços, aspas ou <> em volta; corrigido ao subir.',
+  );
+}
 
 const PORT = process.env.PORT ?? 3000;
 
