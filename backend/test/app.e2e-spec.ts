@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { createApp } from './../src/app';
+import { limparUsuariosCriados } from './usuarios-criados';
 
 describe('AppModule (e2e)', () => {
   let app: INestApplication<App>;
@@ -25,4 +26,8 @@ describe('AppModule (e2e)', () => {
   afterEach(async () => {
     await app.close();
   });
+
+  // Hoje nenhum teste daqui cadastra nada, então isto não apaga nada — fica como rede
+  // de proteção para o dia em que um teste novo precisar de uma conta de verdade.
+  afterAll(limparUsuariosCriados);
 });

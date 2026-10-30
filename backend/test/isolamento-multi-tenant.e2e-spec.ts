@@ -2,6 +2,7 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { createApp } from './../src/app';
+import { anotarUsuarioCriado, limparUsuariosCriados } from './usuarios-criados';
 
 /**
  * Garante que os dados de uma conta nunca ficam visíveis/editáveis por outra conta —
@@ -14,12 +15,16 @@ describe('Isolamento multi-tenant (e2e)', () => {
 
   const senha = 'senha123456';
 
+  // Todo usuário criado aqui fica anotado para o `afterAll` apagar — é o único ponto
+  // do arquivo que cria conta, então anotar aqui cobre o arquivo inteiro.
   async function registrarUsuario(nome: string, email: string) {
     const response = await request(app.getHttpServer())
       .post('/api/auth/register')
       .send({ name: nome, email, password: senha })
       .expect(201);
-    return (response.body as { token: string }).token;
+    const body = response.body as { token: string; user: { id: number } };
+    anotarUsuarioCriado(body.user.id);
+    return body.token;
   }
 
   async function criarImovel(token: string, nome: string) {
@@ -62,6 +67,8 @@ describe('Isolamento multi-tenant (e2e)', () => {
   afterEach(async () => {
     await app.close();
   });
+
+  afterAll(limparUsuariosCriados);
 
   it('impede que o usuário B leia uma kitnet do usuário A', async () => {
     const tokenA = await registrarUsuario(
