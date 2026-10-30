@@ -17,6 +17,11 @@ export interface User {
   contaId: number;
   papel: Papel;
   donoNome?: string;
+  telefone?: string | null;
+  /** Nome do tom do avatar; sem ele, a cor é derivada do nome (ver utils/avatar.ts). */
+  avatarCor?: string | null;
+  /** Quando a conta foi criada — a tela mostra como "na sua conta desde". */
+  createdAt?: string;
 }
 
 export interface Membro {

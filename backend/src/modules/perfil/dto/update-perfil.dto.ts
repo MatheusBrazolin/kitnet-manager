@@ -1,11 +1,13 @@
 import { NormalizarEmail } from '../../../common/dto/normalizar-email';
 import {
   IsEmail,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
   MinLength,
 } from 'class-validator';
+import { AVATAR_CORES } from '../../../common/avatar/cores';
 
 export class UpdatePerfilDto {
   @IsOptional()
@@ -30,4 +32,16 @@ export class UpdatePerfilDto {
   @IsOptional()
   @IsString()
   senhaAtual?: string;
+
+  /** Contato do próprio usuário. Vazio é apagar o que estava lá. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  telefone?: string;
+
+  // Recusa um tom inventado: o banco guarda o nome, e um nome que a tela não conhece
+  // viraria um avatar sem cor nenhuma.
+  @IsOptional()
+  @IsIn(AVATAR_CORES as readonly string[])
+  avatarCor?: string;
 }

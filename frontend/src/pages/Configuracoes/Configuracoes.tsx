@@ -11,8 +11,11 @@ import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { PasswordField } from '../../components/PasswordField/PasswordField';
 import { PAPEL_LABEL } from '../../utils/papel';
 import { limparCacheDeDados } from '../../services/invalidate';
+import { Avatar } from '../../components/Avatar/Avatar';
+import { TelefoneInput } from '../../components/TelefoneInput';
+import { AVATAR_CORES, corDoAvatar } from '../../utils/avatar';
 import { useConfirm } from '../../components/ConfirmDialog/confirm-context';
-import { hojeIsoLocal } from '../../utils/dates';
+import { formatDate, hojeIsoLocal } from '../../utils/dates';
 import './configuracoes.css';
 
 const TEMAS: Array<{ valor: Tema; rotulo: string; descricao: string }> = [
@@ -30,6 +33,8 @@ export function Configuracoes() {
 
   const [nome, setNome] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
+  const [telefone, setTelefone] = useState(user?.telefone ?? '');
+  const [avatarCor, setAvatarCor] = useState(user?.avatarCor ?? '');
   const [senhaParaEmail, setSenhaParaEmail] = useState('');
   const [perfilError, setPerfilError] = useState<string | null>(null);
   const [isSalvandoPerfil, setIsSalvandoPerfil] = useState(false);
@@ -49,7 +54,10 @@ export function Configuracoes() {
 
   const nomeMudou = nome !== (user?.name ?? '');
   const emailMudou = email !== (user?.email ?? '');
-  const perfilMudou = nomeMudou || emailMudou;
+  const telefoneMudou = telefone !== (user?.telefone ?? '');
+  const corMudou = avatarCor !== (user?.avatarCor ?? '');
+  const perfilMudou = nomeMudou || emailMudou || telefoneMudou || corMudou;
+  const corAtual = corDoAvatar(nome || user?.name || '', avatarCor);
 
   async function salvarPerfil(event: FormEvent) {
     event.preventDefault();
@@ -59,6 +67,10 @@ export function Configuracoes() {
       await api.patch('/perfil', {
         name: nome,
         email,
+        telefone,
+        // Só vai quando a pessoa escolheu: mandar '' faria o backend recusar, já que
+        // a cor é validada contra a lista de tons conhecidos.
+        avatarCor: avatarCor || undefined,
         // Só vai quando o e-mail muda; o backend exige a senha nesse caso.
         senhaAtual: emailMudou ? senhaParaEmail : undefined,
       });
@@ -156,6 +168,31 @@ export function Configuracoes() {
     <div className="configuracoes">
       <Header title="Configurações" subtitle="Seus dados, sua senha e a aparência do app." />
 
+      {/* Quem você é, antes dos formulários que mudam isso. O avatar é a prévia ao
+          vivo do seletor de cor mais abaixo: mudar o tom aqui se vê na hora. */}
+      <section className="config-identidade">
+        <Avatar nome={nome || user?.name || ''} cor={avatarCor} tamanho="lg" />
+        <div className="config-identidade-dados">
+          <h2>{nome || user?.name}</h2>
+          <p className="config-identidade-email">{user?.email}</p>
+          <div className="config-selos">
+            <span className="config-selo">
+              {user ? PAPEL_LABEL[user.papel] : '—'}
+            </span>
+            <span className="config-selo">
+              Plano {user?.plano === 'PRO' ? 'Pro' : 'gratuito'}
+            </span>
+            {user?.createdAt && (
+              <span className="config-selo config-selo-discreto">
+                Por aqui desde {formatDate(user.createdAt)}
+              </span>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <div className="config-grade">
+        <div className="config-coluna">
       <Card title="Seus dados" subtitle="Como você aparece no KitManager">
         <form onSubmit={salvarPerfil} className="field-group">
           <ErrorBanner message={perfilError} />
@@ -181,6 +218,19 @@ export function Configuracoes() {
               required
             />
             <p className="field-static-hint">É com ele que você entra na sua conta.</p>
+          </div>
+
+          <div className="field">
+            <label htmlFor="perfilTelefone">Telefone</label>
+            <TelefoneInput
+              id="perfilTelefone"
+              value={telefone}
+              onChange={setTelefone}
+            />
+            <p className="field-static-hint">
+              Opcional. O sistema não usa para nada — serve para quem divide a conta
+              com você saber a quem recorrer.
+            </p>
           </div>
 
           {/* A senha só é pedida quando o e-mail muda. O e-mail é o login e o único
@@ -247,7 +297,11 @@ export function Configuracoes() {
         </form>
       </Card>
 
-      <Card title="Aparência" subtitle="Vale só neste aparelho">
+        </div>
+
+        <div className="config-coluna">
+      <Card title="Aparência" subtitle="O tema vale só neste aparelho">
+        <p className="config-subtitulo-campo">Tema</p>
         <div className="tema-opcoes" role="radiogroup" aria-label="Tema do aplicativo">
           {TEMAS.map((opcao) => (
             <button
@@ -264,6 +318,31 @@ export function Configuracoes() {
             </button>
           ))}
         </div>
+
+        {/* A cor acompanha a conta, não o aparelho: é como as outras pessoas da
+            equipe te reconhecem, então teria que ser igual em todo lugar. */}
+        <p className="config-subtitulo-campo config-subtitulo-espacado">
+          Cor do seu avatar
+        </p>
+        <div className="avatar-cores" role="radiogroup" aria-label="Cor do avatar">
+          {AVATAR_CORES.map((opcao) => (
+            <button
+              key={opcao.nome}
+              type="button"
+              role="radio"
+              aria-checked={corAtual.nome === opcao.nome}
+              aria-label={opcao.rotulo}
+              title={opcao.rotulo}
+              className={`avatar-cor${corAtual.nome === opcao.nome ? ' avatar-cor-ativa' : ''}`}
+              style={{ background: opcao.fundo }}
+              onClick={() => setAvatarCor(opcao.nome)}
+            />
+          ))}
+        </div>
+        <p className="field-static-hint">
+          Aparece na barra lateral e para quem divide a conta com você. Salve em
+          &ldquo;Seus dados&rdquo; para valer.
+        </p>
       </Card>
 
       <Card title="Conta" subtitle="Informações do seu acesso">
@@ -370,6 +449,8 @@ export function Configuracoes() {
           <Link to="/privacidade">Política de privacidade</Link>
         </p>
       </Card>
+        </div>
+      </div>
     </div>
   );
 }
