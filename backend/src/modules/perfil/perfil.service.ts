@@ -70,7 +70,14 @@ export class PerfilService {
     const user = await this.prisma.user.update({
       where: { id: userId },
       // Campos ausentes chegam como undefined e o Prisma simplesmente não os altera.
-      data: { name: dto.name, email: dto.email },
+      data: {
+        name: dto.name,
+        email: dto.email,
+        // String vazia é apagar o telefone, e não "não mexer" — por isso o `?? null`
+        // em vez de deixar o valor cair como undefined.
+        telefone: dto.telefone === '' ? null : dto.telefone,
+        avatarCor: dto.avatarCor,
+      },
     });
 
     return this.montarPerfil(user);
@@ -131,6 +138,8 @@ export class PerfilService {
         name: true,
         email: true,
         plano: true,
+        telefone: true,
+        avatarCor: true,
         createdAt: true,
       },
     });
@@ -203,6 +212,9 @@ export class PerfilService {
     name: string;
     email: string;
     plano: string;
+    telefone?: string | null;
+    avatarCor?: string | null;
+    createdAt?: Date;
   }): Promise<AuthenticatedUser> {
     const conta = await this.contaService.resolve(user.id);
 
@@ -214,6 +226,9 @@ export class PerfilService {
       contaId: conta.contaId,
       papel: conta.papel,
       donoNome: conta.donoNome,
+      telefone: user.telefone,
+      avatarCor: user.avatarCor,
+      createdAt: user.createdAt,
     };
   }
 }

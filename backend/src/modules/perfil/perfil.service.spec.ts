@@ -19,6 +19,16 @@ type PrismaMock = {
   membro: { findMany: jest.Mock };
 };
 
+/**
+ * Os argumentos de uma chamada do mock, tipados.
+ *
+ * `mock.calls[0][0]` é `any`, e o lint recusa acesso a membro de `any` — com razão:
+ * um erro de digitação no nome do campo passaria como asserção que nunca falha.
+ */
+function argsDaChamada<T>(mock: jest.Mock, indice = 0): T {
+  return (mock.mock.calls as unknown as T[][])[indice][0];
+}
+
 describe('PerfilService', () => {
   let service: PerfilService;
   let prisma: PrismaMock;
@@ -288,8 +298,12 @@ describe('PerfilService', () => {
       expect(prisma.imobiliaria.findMany).toHaveBeenCalledWith({
         where: { userId },
       });
-      expect(prisma.imovel.findMany.mock.calls[0][0].where).toEqual({ userId });
-      expect(prisma.membro.findMany.mock.calls[0][0].where).toEqual({
+      expect(
+        argsDaChamada<{ where: unknown }>(prisma.imovel.findMany).where,
+      ).toEqual({ userId });
+      expect(
+        argsDaChamada<{ where: unknown }>(prisma.membro.findMany).where,
+      ).toEqual({
         donoId: userId,
       });
     });
@@ -305,7 +319,17 @@ describe('PerfilService', () => {
 
       await service.exportarDados(userId);
 
-      const include = prisma.imovel.findMany.mock.calls[0][0].include;
+      const { include } = argsDaChamada<{
+        include: {
+          kitnets: {
+            include: {
+              moradores: { include: { pagamentos: boolean } };
+              gastos: boolean;
+              historicoValor: boolean;
+            };
+          };
+        };
+      }>(prisma.imovel.findMany);
       expect(include.kitnets.include.moradores.include.pagamentos).toBe(true);
       expect(include.kitnets.include.gastos).toBe(true);
       expect(include.kitnets.include.historicoValor).toBe(true);
@@ -331,6 +355,35 @@ describe('PerfilService', () => {
         service.apagarConta(userId, { senhaAtual: 'chute' }),
       ).rejects.toBeInstanceOf(UnauthorizedException);
       expect(prisma.user.delete).not.toHaveBeenCalled();
+    });
+  });
+  describe('campos de apresentação', () => {
+    it('apaga o telefone quando o campo chega vazio, em vez de ignorá-lo', async () => {
+      prisma.user.findUnique.mockResolvedValue(usuario);
+      prisma.user.update.mockResolvedValue(usuario);
+
+      await service.update(userId, { telefone: '' });
+
+      // `undefined` faria o Prisma não mexer na coluna; quem limpou o campo na tela
+      // esperaria vê-lo limpo depois de recarregar.
+      expect(
+        argsDaChamada<{ data: { telefone?: string | null } }>(
+          prisma.user.update,
+        ).data.telefone,
+      ).toBeNull();
+    });
+
+    it('deixa o telefone intacto quando o campo nem foi enviado', async () => {
+      prisma.user.findUnique.mockResolvedValue(usuario);
+      prisma.user.update.mockResolvedValue(usuario);
+
+      await service.update(userId, { name: 'Maria Silva' });
+
+      expect(
+        argsDaChamada<{ data: { telefone?: string | null } }>(
+          prisma.user.update,
+        ).data.telefone,
+      ).toBeUndefined();
     });
   });
 });

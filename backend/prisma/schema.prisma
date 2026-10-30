@@ -102,6 +102,13 @@ model User {
   name              String
   email             String    @unique
   password          String
+  // Contato do próprio usuário, opcional. Não é usado pelo sistema para nada — existe
+  // para quem divide a conta com um cônjuge ou um gerente saber a quem recorrer.
+  telefone          String?
+  // Cor do avatar de iniciais, escolhida nas configurações. Guardada como o NOME do
+  // tom (ex. "terracota"), não como hexadecimal: assim trocar a paleta do app atualiza
+  // os avatares de todo mundo, em vez de congelar a cor de 2026 no banco.
+  avatarCor         String?
   // Quando a senha foi trocada pela última vez. O JWT é stateless e vale 7 dias, então
   // sem esta marca um token roubado continuava funcionando mesmo depois de a vítima
   // perceber o vazamento e trocar a senha. A JwtStrategy recusa qualquer token emitido

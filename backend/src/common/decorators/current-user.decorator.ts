@@ -11,6 +11,10 @@ export interface AuthenticatedUser {
   papel: Papel;
   /** Nome do dono da conta, quando este usuário é membro (não dono). */
   donoNome?: string;
+  telefone?: string | null;
+  avatarCor?: string | null;
+  /** Quando a conta foi criada — a tela mostra como "membro desde". */
+  createdAt?: Date;
 }
 
 export const CurrentUser = createParamDecorator(
