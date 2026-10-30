@@ -187,6 +187,25 @@ cd backend
 DATABASE_URL="<url-de-produção>" npx prisma migrate deploy
 ```
 
+**Se o Prisma disser "migration was modified after it was applied":** ele guarda o SHA-256 de cada
+arquivo no momento em que o aplicou, e recusa a rodar se o arquivo mudou depois — editado antes de
+commitar, recriado, ou inserido à mão no SQL editor sem a soma certa.
+
+A saída que ele oferece nessa hora é `prisma migrate reset`, que **apaga o banco inteiro**. Quase
+nunca é o que se quer: se o esquema do banco já corresponde ao que as migrações produzem, o
+problema é só o registro da soma. Para conferir e consertar sem tocar nos dados:
+
+```bash
+cd backend
+node scripts/conferir-migracoes.js              # só relata
+node scripts/conferir-migracoes.js --corrigir   # atualiza as somas divergentes
+```
+
+O script se recusa a corrigir quando o banco **não** bate com o `schema.prisma`: aí a divergência
+pode ser real (DDL que nunca foi aplicada), e reescrever a soma esconderia o problema. Também serve
+para olhar produção, passando a URL na frente:
+`DATABASE_URL="<url>" node scripts/conferir-migracoes.js`.
+
 **Variáveis obrigatórias:** `DATABASE_URL` e `JWT_SECRET` são conferidas no boot
 ([`env.validation.ts`](backend/src/config/env.validation.ts)). Faltando alguma, a API não sobe e o log
 diz exatamente qual é e onde arrumar — em vez de morrer com um stack trace de dentro do `passport-jwt`.
