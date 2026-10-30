@@ -219,6 +219,20 @@ a {
   margin: 0;
 }
 
+/* Erro de um campo só, logo abaixo dele — diferente do ErrorBanner, que é do
+   formulário inteiro. Fica sob o rótulo para o olho ligar os dois. */
+.field-erro {
+  color: var(--color-negative);
+  font-size: var(--text-sm);
+  margin: 0;
+}
+
+/* A borda acompanha a mensagem: só a cor avisaria mal quem não distingue vermelho,
+   e só o texto passaria despercebido num formulário cheio. */
+.field input[aria-invalid='true'] {
+  border-color: var(--color-negative);
+}
+
 .field-group {
   display: flex;
   flex-direction: column;
