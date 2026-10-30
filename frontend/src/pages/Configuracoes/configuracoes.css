@@ -114,6 +114,68 @@
   color: var(--color-ink-muted);
 }
 
+/* ---- Privacidade e seus dados ------------------------------------------
+   Cada ação é uma linha com o texto à esquerda e o botão à direita: o que a
+   ação faz precisa ser lido ANTES do botão, sobretudo no caso de apagar. */
+.dados-bloco {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+}
+
+.dados-bloco + .dados-bloco {
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+.dados-texto {
+  flex: 1 1 18rem;
+  min-width: 0;
+}
+
+.dados-texto p {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  margin-top: var(--space-1);
+  line-height: 1.5;
+}
+
+/* O botão só fica vermelho depois de aberto o formulário. Antes disso ele é
+   discreto: um "Apagar conta" em destaque vermelho na tela de configurações
+   é um convite ao clique acidental. */
+.btn-perigo {
+  color: var(--color-negative);
+}
+
+.dados-apagar-form {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--color-negative-soft);
+  border-radius: var(--radius-md);
+}
+
+.dados-legal {
+  padding-top: var(--space-4);
+  border-top: var(--border-width) solid var(--color-border);
+  font-size: var(--text-sm);
+  color: var(--color-ink-muted);
+}
+
+.dados-legal a {
+  color: var(--color-ink-muted);
+}
+
+@media (max-width: 640px) {
+  .dados-bloco > .btn {
+    width: 100%;
+  }
+}
+
 @media (max-width: 640px) {
   .tema-opcoes {
     grid-template-columns: 1fr;

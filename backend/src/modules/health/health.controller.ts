@@ -77,6 +77,21 @@ export class HealthController {
       // Ajuda a responder "o deploy novo subiu mesmo?" sem abrir o painel.
       commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? 'local',
       ambiente: process.env.NODE_ENV ?? 'development',
+      // Quais integrações opcionais estão ligadas neste deploy.
+      //
+      // Existe porque elas falham em silêncio por design: sem RESEND_API_KEY o
+      // EmailService registra "não enviado" no log e devolve sucesso, então a
+      // recuperação de senha fica quebrada em produção sem ninguém perceber — nem
+      // quem perdeu a senha, nem quem mantém o app. Daí um lugar de fora para
+      // conferir, sem abrir o painel da Vercel.
+      //
+      // Só booleanos: nenhum valor de chave, nem prefixo dela, sai por esta rota,
+      // que é pública. Saber que o envio de e-mail está ligado não ajuda um
+      // atacante; a chave, sim.
+      integracoes: {
+        email: Boolean(process.env.RESEND_API_KEY),
+        sentry: Boolean(process.env.SENTRY_DSN),
+      },
     };
 
     try {

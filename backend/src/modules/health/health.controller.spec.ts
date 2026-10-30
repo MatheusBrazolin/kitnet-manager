@@ -135,3 +135,49 @@ describe('HealthController: marca de atividade', () => {
     expect(args.where).toEqual({ id: 1 });
   });
 });
+
+describe('HealthController: integrações configuradas', () => {
+  const ambienteOriginal = { ...process.env };
+
+  afterEach(() => {
+    process.env = { ...ambienteOriginal };
+  });
+
+  function controllerSaudavel() {
+    const prisma = { $queryRaw: jest.fn().mockResolvedValue([]) };
+    return new HealthController(prisma as unknown as PrismaService);
+  }
+
+  it('diz que o e-mail está desligado quando falta a chave', async () => {
+    delete process.env.RESEND_API_KEY;
+
+    const resposta = (await controllerSaudavel().check()) as {
+      integracoes: { email: boolean };
+    };
+
+    expect(resposta.integracoes.email).toBe(false);
+  });
+
+  it('diz que o e-mail está ligado quando a chave existe', async () => {
+    process.env.RESEND_API_KEY = 're_chave_de_teste_123';
+
+    const resposta = (await controllerSaudavel().check()) as {
+      integracoes: { email: boolean };
+    };
+
+    expect(resposta.integracoes.email).toBe(true);
+  });
+
+  // A rota é pública: um booleano não ajuda ninguém a invadir nada, a chave sim.
+  it('nunca devolve o valor da chave, nem um pedaço dele', async () => {
+    process.env.RESEND_API_KEY = 're_chave_de_teste_123';
+    process.env.SENTRY_DSN = 'https://abc123@o999.ingest.sentry.io/1';
+
+    const resposta = await controllerSaudavel().check();
+
+    const serializado = JSON.stringify(resposta);
+    expect(serializado).not.toContain('re_chave_de_teste_123');
+    expect(serializado).not.toContain('o999.ingest.sentry.io');
+    expect(serializado).not.toContain('abc123');
+  });
+});

@@ -22,6 +22,19 @@ const importarConfiguracoes = () => import('./Configuracoes/Configuracoes');
 const importarImobiliarias = () => import('./Imobiliarias/Imobiliarias');
 const importarNaoEncontrado = () => import('./NaoEncontrado/NaoEncontrado');
 
+/* Termos e Privacidade ficam de fora do `precarregarRotas` abaixo: são texto estático
+   que quase ninguém abre, e pré-carregá-las gastaria rede de todo mundo para servir a
+   poucos. Carregam sob demanda, no clique. */
+const importarTermos = () => import('./Legal/Termos');
+const importarPrivacidade = () => import('./Legal/Privacidade');
+
+export const Termos = lazy(() =>
+  importarTermos().then((m) => ({ default: m.Termos })),
+);
+export const Privacidade = lazy(() =>
+  importarPrivacidade().then((m) => ({ default: m.Privacidade })),
+);
+
 export const Dashboard = lazy(() => importarDashboard().then((m) => ({ default: m.Dashboard })));
 export const Imoveis = lazy(() => importarImoveis().then((m) => ({ default: m.Imoveis })));
 export const Moradores = lazy(() => importarMoradores().then((m) => ({ default: m.Moradores })));

@@ -1,0 +1,102 @@
+.legal {
+  min-height: 100vh;
+  background: var(--color-bg);
+  color: var(--color-ink);
+  display: flex;
+  flex-direction: column;
+}
+
+.legal-topo {
+  padding: var(--space-5) var(--space-5) 0;
+}
+
+.legal-marca {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.legal-conteudo {
+  /* ~68 caracteres por linha. Texto jurídico já cansa; linha que atravessa o
+     monitor inteiro faz o olho perder onde estava ao voltar. */
+  max-width: 38rem;
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--space-6) var(--space-5) var(--space-6);
+  flex: 1;
+}
+
+.legal-conteudo h1 {
+  font-size: var(--text-2xl);
+  letter-spacing: -0.02em;
+}
+
+.legal-data {
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+  margin-top: var(--space-2);
+}
+
+/* O resumo em linguagem de gente, antes do texto formal: quem lê só isto já fica
+   sabendo o essencial, que é mais do que acontece com a maioria dos termos. */
+.legal-resumo {
+  margin-top: var(--space-5);
+  padding: var(--space-4);
+  background: var(--color-brand-soft);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+}
+
+.legal-conteudo h2 {
+  font-size: var(--text-lg);
+  margin-top: var(--space-6);
+  letter-spacing: -0.01em;
+}
+
+.legal-conteudo h3 {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-ink-muted);
+  margin-top: var(--space-5);
+}
+
+.legal-conteudo p,
+.legal-conteudo li {
+  line-height: 1.65;
+  margin-top: var(--space-3);
+}
+
+.legal-conteudo ul {
+  padding-left: var(--space-5);
+  list-style: disc;
+}
+
+.legal-conteudo a {
+  color: var(--color-brand);
+}
+
+/* Mantém a ressalva visível sem fingir que é só mais um parágrafo. */
+.legal-nota {
+  margin-top: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border-strong);
+  color: var(--color-ink-muted);
+  font-size: var(--text-sm);
+}
+
+.legal-rodape {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  justify-content: center;
+  padding: var(--space-5);
+  border-top: var(--border-width) solid var(--color-border);
+  font-size: var(--text-sm);
+}
+
+.legal-rodape a {
+  color: var(--color-ink-muted);
+}

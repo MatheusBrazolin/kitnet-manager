@@ -1,4 +1,4 @@
-import { Body, Controller, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Patch, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import {
@@ -8,6 +8,7 @@ import {
 import { PerfilService } from './perfil.service';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { UpdateSenhaDto } from './dto/update-senha.dto';
+import { ApagarContaDto } from './dto/apagar-conta.dto';
 
 /**
  * Único controller de escrita SEM ViewerReadOnlyGuard, de propósito.
@@ -41,5 +42,28 @@ export class PerfilController {
     @Body() dto: UpdateSenhaDto,
   ) {
     return this.perfilService.updateSenha(user.id, dto);
+  }
+
+  /**
+   * Cópia de tudo que a conta guarda (LGPD, art. 18, V).
+   *
+   * Limite baixo porque a consulta varre a conta inteira — é a rota mais cara da API,
+   * e ninguém precisa de mais que alguns downloads por hora.
+   */
+  @Throttle({ default: { limit: 3, ttl: 60_000 } })
+  @Get('exportar')
+  exportar(@CurrentUser() user: AuthenticatedUser) {
+    return this.perfilService.exportarDados(user.id);
+  }
+
+  // 5/min pelo mesmo motivo de `PATCH senha`: a rota confere `senhaAtual` e, portanto,
+  // também é um oráculo de senha — com a diferença de que acertar aqui destrói a conta.
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  @Delete()
+  apagarConta(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ApagarContaDto,
+  ) {
+    return this.perfilService.apagarConta(user.id, dto);
   }
 }
