@@ -4,10 +4,12 @@ import { Login } from './pages/Login/Login';
 import { Register } from './pages/Login/Register';
 import { EsqueciSenha } from './pages/Login/EsqueciSenha';
 import { RedefinirSenha } from './pages/Login/RedefinirSenha';
+
 // As telas autenticadas ficam em chunks separados do bundle de Login/Register — quem
 // ainda não entrou não baixa o código de Dashboard/Imóveis/Pagamentos/etc. O `Suspense`
 // que cobre a espera vive no Layout, em volta do `Outlet`: um só, no lugar exato onde a
 // página entra.
+import { Suspense } from 'react';
 import {
   Configuracoes,
   Dashboard,
@@ -18,7 +20,9 @@ import {
   Moradores,
   NaoEncontrado,
   Pagamentos,
+  Privacidade,
   Relatorios,
+  Termos,
 } from './pages/paginas';
 
 function App() {
@@ -28,6 +32,25 @@ function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/esqueci-senha" element={<EsqueciSenha />} />
       <Route path="/redefinir-senha" element={<RedefinirSenha />} />
+      {/* Fora do Layout: Termos e Privacidade precisam abrir para quem ainda não tem
+          conta — é onde a pessoa decide se cria uma —, então não podem depender de
+          sessão, e por isso não herdam o Suspense que o Layout monta. */}
+      <Route
+        path="/termos"
+        element={
+          <Suspense fallback={null}>
+            <Termos />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/privacidade"
+        element={
+          <Suspense fallback={null}>
+            <Privacidade />
+          </Suspense>
+        }
+      />
 
       <Route element={<Layout />}>
         <Route path="/" element={<Dashboard />} />

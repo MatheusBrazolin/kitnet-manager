@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { api, getApiErrorMessage } from '../../services/api';
 import { useAuth } from '../../hooks/useAuth';
@@ -10,6 +11,8 @@ import { ErrorBanner } from '../../components/ErrorBanner/ErrorBanner';
 import { PasswordField } from '../../components/PasswordField/PasswordField';
 import { PAPEL_LABEL } from '../../utils/papel';
 import { limparCacheDeDados } from '../../services/invalidate';
+import { useConfirm } from '../../components/ConfirmDialog/confirm-context';
+import { hojeIsoLocal } from '../../utils/dates';
 import './configuracoes.css';
 
 const TEMAS: Array<{ valor: Tema; rotulo: string; descricao: string }> = [
@@ -23,6 +26,7 @@ export function Configuracoes() {
   const { tema, setTema } = useTema();
   const toast = useToast();
   const queryClient = useQueryClient();
+  const confirm = useConfirm();
 
   const [nome, setNome] = useState(user?.name ?? '');
   const [email, setEmail] = useState(user?.email ?? '');
@@ -34,6 +38,14 @@ export function Configuracoes() {
   const [novaSenha, setNovaSenha] = useState('');
   const [senhaError, setSenhaError] = useState<string | null>(null);
   const [isSalvandoSenha, setIsSalvandoSenha] = useState(false);
+
+  const [dadosError, setDadosError] = useState<string | null>(null);
+  const [isBaixando, setIsBaixando] = useState(false);
+  // O formulário de apagar fica escondido atrás de um botão: é a ação mais destrutiva
+  // do app, e um campo de senha sempre à vista convida ao acidente.
+  const [querApagar, setQuerApagar] = useState(false);
+  const [senhaParaApagar, setSenhaParaApagar] = useState('');
+  const [isApagando, setIsApagando] = useState(false);
 
   const nomeMudou = nome !== (user?.name ?? '');
   const emailMudou = email !== (user?.email ?? '');
@@ -81,6 +93,63 @@ export function Configuracoes() {
   function sair() {
     limparCacheDeDados(queryClient);
     logout();
+  }
+
+  /**
+   * Baixa a conta inteira num arquivo — o direito de portabilidade da LGPD e, na
+   * prática, a única cópia de segurança que o usuário consegue tirar sozinho.
+   *
+   * O arquivo é montado no navegador a partir da resposta da API, em vez de abrir a
+   * URL numa aba nova: a rota exige o cabeçalho de autenticação, que uma navegação
+   * comum não carrega — abrir a URL direto devolveria 401.
+   */
+  async function baixarDados() {
+    setDadosError(null);
+    setIsBaixando(true);
+    try {
+      const { data } = await api.get('/perfil/exportar');
+      const url = URL.createObjectURL(
+        new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }),
+      );
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `kitmanager-${hojeIsoLocal()}.json`;
+      link.click();
+      // Sem revogar, o blob fica na memória da aba até ela ser fechada.
+      URL.revokeObjectURL(url);
+      toast.sucesso('Seus dados foram baixados');
+    } catch (err) {
+      setDadosError(getApiErrorMessage(err, 'Não foi possível baixar seus dados.'));
+    } finally {
+      setIsBaixando(false);
+    }
+  }
+
+  async function apagarConta(event: FormEvent) {
+    event.preventDefault();
+    const ok = await confirm({
+      title: 'Apagar sua conta',
+      message:
+        'Isso apaga em definitivo seus imóveis, unidades, moradores, pagamentos e gastos. Não tem como desfazer. Se ainda não baixou seus dados, cancele e baixe antes.',
+      confirmLabel: 'Apagar tudo',
+      danger: true,
+    });
+    if (!ok) {
+      return;
+    }
+
+    setDadosError(null);
+    setIsApagando(true);
+    try {
+      // `data` num DELETE: a senha vai no corpo, não na URL, para não acabar no
+      // histórico do navegador nem no log de acesso do servidor.
+      await api.delete('/perfil', { data: { senhaAtual: senhaParaApagar } });
+      // Não há mais conta para onde voltar: limpa tudo e cai no login.
+      sair();
+    } catch (err) {
+      setDadosError(getApiErrorMessage(err, 'Não foi possível apagar a conta.'));
+      setIsApagando(false);
+    }
   }
 
   return (
@@ -220,6 +289,86 @@ export function Configuracoes() {
             Sair da conta
           </button>
         </div>
+      </Card>
+
+      <Card
+        title="Privacidade e seus dados"
+        subtitle="Leve embora ou apague, quando quiser"
+      >
+        <ErrorBanner message={dadosError} />
+
+        <div className="dados-bloco">
+          <div className="dados-texto">
+            <strong>Baixar meus dados</strong>
+            <p>
+              Um arquivo com a conta inteira: imóveis, unidades, moradores, pagamentos
+              e gastos. Serve de cópia de segurança e é seu por direito.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={baixarDados}
+            disabled={isBaixando}
+          >
+            {isBaixando ? 'Preparando...' : 'Baixar'}
+          </button>
+        </div>
+
+        <div className="dados-bloco dados-bloco-perigo">
+          <div className="dados-texto">
+            <strong>Apagar minha conta</strong>
+            <p>
+              Apaga em definitivo tudo o que está aqui dentro. Não tem como desfazer —
+              baixe seus dados antes, se quiser guardá-los.
+            </p>
+          </div>
+
+          {querApagar ? (
+            <form onSubmit={apagarConta} className="dados-apagar-form">
+              <PasswordField
+                id="senhaParaApagar"
+                label="Confirme sua senha"
+                value={senhaParaApagar}
+                onChange={setSenhaParaApagar}
+                autoComplete="current-password"
+              />
+              <div className="configuracoes-acoes">
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => {
+                    setQuerApagar(false);
+                    setSenhaParaApagar('');
+                  }}
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-danger"
+                  disabled={isApagando || !senhaParaApagar}
+                >
+                  {isApagando ? 'Apagando...' : 'Apagar minha conta'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-ghost btn-perigo"
+              onClick={() => setQuerApagar(true)}
+            >
+              Apagar conta
+            </button>
+          )}
+        </div>
+
+        <p className="dados-legal">
+          <Link to="/termos">Termos de uso</Link>
+          <span aria-hidden="true"> · </span>
+          <Link to="/privacidade">Política de privacidade</Link>
+        </p>
       </Card>
     </div>
   );

@@ -97,6 +97,13 @@ export function Register() {
           <p className="auth-switch">
             Já tem conta? <Link to="/login">Entrar</Link>
           </p>
+          {/* Onde a pessoa decide criar a conta é onde ela precisa poder ler a que
+              está concordando — e não depois, escondido nas configurações. */}
+          <p className="auth-legal">
+            <Link to="/termos">Termos de uso</Link>
+            <span aria-hidden="true"> · </span>
+            <Link to="/privacidade">Privacidade</Link>
+          </p>
         </form>
       </section>
     </div>

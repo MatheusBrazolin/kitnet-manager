@@ -568,3 +568,18 @@
 .auth-link:hover {
   text-decoration: underline;
 }
+
+/* Links legais no pé do formulário: discretos, mas presentes antes do cadastro. */
+.auth-legal {
+  text-align: center;
+  font-size: var(--text-xs);
+  color: var(--color-ink-faint);
+}
+
+.auth-legal a {
+  color: var(--color-ink-faint);
+}
+
+.auth-legal a:hover {
+  color: var(--color-ink-muted);
+}
