@@ -10,6 +10,7 @@ import { formatDate, formatMesReferencia, formatTempoLocacao, formatVencimentoLa
 import { formatCurrency } from '../../utils/currency';
 import './morador-detail-modal.css';
 import { formatUnidadeLabel } from '../../utils/unidade';
+import { formatTelefone } from '../../utils/telefone';
 
 interface MoradorDetailModalProps {
   moradorId: number;
@@ -40,7 +41,7 @@ export function MoradorDetailModal({ moradorId, onClose }: MoradorDetailModalPro
           <dl className="morador-detail-grid">
             <div>
               <dt>Telefone</dt>
-              <dd>{morador.telefone}</dd>
+              <dd>{formatTelefone(morador.telefone)}</dd>
             </div>
             <div>
               <dt>Imóvel</dt>
