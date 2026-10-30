@@ -6,14 +6,18 @@ const compactCurrencyFormatter = new Intl.NumberFormat('pt-BR', {
   maximumFractionDigits: 1,
 });
 
-const NON_BREAKING_SPACE = String.fromCharCode(160);
-
-// Intl.NumberFormat insere um espaco nao-quebravel entre "R$" e o valor, o que
-// impede a quebra de linha em cards estreitos e faz o texto vazar. Trocamos por
-// um espaco normal pra permitir quebra num ponto sensato.
-function stripNonBreakingSpace(value: string): string {
-  return value.split(NON_BREAKING_SPACE).join(' ');
-}
+/*
+ * Sobre o espaço entre "R$" e o número: ele é inteiriço (U+00A0), e fica assim.
+ *
+ * Antes havia aqui uma função que o trocava por espaço comum, "pra permitir quebra num
+ * ponto sensato" em telas estreitas. O problema é que não existe ponto sensato para
+ * quebrar dinheiro: "R$" numa linha e "1.200,00" na outra se lê como dois números, e
+ * numa coluna de valores o olho perde qual cifrão pertence a qual quantia. O
+ * `Intl.NumberFormat` usa o espaço inteiriço justamente por isso.
+ *
+ * O aperto em telas estreitas é real, mas se resolve no container — coluna mais larga,
+ * fonte que encolhe — e não partindo o valor ao meio.
+ */
 
 /**
  * Um valor ausente ou inválido vira R$ 0,00, nunca "R$ NaN".
@@ -28,9 +32,9 @@ function numeroSeguro(value: number | null | undefined): number {
 }
 
 export function formatCurrency(value: number | null | undefined): string {
-  return stripNonBreakingSpace(currencyFormatter.format(numeroSeguro(value)));
+  return currencyFormatter.format(numeroSeguro(value));
 }
 
 export function formatCompactCurrency(value: number | null | undefined): string {
-  return stripNonBreakingSpace(compactCurrencyFormatter.format(numeroSeguro(value)));
+  return compactCurrencyFormatter.format(numeroSeguro(value));
 }

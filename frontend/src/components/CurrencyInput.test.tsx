@@ -25,7 +25,7 @@ describe('CurrencyInput', () => {
 
     await user.type(input, '150000');
 
-    expect(input).toHaveValue('R$ 1.500,00');
+    expect(input).toHaveValue('R$\u00A01.500,00');
   });
 
   it('formats a single-digit value as cents', async () => {
@@ -35,17 +35,17 @@ describe('CurrencyInput', () => {
 
     await user.type(input, '5');
 
-    expect(input).toHaveValue('R$ 0,05');
+    expect(input).toHaveValue('R$\u00A00,05');
   });
 
   it('pre-fills correctly from an existing numeric value, including decimals', () => {
     render(<ControlledCurrencyInput initialValue="168.45" />);
-    expect(screen.getByRole('textbox')).toHaveValue('R$ 168,45');
+    expect(screen.getByRole('textbox')).toHaveValue('R$\u00A0168,45');
   });
 
   it('pre-fills correctly from an existing whole-number value', () => {
     render(<ControlledCurrencyInput initialValue="1400" />);
-    expect(screen.getByRole('textbox')).toHaveValue('R$ 1.400,00');
+    expect(screen.getByRole('textbox')).toHaveValue('R$\u00A01.400,00');
   });
 
   it('clears back to empty when every digit is deleted', async () => {

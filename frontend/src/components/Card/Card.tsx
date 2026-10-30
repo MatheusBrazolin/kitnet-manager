@@ -76,17 +76,33 @@ interface HeroStatProps {
  * usuário precisa interpretar e uma tela que já responde a pergunta dele na primeira
  * olhada.
  */
+/**
+ * A partir de quantos caracteres o valor não cabe mais em uma linha.
+ *
+ * "R$ 45.594,00" tem 12 e ocupa a coluna inteira no tamanho cheio; de 13 em diante
+ * ("R$ 345.678,90") o número quebrava em duas linhas, o que se lê como dois números.
+ * Encolher a fonte é melhor que partir o valor.
+ */
+const MAXIMO_CARACTERES_TAMANHO_CHEIO = 12;
+
 export function HeroStat({ label, value, hint, progress, action }: HeroStatProps) {
   const pct =
     progress && progress.total > 0
       ? Math.min(100, Math.round((progress.atual / progress.total) * 100))
       : 0;
 
+  // Só dá para medir quando o valor é texto. Sendo outra coisa, fica no tamanho cheio —
+  // o mesmo comportamento de antes.
+  const valorLongo =
+    typeof value === 'string' && value.length > MAXIMO_CARACTERES_TAMANHO_CHEIO;
+
   return (
     <section className="hero-stat">
       <div className="hero-stat-main">
         <p className="hero-stat-label">{label}</p>
-        <p className="hero-stat-value numero">{value}</p>
+        <p className={`hero-stat-value numero${valorLongo ? ' hero-stat-value-longo' : ''}`}>
+          {value}
+        </p>
         {hint && <p className="hero-stat-hint">{hint}</p>}
       </div>
 
