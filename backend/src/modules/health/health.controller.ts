@@ -27,7 +27,11 @@ import { PrismaService } from '../../database/prisma.service';
  * mensagem crua do Prisma não pode ir junto: ela traz o host e a porta do banco. Daí a
  * classificação em rótulos fixos, com a mensagem inteira indo só para o log do servidor.
  */
-function classificar(erro: unknown): { causa: string; dica: string } {
+function classificar(erro: unknown): {
+  causa: string;
+  dica: string;
+  codigoPrisma?: string | null;
+} {
   const texto = erro instanceof Error ? erro.message : String(erro);
   const codigo = (erro as { errorCode?: string })?.errorCode;
 
@@ -58,9 +62,38 @@ function classificar(erro: unknown): { causa: string; dica: string } {
       dica: 'A conexão estourou o tempo. Em serverless, costuma ser falta de pooler na DATABASE_URL.',
     };
   }
+  // P1013 / erro de parse: a string em si está malformada — nem chegou a haver
+  // tentativa de conexão. Em troca de senha é o caso mais comum, e o mais fácil de
+  // produzir: sobrou o `<` e o `>` do modelo que se copiou, a linha veio com
+  // `DATABASE_URL="` na frente, ou a senha tem um caractere que precisa de
+  // percent-encoding (@ : / ? # % quebram a URL no lugar errado).
+  if (
+    codigo === 'P1013' ||
+    /provided database string is invalid|error parsing connection string|must start with the protocol/i.test(
+      texto,
+    )
+  ) {
+    return {
+      causa: 'string-invalida',
+      dica: 'A DATABASE_URL está malformada — o banco nem chegou a ser procurado. Confira se ela começa em "postgresql://", se não sobrou "<", ">" ou aspas do modelo copiado, e se a senha não tem @ : / ? # ou % (esses precisam ser percent-encoded).',
+    };
+  }
+  // Rede fechada por IPv6: a conexão direta do Supabase (db.<ref>.supabase.co) só
+  // atende IPv6 sem o add-on pago, e boa parte dos runtimes sai por IPv4.
+  if (/ENETUNREACH|EAI_AGAIN|getaddrinfo/i.test(texto)) {
+    return {
+      causa: 'rede',
+      dica: 'Não foi possível resolver ou alcançar o host. Se a URL aponta para db.<ref>.supabase.co, troque pelo pooler (.pooler.supabase.com), que atende IPv4.',
+    };
+  }
   return {
+    // O código do Prisma vai junto mesmo quando não há rótulo: ele é curto, não
+    // vaza host nem senha, e é o suficiente para procurar na documentação. Sem
+    // isso a resposta dizia "veja o log do servidor" — e em plano sem retenção de
+    // log de erro, não há log para ver.
     causa: codigo ?? (erro instanceof Error ? erro.name : 'desconhecida'),
-    dica: 'Veja o log do servidor para a mensagem completa.',
+    codigoPrisma: codigo ?? null,
+    dica: 'Causa não reconhecida. O código do Prisma acima identifica o caso na documentação.',
   };
 }
 
