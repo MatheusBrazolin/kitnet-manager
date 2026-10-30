@@ -181,6 +181,18 @@ Para funcionar, ele precisa do secret **`DATABASE_URL_PRODUCTION`** em
 *Settings → Secrets and variables → Actions*. Sem o secret, o job para com um aviso em vez de
 falhar com erro de conexão confuso.
 
+> **Use o Session pooler.** Este secret não é a mesma string que a aplicação usa, e as outras duas
+> opções do Supabase não servem aqui:
+>
+> | opção | porta | por que não |
+> |---|---|---|
+> | Transaction pooler | 6543 | É a certa para a Vercel (serverless), mas `migrate deploy` usa advisory lock e prepared statements, que o pgbouncer em modo transação não suporta — a migração falha no meio. |
+> | Direct connection | 5432 (`db.<ref>.supabase.co`) | O Supabase só a serve por IPv6, salvo add-on pago; os runners do GitHub Actions são IPv4, então a conexão nem abre. |
+> | **Session pooler** | **5432 (`.pooler.supabase.com`)** | **É esta.** Modo sessão, então o lock e os prepared statements funcionam, e atende por IPv4. |
+>
+> No painel: botão **Connect** (topo) → aba *Direct / Connection string* → **Session pooler** → URI,
+> trocando `[YOUR-PASSWORD]` pela senha do banco.
+
 Se precisar aplicar à mão (ex.: antes de configurar o secret):
 ```bash
 cd backend
