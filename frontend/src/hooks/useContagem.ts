@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from 'react';
 
 /**
  * Anima um número de 0 até `destino`.
@@ -15,8 +15,8 @@ import { useEffect, useRef, useState } from "react";
  */
 export function useContagem(destino: number, duracaoMs = 1400): number {
   const prefereParado =
-    typeof window !== "undefined" &&
-    window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    typeof window !== 'undefined' &&
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 
   const [valor, setValor] = useState(prefereParado ? destino : 0);
   const frameRef = useRef<number | undefined>(undefined);
