@@ -105,7 +105,9 @@ describe('Imobiliarias', () => {
     await waitFor(() =>
       expect(postSpy).toHaveBeenCalledWith('/imobiliarias', {
         nome: 'Imobiliária Central',
-        telefone: '11999990000',
+        // Digitado cru, gravado formatado: é o que o TelefoneInput faz, e o motivo de
+        // a mesma lista não exibir mais "11999990000" ao lado de "(11) 99999-0000".
+        telefone: '(11) 99999-0000',
         contato: null,
         taxaPadraoTipo: 'PERCENTUAL',
         taxaPadraoValor: 10,

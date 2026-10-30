@@ -14,6 +14,7 @@ import {
 } from '../../utils/repasse';
 import { formatDate } from '../../utils/dates';
 import './kitnet-detail-modal.css';
+import { formatTelefone } from '../../utils/telefone';
 
 interface KitnetDetailModalProps {
   kitnetId: number;
@@ -94,7 +95,7 @@ export function KitnetDetailModal({ kitnetId, onClose }: KitnetDetailModalProps)
             </div>
             <div>
               <dt>Morador atual</dt>
-              <dd>{morador ? `${morador.nome} · ${morador.telefone}` : 'Nenhum morador'}</dd>
+              <dd>{morador ? `${morador.nome} · ${formatTelefone(morador.telefone)}` : 'Nenhum morador'}</dd>
             </div>
             <div>
               <dt>Total gasto</dt>

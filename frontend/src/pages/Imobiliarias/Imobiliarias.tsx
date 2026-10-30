@@ -17,6 +17,8 @@ import { formatTaxaLabel } from '../../utils/repasse';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
 import './imobiliarias.css';
 import { useToast } from '../../components/Toast/toast-context';
+import { formatTelefone } from '../../utils/telefone';
+import { TelefoneInput } from '../../components/TelefoneInput';
 
 export function Imobiliarias() {
   const queryClient = useQueryClient();
@@ -70,7 +72,7 @@ export function Imobiliarias() {
   function openEditModal(imobiliaria: Imobiliaria) {
     setEditandoId(imobiliaria.id);
     setNome(imobiliaria.nome);
-    setTelefone(imobiliaria.telefone);
+    setTelefone(formatTelefone(imobiliaria.telefone));
     setContato(imobiliaria.contato ?? '');
     setTaxaTipo(imobiliaria.taxaPadraoTipo);
     setTaxaValor(String(imobiliaria.taxaPadraoValor));
@@ -163,7 +165,7 @@ export function Imobiliarias() {
             emptyMessage="Nenhuma imobiliária cadastrada. Unidades sem imobiliária contam como gestão direta."
             columns={[
               { header: 'Nome', render: (row) => row.nome },
-              { header: 'Telefone', render: (row) => row.telefone },
+              { header: 'Telefone', render: (row) => formatTelefone(row.telefone) },
               { header: 'Contato', render: (row) => row.contato || '—' },
               {
                 header: 'Taxa padrão',
@@ -230,10 +232,10 @@ export function Imobiliarias() {
 
             <div className="field">
               <label htmlFor="imobiliariaTelefone">Telefone</label>
-              <input
+              <TelefoneInput
                 id="imobiliariaTelefone"
                 value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
+                onChange={setTelefone}
                 required
               />
             </div>

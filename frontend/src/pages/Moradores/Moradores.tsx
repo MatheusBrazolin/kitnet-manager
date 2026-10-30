@@ -17,6 +17,8 @@ import { useConfirm } from '../../components/ConfirmDialog/confirm-context';
 import { useAuth } from '../../hooks/useAuth';
 import { invalidarDadosDoNegocio } from '../../services/invalidate';
 import { formatUnidadeLabel, linkWhatsApp } from '../../utils/unidade';
+import { formatTelefone, soDigitos } from '../../utils/telefone';
+import { TelefoneInput } from '../../components/TelefoneInput';
 import { StatusBadge } from '../../components/StatusBadge';
 import './moradores.css';
 import { hojeIsoLocal } from '../../utils/dates';
@@ -76,11 +78,16 @@ export function Moradores() {
   // Filtro local sobre a página carregada. Não existia busca nenhuma, e com 20 por
   // página achar um morador entre 40 obrigava a paginar até dar sorte.
   const buscaNormalizada = busca.trim().toLowerCase();
+  // Telefone é comparado dígito a dígito dos dois lados: o número está gravado com
+  // parênteses e hífen, e quem busca digita "98900" ou "16998123344" — comparar o
+  // texto cru não acharia nenhum dos dois.
+  const digitosBuscados = busca.replace(/\D/g, '');
   const moradores = buscaNormalizada
     ? moradoresDaPagina.filter(
         (morador) =>
           morador.nome.toLowerCase().includes(buscaNormalizada) ||
-          morador.telefone.includes(buscaNormalizada) ||
+          (digitosBuscados !== '' &&
+            soDigitos(morador.telefone).includes(digitosBuscados)) ||
           morador.kitnet.numero.toLowerCase().includes(buscaNormalizada),
       )
     : moradoresDaPagina;
@@ -109,7 +116,7 @@ export function Moradores() {
   function openEditModal(morador: MoradorRow) {
     setEditingId(morador.id);
     setNome(morador.nome);
-    setTelefone(morador.telefone);
+    setTelefone(formatTelefone(morador.telefone));
     setKitnetId(morador.kitnetId);
     setDataEntrada(morador.dataEntrada.slice(0, 10));
     setDiaVencimento(String(morador.diaVencimento));
@@ -283,7 +290,7 @@ export function Moradores() {
                     href={`tel:${row.telefone.replace(/\D/g, '')}`}
                     onClick={(event) => event.stopPropagation()}
                   >
-                    {row.telefone}
+                    {formatTelefone(row.telefone)}
                   </a>
                   {/* WhatsApp é o canal real de cobrança desse público. A mensagem
                       já vai pronta para a pessoa só revisar e enviar. */}
@@ -379,14 +386,7 @@ export function Moradores() {
             </div>
             <div className="field">
               <label htmlFor="telefone">Telefone</label>
-              <input
-                id="telefone"
-                required
-                minLength={8}
-                value={telefone}
-                onChange={(event) => setTelefone(event.target.value)}
-                placeholder="(11) 99999-0000"
-              />
+              <TelefoneInput id="telefone" required value={telefone} onChange={setTelefone} />
             </div>
             <div className="field">
               <label htmlFor="kitnetId">Unidade</label>
