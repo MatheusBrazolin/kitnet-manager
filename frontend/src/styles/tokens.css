@@ -64,6 +64,20 @@
   --color-warning-soft: #f5edd9;
   --color-warning-ink: #5c470f;
 
+  /* ---- Desistir de um recebimento --------------------------------------
+     Laranja avermelhado, e nem `danger` nem `brand`. Não é `danger` porque
+     marcar "não vou receber" não é um erro — é uma decisão legítima sobre um
+     aluguel que não vai entrar, e vermelho aqui faria a tela acusar o usuário
+     de algo. Não é `brand` porque brand é a ação que se quer incentivar, e esta
+     é a saída pela tangente. Fica no meio do caminho, de propósito.
+
+     O tom exato é o mais claro que ainda passa em contraste sobre
+     `--color-recusa-soft`: #b2491f, um passo acima, dá 4.49:1 e reprova por um
+     fio no mínimo de 4.5:1 da WCAG AA. Este dá 4.98:1. */
+  --color-recusa: #a8431c;
+  --color-recusa-soft: #f8e6dd;
+  --color-recusa-ink: #7d3014;
+
   /* ---- Erro de verdade (validação, falha de request) -------------------- */
   --color-danger: #b3261e;
   --color-danger-soft: #f9e3e1;
@@ -177,6 +191,10 @@
   --color-warning: #e3b341;
   --color-warning-soft: #e3b3411a;
   --color-warning-ink: #f5dfa8;
+
+  --color-recusa: #fb8055;
+  --color-recusa-soft: #fb80551a;
+  --color-recusa-ink: #ffc4a8;
 
   --color-danger: #ff6b63;
   --color-danger-soft: #ff6b631a;

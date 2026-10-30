@@ -12,10 +12,9 @@
 }
 
 .imovel-card-edit {
+  /* `relative` é o que ancora o menu suspenso logo abaixo do lápis. */
   position: relative;
   display: flex;
-  justify-content: flex-end;
-  padding-top: var(--space-4);
 }
 
 .imovel-card-edit-trigger {
@@ -185,10 +184,13 @@
   color: var(--color-ink-muted);
 }
 
-/* Ação principal do card, visível sem precisar abrir menu nenhum. */
+/* Ação principal do card, visível sem precisar abrir menu nenhum — e, na outra
+   ponta da mesma linha, o menu do imóvel. */
 .imovel-card-acoes {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
   margin-bottom: var(--space-4);
 }

@@ -157,6 +157,40 @@ a {
   color: var(--color-danger-ink);
 }
 
+/*
+ * As duas decisões de uma parcela em aberto: "Marcar pago" e "Não vou receber".
+ *
+ * Eram dois `btn-ghost` cinzas idênticos ao lado de "Editar" — três botões iguais,
+ * e a diferença entre receber o aluguel e desistir dele ficava só no texto, que é
+ * justamente o que não se lê quando a mesma linha se repete dezenas de vezes. Com
+ * cor, a varredura da lista já diz qual é qual.
+ *
+ * Preenchimento suave em vez de botão sólido: sólido competiria com "+ Novo
+ * pagamento", que é a ação primária da tela, e deixaria a lista parecendo um
+ * semáforo. A borda some porque o próprio fundo tingido já dá a forma.
+ */
+.btn-confirmar {
+  background: var(--color-positive-soft);
+  color: var(--color-positive);
+  border-color: transparent;
+}
+
+.btn-confirmar:not(:disabled):hover {
+  background: var(--color-positive);
+  color: var(--color-surface);
+}
+
+.btn-recusar {
+  background: var(--color-recusa-soft);
+  color: var(--color-recusa);
+  border-color: transparent;
+}
+
+.btn-recusar:not(:disabled):hover {
+  background: var(--color-recusa);
+  color: var(--color-surface);
+}
+
 .btn-sm {
   padding: 0.35rem 0.65rem;
   font-size: var(--text-sm);
@@ -239,14 +273,37 @@ a {
   gap: var(--space-5);
 }
 
+/*
+ * Ações do cartão do celular (na tabela do desktop, ver a regra logo abaixo).
+ *
+ * Grade de duas colunas iguais, e não flex com quebra livre. Quebrar é inevitável
+ * aqui: as três ações de um pagamento em aberto somam ~348px numa caixa de ~243px
+ * a 375px de largura. O problema nunca foi a quebra, foi o resultado dela — com
+ * `flex-wrap`, "Editar" e "Marcar pago" ficavam na primeira linha, cada um com a
+ * largura do próprio texto, e "Não vou receber" caía sozinho na segunda, mais largo
+ * que os dois e encostado à direita. Nenhuma borda alinhada com nenhuma outra, em
+ * todos os 64 cartões da lista.
+ *
+ * Com a grade, as colunas têm a mesma largura independentemente do texto, e as
+ * bordas se alinham sozinhas.
+ */
 .table-row-actions {
-  display: flex;
-  justify-content: flex-end;
-  /* No cartão do celular as ações PODEM quebrar: há largura para duas por linha e
-     nenhuma coluna para respeitar. Quem não pode quebrar é a linha da tabela, logo
-     abaixo. */
-  flex-wrap: wrap;
+  display: grid;
+  /* `minmax(0, 1fr)` e não `1fr`: sem o mínimo zero, a coluna não encolhe abaixo do
+     texto do botão e a grade estoura a largura do cartão. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-1);
+}
+
+/*
+ * Botão sozinho na última linha ocupa as duas colunas.
+ *
+ * Com três ações, a terceira ficaria com metade da largura e um buraco do lado —
+ * trocaria um desalinhamento por outro. Esticada, a linha de baixo fecha o bloco.
+ * Com duas ações a regra não dispara (a segunda é par), e elas ficam lado a lado.
+ */
+.table-row-actions > .btn:last-child:nth-child(odd) {
+  grid-column: 1 / -1;
 }
 
 /*
@@ -260,6 +317,10 @@ a {
  * linhas, é o que fazia a tabela parecer torta.
  */
 .table td .table-row-actions {
+  /* Volta ao flex: a grade de duas colunas acima é do cartão. Numa célula de
+     tabela, as ações ficam em linha, encostadas à direita e sem quebrar. */
+  display: flex;
+  justify-content: flex-end;
   flex-wrap: nowrap;
 }
 
