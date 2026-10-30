@@ -3,6 +3,7 @@ import { api } from './api';
 import type {
   DashboardSummary,
   Gasto,
+  Imobiliaria,
   Imovel,
   Kitnet,
   Morador,
@@ -33,6 +34,13 @@ export function prefetchCoreData(queryClient: QueryClient) {
     queryClient.prefetchQuery({
       queryKey: ['imoveis'],
       queryFn: () => api.get<Imovel[]>('/imoveis').then((response) => response.data),
+    }),
+    // A tela de Imóveis pede as duas listas: os imóveis e, para o seletor do modal de
+    // unidade, as imobiliárias. Sem esta, abrir "Imóveis" ainda custava uma ida ao
+    // servidor depois que o resto já estava em cache.
+    queryClient.prefetchQuery({
+      queryKey: ['imobiliarias'],
+      queryFn: () => api.get<Imobiliaria[]>('/imobiliarias').then((response) => response.data),
     }),
     // Pagamentos.tsx usa a lista de moradores sem paginação...
     queryClient.prefetchQuery({
