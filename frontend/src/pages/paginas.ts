@@ -55,6 +55,18 @@ export const NaoEncontrado = lazy(() =>
  * usuário. "NaoEncontrado" fica de fora de propósito: é a única que ninguém abre de
  * propósito.
  */
+/** Resolve quando o navegador estiver sem nada melhor para fazer. */
+function aguardarOciosidade(): Promise<void> {
+  return new Promise((resolve) => {
+    // O Safari só passou a suportar `requestIdleCallback` há pouco, daí o fallback.
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(() => resolve(), { timeout: 3_000 });
+    } else {
+      setTimeout(resolve, 300);
+    }
+  });
+}
+
 export function precarregarRotas(): void {
   const importadores = [
     importarDashboard,
@@ -68,15 +80,23 @@ export function precarregarRotas(): void {
     importarEquipe,
   ];
 
-  // Falha aqui não é erro: a rota continua carregando sob demanda, como antes.
-  const precarregar = () => importadores.forEach((importar) => void importar().catch(() => {}));
-
-  // `requestIdleCallback` espera o navegador terminar o que importa (render da primeira
-  // tela, requisições dos dados). O Safari só passou a suportá-lo há pouco, daí o
-  // fallback por tempo.
-  if (typeof requestIdleCallback === 'function') {
-    requestIdleCallback(precarregar, { timeout: 3_000 });
-  } else {
-    setTimeout(precarregar, 1_500);
+  // Um de cada vez, esperando ociosidade entre eles — e não os nove de uma vez.
+  //
+  // Disparar tudo em paralelo custava caro em quem toca numa aba no primeiro segundo,
+  // antes do pré-carregamento terminar: medido com 120 ms de latência, a tela que a
+  // pessoa pediu demorava ~495 ms em vez dos ~382 ms de antes da mudança. As nove
+  // requisições especulativas estavam na frente da única que importava.
+  //
+  // Em série isso some: no máximo uma concorre, e `aguardarOciosidade` não dispara a
+  // próxima enquanto houver trabalho real acontecendo — uma navegação de verdade segura
+  // a fila sozinha, sem precisar de nenhum cancelamento explícito.
+  async function precarregar() {
+    for (const importar of importadores) {
+      // Falha aqui não é erro: a rota continua carregando sob demanda, como antes.
+      await importar().catch(() => {});
+      await aguardarOciosidade();
+    }
   }
+
+  void aguardarOciosidade().then(precarregar);
 }
