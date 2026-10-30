@@ -1,11 +1,18 @@
-import {  useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { api, clearStoredToken, getApiErrorMessage, getStoredToken, storeToken } from '../services/api';
+import {
+  api,
+  clearStoredToken,
+  getApiErrorMessage,
+  getStoredToken,
+  storeToken,
+} from '../services/api';
 import { prefetchCoreData } from '../services/prefetch';
 import { limparCacheDeDados } from '../services/invalidate';
 import type { User } from '../types';
 import { AuthContext } from './auth-context';
+import { guardarPerfilLembrado } from '../utils/perfilLembrado';
 
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -16,7 +23,9 @@ function delay(ms: number) {
 // sobre a sessão em si; tratar como "sessão inválida" só porque o /auth/me falhou uma vez
 // era o que forçava login de novo toda hora, mesmo com o token ainda válido.
 function isSessaoInvalida(error: unknown): boolean {
-  return axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403);
+  return (
+    axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)
+  );
 }
 
 interface AuthResponse {
@@ -85,9 +94,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await api.post<AuthResponse>('/auth/login', { email, password });
       storeToken(response.data.token);
       setUser(response.data.user);
+      // Só depois do login dar certo: lembrar um e-mail que nem existe faria a tela
+      // seguinte pedir a senha de uma conta inexistente, para sempre.
+      guardarPerfilLembrado({
+        nome: response.data.user.name,
+        email: response.data.user.email,
+      });
       prefetchCoreData(queryClient);
     } catch (error) {
-      throw new Error(getApiErrorMessage(error, 'Não foi possível entrar. Verifique suas credenciais.'));
+      throw new Error(
+        getApiErrorMessage(error, 'Não foi possível entrar. Verifique suas credenciais.'),
+      );
     }
   }
 
@@ -95,6 +112,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await api.post<AuthResponse>('/auth/register', { name, email, password });
       storeToken(response.data.token);
+      guardarPerfilLembrado({
+        nome: response.data.user.name,
+        email: response.data.user.email,
+      });
       setUser(response.data.user);
       prefetchCoreData(queryClient);
     } catch (error) {
@@ -118,6 +139,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, register, logout, recarregarSessao }}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={{ user, isLoading, login, register, logout, recarregarSessao }}>
+      {children}
+    </AuthContext.Provider>
   );
 }

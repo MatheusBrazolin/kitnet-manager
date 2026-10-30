@@ -1,13 +1,13 @@
-import { act, renderHook } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { useContagem } from "./useContagem";
+import { act, renderHook } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { useContagem } from './useContagem';
 
 /** Finge a resposta do sistema para `prefers-reduced-motion`. */
 function comPreferenciaDeMovimento(reduzido: boolean) {
   vi.stubGlobal(
-    "matchMedia",
+    'matchMedia',
     vi.fn().mockImplementation((query: string) => ({
-      matches: reduzido && query.includes("prefers-reduced-motion"),
+      matches: reduzido && query.includes('prefers-reduced-motion'),
       media: query,
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -15,7 +15,7 @@ function comPreferenciaDeMovimento(reduzido: boolean) {
   );
 }
 
-describe("useContagem", () => {
+describe('useContagem', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.useRealTimers();
@@ -24,9 +24,9 @@ describe("useContagem", () => {
   // A garantia de acessibilidade: quem pediu menos movimento no sistema recebe o
   // número pronto, sem nenhum quadro de animação. Isso quebra silenciosamente se
   // alguém mexer no hook, porque visualmente "funciona" dos dois jeitos.
-  it("entrega o valor final de imediato quando o sistema pede menos movimento", () => {
+  it('entrega o valor final de imediato quando o sistema pede menos movimento', () => {
     comPreferenciaDeMovimento(true);
-    const raf = vi.spyOn(globalThis, "requestAnimationFrame");
+    const raf = vi.spyOn(globalThis, 'requestAnimationFrame');
 
     const { result } = renderHook(() => useContagem(6380));
 
@@ -35,7 +35,7 @@ describe("useContagem", () => {
     raf.mockRestore();
   });
 
-  it("começa em zero e termina no destino exato", async () => {
+  it('começa em zero e termina no destino exato', async () => {
     comPreferenciaDeMovimento(false);
 
     const { result } = renderHook(() => useContagem(6380, 50));
@@ -49,9 +49,9 @@ describe("useContagem", () => {
     expect(result.current).toBe(6380);
   });
 
-  it("cancela a animação ao desmontar, sem vazar quadro", () => {
+  it('cancela a animação ao desmontar, sem vazar quadro', () => {
     comPreferenciaDeMovimento(false);
-    const cancel = vi.spyOn(globalThis, "cancelAnimationFrame");
+    const cancel = vi.spyOn(globalThis, 'cancelAnimationFrame');
 
     const { unmount } = renderHook(() => useContagem(100));
     unmount();
