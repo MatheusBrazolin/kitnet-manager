@@ -11,6 +11,7 @@ import { ContaService } from '../../common/conta/conta.service';
 import type { AuthenticatedUser } from '../../common/decorators/current-user.decorator';
 import { UpdatePerfilDto } from './dto/update-perfil.dto';
 import { UpdateSenhaDto } from './dto/update-senha.dto';
+import { ApagarContaDto } from './dto/apagar-conta.dto';
 
 // Mesmo custo usado no cadastro (auth.service.ts). Precisa bater: o hash gravado aqui é
 // conferido pelo mesmo bcrypt.compare do login.
@@ -110,6 +111,90 @@ export class PerfilService {
       mensagem:
         'Senha alterada. As sessões abertas em outros aparelhos foram encerradas.',
     };
+  }
+
+  /**
+   * Tudo que a conta guarda, num JSON só — o direito de portabilidade da LGPD
+   * (art. 18, V) e, na prática, a única cópia de segurança que o usuário consegue
+   * tirar sozinho.
+   *
+   * Chaveado por `userId` e não por `contaId` de propósito: exporta o que esta pessoa
+   * é dona, nunca os dados da conta de terceiro que ela porventura acompanhe como
+   * membro. `password` nunca entra — é hash, não serve a ninguém e só aumenta o
+   * estrago se o arquivo vazar.
+   */
+  async exportarDados(userId: number) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        plano: true,
+        createdAt: true,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+
+    // Os imóveis puxam a árvore inteira: unidade → morador → pagamento, mais os gastos
+    // e o histórico de valor de cada unidade. Como toda kitnet pertence a um imóvel,
+    // nada fica de fora por este caminho.
+    const [imobiliarias, imoveis, membros] = await Promise.all([
+      this.prisma.imobiliaria.findMany({ where: { userId } }),
+      this.prisma.imovel.findMany({
+        where: { userId },
+        include: {
+          kitnets: {
+            include: {
+              moradores: { include: { pagamentos: true } },
+              gastos: true,
+              historicoValor: true,
+            },
+          },
+        },
+      }),
+      this.prisma.membro.findMany({
+        where: { donoId: userId },
+        include: { user: { select: { name: true, email: true } } },
+      }),
+    ]);
+
+    return {
+      geradoEm: new Date().toISOString(),
+      perfil: user,
+      imobiliarias,
+      imoveis,
+      // Quem tem acesso à conta também é informação da conta, e some junto se ela for
+      // apagada — então precisa aparecer na cópia.
+      membros,
+    };
+  }
+
+  /**
+   * Apaga a conta e, em cascata, tudo que pende dela — o direito de eliminação da
+   * LGPD (art. 18, VI).
+   *
+   * Uma linha só: o schema declara `onDelete: Cascade` de `User` para baixo, então o
+   * próprio banco remove imóveis, unidades, moradores, pagamentos, gastos, convites e
+   * tokens de recuperação. Fazer isso na mão aqui seria repetir — e divergir — de uma
+   * regra que já existe e é garantida pelo Postgres.
+   */
+  async apagarConta(userId: number, dto: ApagarContaDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+
+    const senhaConfere = await bcrypt.compare(dto.senhaAtual, user.password);
+    if (!senhaConfere) {
+      throw new UnauthorizedException('Senha atual incorreta.');
+    }
+
+    await this.prisma.user.delete({ where: { id: userId } });
+
+    return { mensagem: 'Conta apagada. Sentiremos sua falta.' };
   }
 
   /** Mesmo shape devolvido por GET /auth/me (ver jwt.strategy.ts) — e sem `password`. */

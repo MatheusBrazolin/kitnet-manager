@@ -12,7 +12,11 @@ type PrismaMock = {
   user: {
     findUnique: jest.Mock;
     update: jest.Mock;
+    delete: jest.Mock;
   };
+  imobiliaria: { findMany: jest.Mock };
+  imovel: { findMany: jest.Mock };
+  membro: { findMany: jest.Mock };
 };
 
 describe('PerfilService', () => {
@@ -46,7 +50,10 @@ describe('PerfilService', () => {
 
   beforeEach(() => {
     prisma = {
-      user: { findUnique: jest.fn(), update: jest.fn() },
+      user: { findUnique: jest.fn(), update: jest.fn(), delete: jest.fn() },
+      imobiliaria: { findMany: jest.fn().mockResolvedValue([]) },
+      imovel: { findMany: jest.fn().mockResolvedValue([]) },
+      membro: { findMany: jest.fn().mockResolvedValue([]) },
     };
     contaService = {
       resolve: jest.fn().mockResolvedValue({ contaId: userId, papel: 'OWNER' }),
@@ -245,6 +252,85 @@ describe('PerfilService', () => {
       });
 
       expect(resposta.mensagem).toMatch(/sess/i);
+    });
+  });
+  describe('exportarDados', () => {
+    it('nunca inclui o hash da senha', async () => {
+      // O select da query é a garantia; o teste existe para que acrescentar um campo
+      // ao `select` um dia não traga `password` junto sem ninguém reparar.
+      prisma.user.findUnique.mockResolvedValue({
+        id: userId,
+        name: usuario.name,
+        email: usuario.email,
+        plano: 'FREE',
+        createdAt: new Date('2026-01-01'),
+      });
+
+      const dados = await service.exportarDados(userId);
+
+      expect(JSON.stringify(dados)).not.toContain(hashAtual);
+      expect(dados.perfil).not.toHaveProperty('password');
+    });
+
+    it('busca só o que pertence a este usuário, nunca a conta que ele acompanha', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: userId,
+        name: usuario.name,
+        email: usuario.email,
+        plano: 'FREE',
+        createdAt: new Date('2026-01-01'),
+      });
+
+      await service.exportarDados(userId);
+
+      // `userId`, e não `contaId`: um VISUALIZADOR da conta de outra pessoa não pode
+      // baixar os dados dela por esta rota.
+      expect(prisma.imobiliaria.findMany).toHaveBeenCalledWith({
+        where: { userId },
+      });
+      expect(prisma.imovel.findMany.mock.calls[0][0].where).toEqual({ userId });
+      expect(prisma.membro.findMany.mock.calls[0][0].where).toEqual({
+        donoId: userId,
+      });
+    });
+
+    it('traz a árvore inteira: unidades, moradores, pagamentos, gastos e histórico', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: userId,
+        name: usuario.name,
+        email: usuario.email,
+        plano: 'FREE',
+        createdAt: new Date('2026-01-01'),
+      });
+
+      await service.exportarDados(userId);
+
+      const include = prisma.imovel.findMany.mock.calls[0][0].include;
+      expect(include.kitnets.include.moradores.include.pagamentos).toBe(true);
+      expect(include.kitnets.include.gastos).toBe(true);
+      expect(include.kitnets.include.historicoValor).toBe(true);
+    });
+  });
+
+  describe('apagarConta', () => {
+    it('apaga o usuário quando a senha confere', async () => {
+      prisma.user.findUnique.mockResolvedValue(usuario);
+      prisma.user.delete.mockResolvedValue(usuario);
+
+      await service.apagarConta(userId, { senhaAtual });
+
+      expect(prisma.user.delete).toHaveBeenCalledWith({
+        where: { id: userId },
+      });
+    });
+
+    it('recusa e não apaga nada quando a senha está errada', async () => {
+      prisma.user.findUnique.mockResolvedValue(usuario);
+
+      await expect(
+        service.apagarConta(userId, { senhaAtual: 'chute' }),
+      ).rejects.toBeInstanceOf(UnauthorizedException);
+      expect(prisma.user.delete).not.toHaveBeenCalled();
     });
   });
 });
